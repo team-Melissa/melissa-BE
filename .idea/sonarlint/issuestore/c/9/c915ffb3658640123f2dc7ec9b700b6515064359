@@ -1,0 +1,12 @@
+
+g	java:S112;"FDefine and throw a dedicated exception instead of using a generic one.(Ò‚Òéüÿÿÿÿ8ÓÑÄÓÇ2
+Q
+java:S3740C"/Provide the parametrized type for this generic.(ü´¼Èýÿÿÿÿ8ÔÑÄÓÇ2
+\
+java:S1611%"?Remove the parentheses around the "sessionManagement" parameter(¹Ÿðý8ÙÑÄÓÇ2
+a
+java:S1611)"?Remove the parentheses around the "authorizeRequests" parameter(Ùº¼¤ýÿÿÿÿ8ÙÑÄÓÇ2
+Z
+java:S1611/"=Remove the parentheses around the "exceptionConfig" parameter(¾½¼Û8ÙÑÄÓÇ2
+>
+java:S11163"Remove this empty statement.(Åñ­õþÿÿÿÿ8ÚÑÄÓÇ2

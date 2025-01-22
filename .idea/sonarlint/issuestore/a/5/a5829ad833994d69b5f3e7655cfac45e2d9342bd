@@ -1,0 +1,19 @@
+
+	java:S116"dRename this field "ACCESS_TOKEN_VALID_MILLIS" to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(»Óœ8¥ÀŸÓÇ2
+†	java:S116"eRename this field "REFRESH_TOKEN_VALID_MILLIS" to match the regular expression '^[a-z][a-zA-Z0-9]*$'.(³úÍáùÿÿÿÿ8¦ÀŸÓÇ2
+=
+java:S1170"!Make this final field static too.(»Óœ8¦ÀŸÓÇ2
+C
+java:S1170"!Make this final field static too.(³úÍáùÿÿÿÿ8¦ÀŸÓÇ2
+R
+java:S1874)"0Remove this use of "signWith"; it is deprecated.(´²­úÿÿÿÿ8î…¡ÓÇ2
+P
+java:S18740".Remove this use of "parser"; it is deprecated.(Ù—ÏÔûÿÿÿÿ8ªÀŸÓÇ2
+W
+java:S18741"5Remove this use of "setSigningKey"; it is deprecated.(Ã¡û„ùÿÿÿÿ8«ÀŸÓÇ2
+K
+java:S1874<".Remove this use of "parser"; it is deprecated.(¤‹ıà8¬ÀŸÓÇ2
+W
+java:S1874="5Remove this use of "setSigningKey"; it is deprecated.(Ã¡û„ùÿÿÿÿ8¬ÀŸÓÇ2
+l
+java:S1128"ORemove this unused import 'org.springframework.beans.factory.annotation.Value'.(ìø›8Ãï¢ÓÇ2
