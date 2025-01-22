@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.melissa.diary.MelissaDiaryAssistantApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-01-22T15:58:51" hostname="DESKTOP-2JC3EHL" time="0.475">
+  <properties/>
+  <testcase name="contextLoads()" classname="com.melissa.diary.MelissaDiaryAssistantApplicationTests" time="0.475"/>
+  <system-out><![CDATA[00:58:50.618 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [com.melissa.diary.MelissaDiaryAssistantApplicationTests]: MelissaDiaryAssistantApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+00:58:50.683 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration com.melissa.diary.MelissaDiaryAssistantApplication for test class com.melissa.diary.MelissaDiaryAssistantApplicationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.3.1)
+
+2025-01-23T00:58:50.946+09:00  INFO 9496 --- [    Test worker] .d.MelissaDiaryAssistantApplicationTests : Starting MelissaDiaryAssistantApplicationTests using Java 17.0.6 with PID 9496 (started by JSH in C:\Users\JSH\Desktop\melissa-diary-assistant)
+2025-01-23T00:58:50.946+09:00  INFO 9496 --- [    Test worker] .d.MelissaDiaryAssistantApplicationTests : No active profile set, falling back to 1 default profile: "default"
+2025-01-23T00:58:51.968+09:00  INFO 9496 --- [    Test worker] .d.MelissaDiaryAssistantApplicationTests : Started MelissaDiaryAssistantApplicationTests in 1.185 seconds (process running for 1.867)
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
