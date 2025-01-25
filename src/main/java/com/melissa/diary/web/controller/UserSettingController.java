@@ -3,13 +3,14 @@ package com.melissa.diary.web.controller;
 import com.melissa.diary.apiPayload.ApiResponse;
 import com.melissa.diary.domain.UserSetting;
 import com.melissa.diary.service.UserSettingService;
+import com.melissa.diary.web.dto.UserSettingRequestDTO;
 import com.melissa.diary.web.dto.UserSettingResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 import java.security.Principal;
 
 
@@ -29,5 +30,18 @@ public class UserSettingController {
                 userSettingService.getUserSettings(userId);
 
         return ApiResponse.onSuccess(response); //  "사용자 설정 조회 성공"
+    }
+
+    @Operation(description = "유저의 설정정보를 수정합니다.")
+    @PutMapping
+    public ApiResponse<UserSettingResponseDTO.UserSettingResponse> updateUserSetting(
+            Principal principal,
+            @RequestBody @Valid UserSettingRequestDTO.UserSettingRequest request) {
+
+        Long userId = Long.parseLong(principal.getName());
+        UserSettingResponseDTO.UserSettingResponse response =
+                userSettingService.updateUserSettings(userId, request);
+
+        return ApiResponse.onSuccess(response);
     }
 }
