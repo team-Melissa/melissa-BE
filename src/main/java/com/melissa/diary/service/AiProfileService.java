@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -65,6 +66,24 @@ public class AiProfileService {
     }
 
 
+    @Transactional
+    public AiProfileResponseDTO.AiProfileResponse getAiProfile(Long userId, Long aiProfileId){
+        AiProfile aiProfile = aiProfileRepository.findById(aiProfileId).orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
+
+        if (!aiProfile.getUser().getId().equals(userId)){
+            throw new ErrorHandler(ErrorStatus.PROFILE_NOT_UNAUTHORIZED);
+        }
+
+        return  AiProfileConverter.toResponse(aiProfile);
+
+    }
+
+    @Transactional
+    public List<AiProfileResponseDTO.AiProfileResponse> getAiProfileList(Long userId){
+        List<AiProfile> aiProfileList = aiProfileRepository.findByUserId(userId);
+
+        return aiProfileList.stream().map(AiProfileConverter::toResponse).toList();
+    }
 
 
 
