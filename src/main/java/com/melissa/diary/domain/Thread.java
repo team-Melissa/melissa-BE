@@ -8,6 +8,7 @@ import org.springframework.data.annotation.CreatedDate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -52,5 +53,14 @@ public class Thread {
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @ManyToOne
+    @JoinColumn(name = "ai_profile_id", nullable = false)
+    private AiProfile aiProfile;
+
+    @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL)
+    private List<DailyChatLog> dailyChatLogs = new ArrayList<>();
+
+
 
 }
