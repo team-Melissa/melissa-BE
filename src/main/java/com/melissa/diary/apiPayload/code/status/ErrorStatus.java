@@ -21,6 +21,7 @@ public enum ErrorStatus implements BaseErrorCode {
 
     // Setting
     SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "SETTING4001", "해당 유저의 셋팅을 찾을 수 없습니다."),
+    SETTING_ALREADY_ENROLL(HttpStatus.BAD_REQUEST, "SETTING4002", "해당 유저의 셋팅값이 이미 존재합니다."),
 
     // Auth
     // 인증 관련 에러 상태

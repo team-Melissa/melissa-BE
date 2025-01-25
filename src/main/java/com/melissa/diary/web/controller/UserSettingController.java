@@ -44,4 +44,13 @@ public class UserSettingController {
 
         return ApiResponse.onSuccess(response);
     }
+
+    @Operation(description = "유저의 설정정보를 기본값으로 등록합니다.")
+    @PostMapping("/register")
+    public ApiResponse<Void> createDefaultUserSetting(Principal principal) {
+        Long userId = Long.parseLong(principal.getName());
+        userSettingService.createDefaultSetting(userId);
+
+        return ApiResponse.onSuccess(null);
+    }
 }
