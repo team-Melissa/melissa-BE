@@ -18,11 +18,11 @@ public class AiProfile {
     private Long id;
 
     // 프롬프트 전문(또는 생성된 요약) 저장
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = true)
     private String promptText;
 
     // 예: "행복한 빵빵이"
-    @Column(nullable = false, length = 100)
+    @Column(nullable = true)
     private String profileName;
 
     // 예: S3 경로

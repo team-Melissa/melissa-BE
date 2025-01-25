@@ -12,7 +12,6 @@ public class AiProfileConverter {
         return AiProfileResponseDTO.AiProfileResponse.builder()
                 .aiProfileId(aiProfile.getId())
                 .profileName(aiProfile.getProfileName())
-                .imageUrl(aiProfile.getImageS3())
                 .feature1(aiProfile.getFeature1())
                 .feature2(aiProfile.getFeature2())
                 .feature3(aiProfile.getFeature3())
