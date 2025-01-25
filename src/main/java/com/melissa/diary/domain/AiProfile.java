@@ -37,4 +37,6 @@ public class AiProfile {
     @JoinColumn(name = "user_id", nullable = true)
     private User user;
 
+
+
 }

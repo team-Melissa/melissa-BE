@@ -57,4 +57,31 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<AiProfile> aiProfileList = new ArrayList<>();
+
+    // 연관관계 편의 메소드
+    public void addUserSetting(UserSetting userSetting) {
+        userSettingList.add(userSetting);
+        userSetting.setUser(this);
+    }
+
+    public void addDonation(Donation donation) {
+        donationList.add(donation);
+        donation.setUser(this);
+    }
+
+    public void addMonthlySummary(MonthlySummary monthlySummary) {
+        monthlySummaryList.add(monthlySummary);
+        monthlySummary.setUser(this);
+    }
+
+    public void addThread(Thread thread) {
+        threadList.add(thread);
+        thread.setUser(this);
+    }
+
+    public void addAiProfile(AiProfile aiProfile) {
+        aiProfileList.add(aiProfile);
+        aiProfile.setUser(this);
+    }
+
 }

@@ -7,6 +7,7 @@ import java.sql.Time;
 
 @Getter
 @Builder
+@Setter
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor

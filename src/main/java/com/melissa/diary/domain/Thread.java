@@ -61,6 +61,10 @@ public class Thread {
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL)
     private List<DailyChatLog> dailyChatLogs = new ArrayList<>();
 
-
+    // 연관관계 편의 메소드
+    public void addDailyChatLog(DailyChatLog dailyChatLog) {
+        dailyChatLogs.add(dailyChatLog);
+        dailyChatLog.setThread(this);
+    }
 
 }
