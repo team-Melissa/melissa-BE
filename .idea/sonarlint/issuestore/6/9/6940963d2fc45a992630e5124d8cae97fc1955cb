@@ -1,24 +1,8 @@
 
-\
-java:S1854$":Remove this useless assignment to local variable "result".(ØÂôûÿÿÿÿ8ÀÉ¼É2
-]
-java:S1854!"@Remove this useless assignment to local variable "refreshToken".(ı‚½Ö8ÀÉ¼É2
-\
-java:S1854 "?Remove this useless assignment to local variable "accessToken".(½Ö´Á8ÀÉ¼É2
-Z
-java:S1854"8Remove this useless assignment to local variable "user".(»ëª™úÿÿÿÿ8ÀÉ¼É2
-W
-java:S18542":Remove this useless assignment to local variable "result".(»Ñùû8ñ—½É2
-]
-java:S18541"@Remove this useless assignment to local variable "refreshToken".(ı‚½Ö8ñ—½É2
-\
-java:S18540"?Remove this useless assignment to local variable "accessToken".(½Ö´Á8ñ—½É2
-U
-java:S1854/"8Remove this useless assignment to local variable "user".(ºÜ½€8ñ—½É2
-W
-java:S1854Q":Remove this useless assignment to local variable "result".(ñ³ĞÇ8¾½½É2
-_
-java:S1854M"BRemove this useless assignment to local variable "newAccessToken".(®Œ³‡8¾½½É2
-Z
-java:S1854J"8Remove this useless assignment to local variable "user".(ÇÈêËøÿÿÿÿ8¿½½É2
-X	java:S125:"<This block of commented-out lines of code should be removed.(­ïã8›ÀæúÇ2
+X	java:S125?"<This block of commented-out lines of code should be removed.(­ïã8’Å•èÉ2
+`
+java:S1128	"DRemove this unused import 'jakarta.servlet.http.HttpServletRequest'.(õ38µ§©èÉ2
+j
+java:S1128"MRemove this unused import 'org.springframework.security.core.Authentication'.(ñıÓ“8µ§©èÉ2
+y
+java:S1128"\Remove this unused import 'org.springframework.security.core.context.SecurityContextHolder'.(ŒÄæë8¶§©èÉ2

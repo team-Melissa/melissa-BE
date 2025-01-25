@@ -52,4 +52,7 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<MonthlySummary> monthlySummaryList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Thread> threadList = new ArrayList<>();
 }

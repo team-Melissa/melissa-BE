@@ -62,3 +62,13 @@ Y
 Nsrc/main/java/com/melissa/diary/apiPayload/exception/handler/ErrorHandler.java,6\6\661ec6ee162ab4aaa7c437ae217b9f21318dc7e5
 t
 Dsrc/main/java/com/melissa/diary/web/controller/healthController.java,2\a\2ab8a10458831b78b9a72748f55f48a87437d230
+d
+4src/main/java/com/melissa/diary/domain/Donation.java,0\9\09ff41aef9fab8e5577731565b60c4933ec7429a
+j
+:src/main/java/com/melissa/diary/domain/MonthlySummary.java,9\a\9a75438260ae54f8e0e0c39edb9293b30b9c6942
+g
+7src/main/java/com/melissa/diary/domain/UserSetting.java,7\9\79c8aa7379b8077b1245a07a0e9c75e5ff887d9e
+`
+0src/main/java/com/melissa/diary/domain/Mood.java,c\0\c062172d4faebb2bff0516c11f975b1b53ac661d
+b
+2src/main/java/com/melissa/diary/domain/Thread.java,1\d\1dedf00f13efd3e0718389af765d8fb6da87e683
