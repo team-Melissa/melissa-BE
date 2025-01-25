@@ -1,5 +1,6 @@
 package com.melissa.diary.web.dto;
 
+import jakarta.persistence.Column;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -17,18 +18,15 @@ public class AiProfileResponseDTO {
 
         private String imageUrl;
 
-        // 질문 원문
-        private String feature1;  // Q1
-        private String feature2;  // Q2
-        private String feature3;  // Q3
-        private String feature4;  // Q4
-        private String feature5;  // Q5
-        private String feature6;  // Q6
+        // 아래 정보는 질문 바탕으로 프롬프팅
+        // 해시태그 최대 2개
+        private String hashTag1;
+        private String hashTag2;
 
-        // 해시태그
-        private String hashTag1;  // 성격
-        private String hashTag2;  // 연령대
-        private String hashTag3;  // 목적성
+        // 특징(Feature) 최대 3개
+        private String feature1;
+        private String feature2;
+        private String feature3;
 
 
         private LocalDateTime createdAt;
