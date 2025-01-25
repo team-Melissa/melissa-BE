@@ -20,7 +20,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserSettingService {
     private final UserSettingRepository userSettingRepository;
-    private final AiProfileRepository aiProfileRepository;
     private final UserRepository userRepository;
 
 
@@ -64,5 +63,10 @@ public class UserSettingService {
                 .build();
 
         userSettingRepository.save(defaultSetting);
+    }
+
+    public boolean isNewUser(Long userId) {
+        // 설정값이 있으면 신규가입이 아님 (기본값이라도 있으면, 기존유저)
+        return !userSettingRepository.existsByUserId(userId);
     }
 }

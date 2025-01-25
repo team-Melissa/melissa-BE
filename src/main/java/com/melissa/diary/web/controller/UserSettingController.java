@@ -53,4 +53,14 @@ public class UserSettingController {
 
         return ApiResponse.onSuccess(null);
     }
+
+    @Operation(description = "신규유저인지 체크합니다.")
+    @GetMapping("/check-new")
+    public ApiResponse<Boolean> checkNewUser(Principal principal) {
+        Long userId = Long.parseLong(principal.getName());
+        boolean isNewUser = userSettingService.isNewUser(userId);
+
+        return ApiResponse.onSuccess(isNewUser);
+    }
+
 }
