@@ -52,5 +52,15 @@ public class AiProfileController {
         List<AiProfileResponseDTO.AiProfileResponse> list = aiProfileService.getAiProfileList(userId);
         return ApiResponse.onSuccess(list);
     }
+    @Operation(description = "해당하는 AI 프로필을 삭제합니다.")
+    @DeleteMapping("/{aiProfileId}")
+    public ApiResponse<Void> deleteAiProfile(
+            Principal principal,
+            @PathVariable Long aiProfileId) {
+
+        Long userId = Long.parseLong(principal.getName());
+        aiProfileService.deleteAiProfile(userId, aiProfileId);
+        return ApiResponse.onSuccess(null);
+    }
 
 }

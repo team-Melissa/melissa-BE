@@ -86,7 +86,16 @@ public class AiProfileService {
     }
 
 
+    @Transactional
+    public void deleteAiProfile(Long userId, Long aiProfileId) {
+        AiProfile aiProfile = aiProfileRepository.findById(aiProfileId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
 
+        if (!aiProfile.getUser().getId().equals(userId)) {
+            throw new ErrorHandler(ErrorStatus.PROFILE_NOT_UNAUTHORIZED);
+        }
+        aiProfileRepository.delete(aiProfile);
+    }
 
 
 
