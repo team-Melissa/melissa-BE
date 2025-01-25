@@ -4,19 +4,25 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@Slf4j
 @Component
-@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtProvider jwtProvider;
+    @Autowired
+    private JwtProvider jwtProvider;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -28,9 +34,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && jwtProvider.validateToken(token)) {
             // userId 추출
             Long userId = jwtProvider.getUserId(token);
-            // 권한/롤(ROLE_USER 등) 설정 필요 시, DB 조회 or Claims에서 가져오기
-            JwtUserAuthentication authentication = new JwtUserAuthentication(userId, null, null);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            AbstractAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    userId,
+                    null,
+                    AuthorityUtils.NO_AUTHORITIES
+            );
+            authentication.setDetails(new WebAuthenticationDetailsSource()
+                    .buildDetails(request));
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+            securityContext.setAuthentication(authentication);
+            SecurityContextHolder.setContext(securityContext);
+
         }
         chain.doFilter(request, response);
     }

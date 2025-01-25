@@ -7,7 +7,7 @@ import lombok.Setter;
 public class UserRequestDTO {
     @Getter
     @Setter
-    public static class GoogleOAuthDto {
+    public static class GoogleOAuthDTO {
         @NotBlank
         private String idToken;
     }
@@ -15,7 +15,7 @@ public class UserRequestDTO {
 
     @Getter
     @Setter
-    public static class KakaoOAuthDto {
+    public static class KakaoOAuthDTO {
         @NotBlank
         private String accessToken;
     }
@@ -24,7 +24,7 @@ public class UserRequestDTO {
    
     @Getter
     @Setter
-    public static class AppleOAuthDto {
+    public static class AppleOAuthDTO {
         @NotBlank
         private String idToken;
     }
@@ -32,7 +32,7 @@ public class UserRequestDTO {
 
     @Getter
     @Setter
-    public static class RefreshRequestDto {
+    public static class RefreshRequestDTO {
         @NotBlank
         private String refreshToken;
     }

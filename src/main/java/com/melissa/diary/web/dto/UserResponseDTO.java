@@ -16,4 +16,13 @@ public class UserResponseDTO {
         private String refreshToken;
         private String tokenType;
     }
+
+    @Getter
+    @Builder
+    public static class RefreshTokenResponseDTO{
+        private String refreshToken;
+        private String tokenType;
+        private int expireIn;
+
+    }
 }

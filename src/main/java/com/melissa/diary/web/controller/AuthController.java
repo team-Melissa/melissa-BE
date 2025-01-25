@@ -23,7 +23,7 @@ public class AuthController {
     // 구글 로그인
     @PostMapping("/google")
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> googleLogin(
-            @RequestBody @Valid UserRequestDTO.GoogleOAuthDto request
+            @RequestBody @Valid UserRequestDTO.GoogleOAuthDTO request
     ) {
         // 1) 소셜 로그인 처리
         User user = userService.socialLoginGoogle(request);
@@ -42,7 +42,7 @@ public class AuthController {
     // 카카오 로그인
     @PostMapping("/kakao")
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> kakaoLogin(
-            @RequestBody @Valid UserRequestDTO.KakaoOAuthDto request
+            @RequestBody @Valid UserRequestDTO.KakaoOAuthDTO request
     ) {
         User user = userService.socialLoginKakao(request);
         String accessToken = userService.createAccessToken(user);
@@ -66,26 +66,30 @@ public class AuthController {
 
 
     // Refresh Token 재발급
+    // Refresh Token 재발급
     @PostMapping("/refresh")
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> refreshToken(
-            @RequestBody @Valid UserRequestDTO.RefreshRequestDto request
+            @RequestBody @Valid UserRequestDTO.RefreshRequestDTO request
     ) {
-        // 1) refreshToken으로 사용자 조회
+        // [1] refreshToken으로 사용자 조회 & 검증
         User user = userService.refreshAccessToken(request.getRefreshToken());
 
-        // 2) 새로운 Access Token 생성
+        // [2] 새로운 Token 생성
         String newAccessToken = userService.createAccessToken(user);
-        // (옵션) Refresh Token 로테이션 구현 시 여기서 refreshToken 재발급/교체 가능
+        String newRefreshToken = userService.createRefreshToken(user);
 
-        // 3) 결과 DTO
-        UserResponseDTO.OAuthLoginResultDTO result = UserResponseDTO.OAuthLoginResultDTO.builder()
-                .userId(user.getId())
-                .oauthProvider(user.getProvider())
-                .email(user.getEmail())
-                .nickname(user.getNickname())
-                .accessToken(newAccessToken)
-                .refreshToken(user.getRefreshToken()) // 기존 토큰 or 새 토큰
-                .build();
+
+
+        // [3] 결과 DTO 생성
+        UserResponseDTO.OAuthLoginResultDTO result =
+                UserResponseDTO.OAuthLoginResultDTO.builder()
+                        .userId(user.getId())
+                        .oauthProvider(user.getProvider())
+                        .email(user.getEmail())
+                        .nickname(user.getNickname())
+                        .accessToken(newAccessToken)
+                        .refreshToken(newRefreshToken) // 새로 갱신한 토큰
+                        .build();
 
         return ApiResponse.onSuccess(result);
     }
