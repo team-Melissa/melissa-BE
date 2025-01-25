@@ -19,6 +19,10 @@ public enum ErrorStatus implements BaseErrorCode {
     // For test
     TEMP_EXCEPTION(HttpStatus.BAD_REQUEST, "TEMP4001", "테스트 용도"),
 
+    // Setting
+    SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "SETTING4001", "해당 유저의 셋팅을 찾을 수 없습니다."),
+    SETTING_ALREADY_ENROLL(HttpStatus.BAD_REQUEST, "SETTING4002", "해당 유저의 셋팅값이 이미 존재합니다."),
+
     // Auth
     // 인증 관련 에러 상태
     SOCIAL_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH4001", "소셜 로그인 인증에 실패했습니다."),
