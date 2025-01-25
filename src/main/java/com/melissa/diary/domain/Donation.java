@@ -26,6 +26,6 @@ public class Donation {
     private LocalDateTime donateAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "userId")
+    @JoinColumn(name = "user_id")
     private User user;
 }

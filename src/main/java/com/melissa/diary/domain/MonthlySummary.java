@@ -1,27 +1,29 @@
 package com.melissa.diary.domain;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
-import java.sql.Time;
-
-@Getter
 @Builder
+@Getter
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserSetting {
+public class MonthlySummary {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private boolean notificationSummary;
+    private int year;
 
-    private boolean notificationQna;
+    private int month;
 
-    private Time sleepTime;
+    private String summaryText;
 
-    private Time notificationTime;
+    private String imageUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
