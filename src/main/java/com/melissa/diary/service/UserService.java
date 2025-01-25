@@ -141,4 +141,17 @@ public class UserService {
         // [4] Access Token 재발급시 필요한 사용자 반환
         return user;
     }
+
+    @Transactional
+    public void logout(Long userId) {
+        // DB에서 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.INVALID_TOKEN));
+
+        // Refresh Token 삭제
+        user.setRefreshToken(null);
+        // 만료 시각도 null
+        user.setRefreshTokenExpiry(null);
+
+    }
 }

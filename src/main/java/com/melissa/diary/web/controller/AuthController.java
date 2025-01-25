@@ -6,12 +6,17 @@ import com.melissa.diary.domain.User;
 import com.melissa.diary.service.UserService;
 import com.melissa.diary.web.dto.UserRequestDTO;
 import com.melissa.diary.web.dto.UserResponseDTO;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -93,4 +98,14 @@ public class AuthController {
 
         return ApiResponse.onSuccess(result);
     }
+
+    // 로그아웃
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(Principal principal) {
+
+        userService.logout(Long.parseLong(principal.getName()));
+
+        return ApiResponse.onSuccess(null);
+    }
+
 }
