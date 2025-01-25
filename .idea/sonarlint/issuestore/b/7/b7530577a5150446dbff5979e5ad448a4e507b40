@@ -1,6 +1,12 @@
 
-b	java:S112"FDefine and throw a dedicated exception instead of using a generic one.(èóÌ8×ßßÔÇ2
-b	java:S112:"FDefine and throw a dedicated exception instead of using a generic one.(ıŞ‡8×ßßÔÇ2
-h	java:S112„"FDefine and throw a dedicated exception instead of using a generic one.(ö¹ÍÉûÿÿÿÿ8ØßßÔÇ2
-b	java:S112‰"FDefine and throw a dedicated exception instead of using a generic one.(ÍÓ‹p8›¢ßúÇ2
-]	java:S125Q"<This block of commented-out lines of code should be removed.(©ìñäıÿÿÿÿ8âßßÔÇ2
+h	java:S112†"FDefine and throw a dedicated exception instead of using a generic one.(ö¹ÍÉûÿÿÿÿ8ÏùŒÉ2
+b	java:S112‹"FDefine and throw a dedicated exception instead of using a generic one.(ÍÓ‹p8½½şŒÉ2
+U
+java:S1854""8Remove this useless assignment to local variable "user".(´’İÔ8¾¿É2
+e
+java:S2230"CMake this method "public" or remove the "@Transactional" annotation(ÙĞòşÿÿÿÿ8¾¿É2
+Z
+java:S1854?"8Remove this useless assignment to local variable "user".(İê·šşÿÿÿÿ8š²¿É2
+e
+java:S22307"CMake this method "public" or remove the "@Transactional" annotation(ÍÒÑòûÿÿÿÿ8š²¿É2
+X	java:S125S"<This block of commented-out lines of code should be removed.(Øêóú8ÊÀ›€É2

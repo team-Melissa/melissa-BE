@@ -13,11 +13,11 @@ import java.util.Date;
 public class JwtProvider {
 
     //@Value("${jwt.secret}")
-    private String secretKey = "asdasdasdsasssssssssssssssssssssssssssssssssssssssssssa";
+    private String secretKey = "NMA8JPctFuna59fasdasdasdafqfgwqgxbsdbsdgabqbqq5";
 
     // 유효 기간
-    private final long ACCESS_TOKEN_VALID_MILLIS = 1000L * 60 * 60;       // 1시간
-    private final long REFRESH_TOKEN_VALID_MILLIS = 1000L * 60 * 60 * 24; // 1일
+    private final long ACCESS_TOKEN_VALID_MILLIS = 1000L * 60 * 60 * 100;       // 1시간
+    private final long REFRESH_TOKEN_VALID_MILLIS = 1000L * 60 * 60 * 24 * 100; // 1일
 
     // Access Token 생성
     public String createAccessToken(Long userId, String provider) {

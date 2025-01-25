@@ -20,8 +20,6 @@ k
 ;src/main/java/com/melissa/diary/apiPayload/ApiResponse.java,3\d\3d0fcb8baa2108f831d700f86c98900000cd6762
 z
 Jsrc/main/java/com/melissa/diary/apiPayload/exception/GeneralException.java,5\2\521c91da67ef80615860095fc0264f3c7df948dd
-g
-7src/main/java/com/melissa/diary/ServletInitializer.java,5\b\5bab472baacfd5072dec105ff3e62834e0058c93
 u
 Esrc/main/java/com/melissa/diary/MelissaDiaryAssistantApplication.java,5\8\586e5eea0856b7778fc5ae930a6bf72143ff8fb6
 s
@@ -54,11 +52,13 @@ i
 9src/main/java/com/melissa/diary/security/JwtProvider.java,a\5\a5829ad833994d69b5f3e7655cfac45e2d9342bd
 l
 <src/main/java/com/melissa/diary/converter/UserConverter.java,a\c\ac60015f3eb8355180d2aa3068cd22ca802af81d
-r
-Bsrc/main/java/com/melissa/diary/web/controller/ChatController.java,3\e\3e49c197877a08eb293ee1f9337fff782f238f0e
-h
-8src/main/java/com/melissa/diary/service/ChatService.java,9\6\9676389b2e307d23cba8074940946c125508fe7b
-k
-;src/main/java/com/melissa/diary/config/WebClientConfig.java,e\d\ed4283b5d7c3efd71932afb1c6f36b1eaf2a7b11
-e
-5src/main/java/com/melissa/diary/config/WebConfig.java,4\3\43ab840fa079bd81fb7e8888dd8f1f80ce157f1b
+9
+	README.md,8\e\8ec9a00bfd09b3190ac6b22251dbb1aa95a0579d
+R
+".github/ISSUE_TEMPLATE/bug-fix-.md,1\e\1e125e6d9740563ce9bf42e5ce7d53a34f25bcbe
+Y
+).github/ISSUE_TEMPLATE/feature-request.md,0\4\04383e4ba2c1f97117db501e35f55320c3e05b7f
+~
+Nsrc/main/java/com/melissa/diary/apiPayload/exception/handler/ErrorHandler.java,6\6\661ec6ee162ab4aaa7c437ae217b9f21318dc7e5
+t
+Dsrc/main/java/com/melissa/diary/web/controller/healthController.java,2\a\2ab8a10458831b78b9a72748f55f48a87437d230
