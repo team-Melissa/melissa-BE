@@ -23,6 +23,11 @@ public enum ErrorStatus implements BaseErrorCode {
     SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "SETTING4001", "해당 유저의 셋팅을 찾을 수 없습니다."),
     SETTING_ALREADY_ENROLL(HttpStatus.BAD_REQUEST, "SETTING4002", "해당 유저의 셋팅값이 이미 존재합니다."),
 
+    // Profile
+    PROFILE_NOT_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "SETTING4001", "해당 프로필에 접근할 수 있는 권한이 없습니다,"),
+    PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "PROFILE4002", "해당 프로필이 존재하지 않습니다."),
+
+
     // Auth
     // 인증 관련 에러 상태
     SOCIAL_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH4001", "소셜 로그인 인증에 실패했습니다."),
@@ -30,7 +35,8 @@ public enum ErrorStatus implements BaseErrorCode {
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH4003", "토큰이 만료되었습니다."),
     TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH4004", "토큰이 일치하지 않습니다."),
     TOKEN_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH5001", "토큰 생성에 실패했습니다."),
-    TOKEN_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "AUTH4005", "토큰 검증에 실패했습니다.");
+    TOKEN_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "AUTH4005", "토큰 검증에 실패했습니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH4006", "해당 유저가 존재하지 않습니다.");
 
 
 

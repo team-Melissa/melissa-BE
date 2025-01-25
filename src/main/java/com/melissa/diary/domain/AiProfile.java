@@ -2,6 +2,9 @@ package com.melissa.diary.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -14,27 +17,39 @@ public class AiProfile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 프롬프트 전문(또는 생성된 요약) 저장
+    @Column(columnDefinition = "TEXT", nullable = true)
+    private String promptText;
 
-    @Column(nullable = false, length = 100)
+    // 예: "행복한 빵빵이"
+    @Column(nullable = true)
     private String profileName;
 
-    @Column(nullable = true, length = 255)
-    private String image;
+    // 예: S3 경로
+    @Column(length = 255)
+    private String imageS3;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String prompt;
+    // 해시태그 최대 2개
+    @Column(length = 30)
+    private String hashTag1;
+    @Column(length = 30)
+    private String hashTag2;
 
-    @Column(nullable = true, length = 100)
-    private String sampleQuestionAnswer;
+    // 특징(Feature) 최대 3개
+    @Column(length = 255)
+    private String feature1;
+    @Column(length = 255)
+    private String feature2;
+    @Column(length = 255)
+    private String feature3;
 
-    @Column(nullable = true, columnDefinition = "TEXT")
-    private String personalitySummary;
+    // 생성 시각
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
-    @Column(nullable = true, length = 30)
-    private String hashtags;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = true)
+    // 소유 사용자
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
 
 
