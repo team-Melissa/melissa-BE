@@ -11,7 +11,7 @@ spring:
           size: 512x512
           style: natural
           quality: standard
-          response-format: url
+          response_format: b64_json
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/melissa_db  # jdbc:mysql://${AWS_DB_URL}:3306/melissa_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=true&requireSSL=true #
     username: root #${AWS_DB_USERNAME} #

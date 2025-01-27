@@ -17,8 +17,16 @@ import org.springframework.stereotype.Service;
 public class ImageGenerator {
     private final ImageModel imageModel;
 
-    public String generate(String prompt) {
-        ImagePrompt imagePrompt = new ImagePrompt(prompt);
+    public String generateB64(String prompt) {
+        ImageOptions imageOptions = OpenAiImageOptions
+                .builder()
+                .model("dall-e-3")
+                .withHeight(1024)
+                .withWidth(1024)
+                .responseFormat("b64_json")
+                .build();
+        ImagePrompt imagePrompt = new ImagePrompt(prompt, imageOptions);
+
         ImageResponse imageResponse = imageModel.call(imagePrompt);
         return resolveImageContent(imageResponse);
     }
@@ -26,8 +34,8 @@ public class ImageGenerator {
     private String resolveImageContent(ImageResponse imageResponse) {
         Image image = imageResponse.getResult().getOutput();
         return Optional
-                .ofNullable(image.getUrl())
-                .orElseGet(image::getB64Json);
+                .ofNullable(image.getB64Json())
+                .orElseThrow(() -> new IllegalArgumentException("이미지의 Base64 값이 없습니다."));
     }
 
 }

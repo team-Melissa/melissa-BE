@@ -2,6 +2,7 @@ package com.melissa.diary;
 
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.image.ImageModel;
+import org.springframework.ai.image.ImageOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiImageModel;
 import org.springframework.ai.openai.api.OpenAiApi;
@@ -29,5 +30,6 @@ public class MelissaDiaryAssistantApplication {
 	ChatModel chatModel(@Value("${spring.ai.openai.api-key}") String apiKey) {
 		return new OpenAiChatModel(new OpenAiApi(apiKey));
 	}
+
 
 }
