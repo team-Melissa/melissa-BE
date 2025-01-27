@@ -2,8 +2,18 @@ server:
   port: 8080
 
 spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      image:
+        options:
+          model: dall-e-3
+          size: 512x512
+          style: natural
+          quality: standard
+          response-format: url
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/melissa_db  #jdbc:mysql://${AWS_DB_URL}:3306/melissa_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=true&requireSSL=true #
+    url: jdbc:mysql://127.0.0.1:3306/melissa_db  # jdbc:mysql://${AWS_DB_URL}:3306/melissa_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=true&requireSSL=true #
     username: root #${AWS_DB_USERNAME} #
     password: 12341234 #${AWS_DB_PASSWORD} #
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -24,3 +34,23 @@ spring:
     multipart:
       max-file-size: 20MB
       max-request-size: 20MB
+
+cloud:
+  aws:
+    s3:
+      bucket: melissa-s3
+    path:
+      day-summary: day-summary
+      month-summary: month-summary
+      ai-profile: ai-profile
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+    credentials:
+      accessKey: ${AWS_ACCESS_KEY_ID}
+      secretKey: ${AWS_SECRET_ACCESS_KEY}
+
+security:
+  jwt:
+    secret-key: ${MELISSA_JWT_SECRET_KEY}
