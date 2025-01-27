@@ -12,8 +12,8 @@ import java.util.Date;
 @Component
 public class JwtProvider {
 
-    //@Value("${jwt.secret}")
-    private String secretKey = "NMA8JPctFuna59fasdasdasdafqfgwqgxbsdbsdgabqbqq5";
+    @Value("${security.jwt.secret-key}")
+    private String secretKey;
 
     // 유효 기간
     private final long ACCESS_TOKEN_VALID_MILLIS = 1000L * 60 * 60 * 100;       // 1시간
