@@ -2,6 +2,16 @@ server:
   port: 8080
 
 spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      image:
+        options:
+          model: dall-e-3
+          size: 512x512
+          style: natural
+          quality: standard
+          response_format: b64_json
   datasource:
     url: jdbc:mysql://${AWS_DB_URL}:3306/melissa_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=true&requireSSL=true #jdbc:mysql://127.0.0.1:3306/melissa_db  #
     username: ${AWS_DB_USERNAME} #root #

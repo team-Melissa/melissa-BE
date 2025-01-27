@@ -11,7 +11,9 @@ package com.melissa.diary.aws.s3;
         import org.springframework.stereotype.Component;
         import org.springframework.web.multipart.MultipartFile;
 
+        import java.io.ByteArrayInputStream;
         import java.io.IOException;
+        import java.util.Base64;
 
 @Slf4j
 @Component
@@ -25,6 +27,7 @@ public class AmazonS3Manager{
     public String uploadFile(String keyName, MultipartFile file){
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(file.getSize());
+        metadata.setContentType(file.getContentType());
         try {
             amazonS3.putObject(new PutObjectRequest(amazonConfig.getBucket(), keyName, file.getInputStream(), metadata));
         }catch (IOException e){
@@ -32,6 +35,21 @@ public class AmazonS3Manager{
         }
 
         return amazonS3.getUrl(amazonConfig.getBucket(), keyName).toString();
+    }
+
+    public String uploadFileFromBase64(String keyName, String base64Data, String contentType){
+        // 디코딩 전 모든 공백 문자 제거
+        base64Data = base64Data.replaceAll("\\s+", "");
+        // Base64 디코딩
+        byte[] fileContent = Base64.getDecoder().decode(base64Data);
+
+        // Base64를 MultipartFile 객체로 변환
+        // contentType("image/png") 등 실제 타입에 맞춰서 설정
+        MultipartFile multipartFile =
+                new Base64ToMultipartFile(fileContent, keyName, contentType);
+
+        // uploadFile() 호출
+        return uploadFile(keyName, multipartFile);
     }
 
     public String generateDaySummaryKeyName(Uuid uuid) {
