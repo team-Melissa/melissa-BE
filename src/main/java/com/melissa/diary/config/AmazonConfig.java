@@ -28,6 +28,18 @@ public class AmazonConfig {
     @Value("${cloud.aws.region.static}")
     private String region;
 
+    @Value("${cloud.aws.s3.bucket}")
+    private String bucket;
+
+    @Value("${cloud.aws.path.ai-profile}")
+    private String aiProfile;
+
+    @Value("${cloud.aws.path.day-summary}")
+    private String daySummary;
+
+    @Value("${cloud.aws.path.month-summary}")
+    private String monthSummary;
+
     @PostConstruct
     public void init() {
         this.awsCredentials = new BasicAWSCredentials(accessKey, secretKey);

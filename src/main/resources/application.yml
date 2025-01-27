@@ -29,6 +29,10 @@ cloud:
   aws:
     s3:
       bucket: melissa-s3
+    path:
+      day-summary: day-summary
+      month-summary: month-summary
+      ai-profile: ai-profile
     region:
       static: ap-northeast-2
     stack:
