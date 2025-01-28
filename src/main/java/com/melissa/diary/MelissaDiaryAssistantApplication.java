@@ -1,6 +1,7 @@
 package com.melissa.diary;
 
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.StreamingChatModel;
 import org.springframework.ai.image.ImageModel;
 import org.springframework.ai.image.ImageOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
