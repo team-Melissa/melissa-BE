@@ -46,22 +46,23 @@ public class Thread {
     private String summaryTitle;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 40)
     private Mood mood;
-
-    @Column(nullable = true, length = 255)
-    private String moodImage;
 
     @Column(nullable = true, columnDefinition = "TEXT")
     private String summaryContent;
-
-    @Column(nullable = true)
-    private LocalDateTime summaryCreatedAt;
 
     @Column(nullable = true, length = 30)
     private String hashtag1;
 
     @Column(nullable = true, length = 30)
     private String hashtag2;
+
+    @Column(nullable = true)
+    private String imageUrl;
+
+    @Column(nullable = true)
+    private LocalDateTime summaryCreatedAt;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)

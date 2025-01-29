@@ -12,7 +12,7 @@ public class ThreadConverter {
                 .summaryTitle(thread.getSummaryTitle())
                 .summaryMood(thread.getMood() != null ? thread.getMood().name() : null)
                 .summaryContent(thread.getSummaryContent())
-                .imageS3(thread.getMoodImage())
+                .imageS3(thread.getImageUrl())
                 .build();
     }
 
@@ -23,7 +23,7 @@ public class ThreadConverter {
                 .day(thread.getDay())
                 .hashTag1(thread.getHashtag1())
                 .hashTag2(thread.getHashtag2())
-                .imageS3(thread.getMoodImage())
+                .imageS3(thread.getImageUrl())
                 .build();
     }
 }
