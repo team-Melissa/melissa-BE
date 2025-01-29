@@ -100,6 +100,7 @@ public class AuthController {
                         .nickname(user.getNickname())
                         .accessToken(newAccessToken)
                         .refreshToken(newRefreshToken) // 새로 갱신한 토큰
+                        .tokenType("Bearer")
                         .build();
 
         return ApiResponse.onSuccess(result);
