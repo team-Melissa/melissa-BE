@@ -43,6 +43,23 @@ public class AiProfile {
     @Column(length = 255)
     private String feature3;
 
+    @Column(length = 255)
+    private String q1;
+    @Column(length = 255)
+    private String q2;
+    @Column(length = 255)
+    private String q3;
+    @Column(length = 255)
+    private String q4;
+    @Column(length = 255)
+    private String q5;
+    @Column(length = 255)
+    private String q6;
+
+
+
+
+
     // 생성 시각
     @CreationTimestamp
     private LocalDateTime createdAt;

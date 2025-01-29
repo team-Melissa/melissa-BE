@@ -35,12 +35,24 @@ public class AiProfileController {
     @Operation(description = "특정 AI 프로필을 상세 조회합니다.")
     @GetMapping("/{aiProfileId}")
     public ApiResponse<AiProfileResponseDTO.AiProfileResponse> getAiProfile(
-            Principal principal,
-            @PathVariable Long aiProfileId) {
+
+            @PathVariable(name = "aiProfileId") Long aiProfileId, Principal principal) {
 
         Long userId = Long.parseLong(principal.getName());
         AiProfileResponseDTO.AiProfileResponse response =
                 aiProfileService.getAiProfile(userId, aiProfileId);
+        return ApiResponse.onSuccess(response);
+    }
+
+    @Operation(description = "특정 AI 프로필을 만들 당시의 질문을 조회합니다.")
+    @GetMapping("/{aiProfileId}/question")
+    public ApiResponse<AiProfileResponseDTO.AiProfileQuestionResponse> getAiQuestionProfile(
+
+            @PathVariable(name = "aiProfileId") Long aiProfileId, Principal principal) {
+
+        Long userId = Long.parseLong(principal.getName());
+        AiProfileResponseDTO.AiProfileQuestionResponse response=
+                aiProfileService.getAiProfileQuestion(userId, aiProfileId);
         return ApiResponse.onSuccess(response);
     }
 
