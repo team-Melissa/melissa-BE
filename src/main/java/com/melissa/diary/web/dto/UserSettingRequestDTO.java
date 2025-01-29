@@ -1,12 +1,12 @@
 package com.melissa.diary.web.dto;
 
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
+import lombok.*;
 
 public class UserSettingRequestDTO {
     @Getter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class UserSettingRequest {
 
         private String sleepTime;

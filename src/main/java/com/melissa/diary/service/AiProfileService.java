@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -62,6 +63,12 @@ public class AiProfileService {
         // 4) 프로필사진 생성
         String imageUrl = imageGenerator.genProfileImage(promptImage);
         newProfile.setImageS3(imageUrl);
+        newProfile.setQ1(request.getQ1());
+        newProfile.setQ2(request.getQ2());
+        newProfile.setQ3(request.getQ3());
+        newProfile.setQ4(request.getQ4());
+        newProfile.setQ5(request.getQ5());
+        newProfile.setQ6(request.getQ6());
 
         // 5 DB 저장
         AiProfile saved = aiProfileRepository.save(newProfile);
@@ -82,6 +89,16 @@ public class AiProfileService {
         }
 
         return  AiProfileConverter.toResponse(aiProfile);
+
+    }
+
+    @Transactional
+    public AiProfileResponseDTO.AiProfileQuestionResponse getAiProfileQuestion(Long userId, Long aiProfileId){
+        AiProfile aiProfile = aiProfileRepository.findById(aiProfileId).orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
+        if (!aiProfile.getUser().getId().equals(userId)){
+            throw new ErrorHandler(ErrorStatus.PROFILE_NOT_UNAUTHORIZED);
+        }
+        return AiProfileConverter.toQuestion(aiProfile);
 
     }
 
@@ -187,6 +204,12 @@ public class AiProfileService {
                     .feature1(node.get("feature1").asText())
                     .feature2(node.get("feature2").asText())
                     .feature3(node.get("feature3").asText())
+                    .q1(null)
+                    .q2(null)
+                    .q3(null)
+                    .q4(null)
+                    .q5(null)
+                    .q6(null)
                     .imageS3(node.has("imageS3") ? node.get("imageS3").asText() : null)
                     .promptText(jsonContent)
                     .build();
@@ -198,7 +221,6 @@ public class AiProfileService {
 
     private String buildPromptProfileImage(AiProfile aiProfile) {
         // 예시: Q들의 답변을 이어붙여서 프롬프트 형태로 구성
-        // 실제로는 좀 더 정교하게 작성 가능
         return """
                아래 7가지 정보를 바탕으로 캐릭터 프로필 사진을 만들어줘.
                그림체는 카툰풍으로 귀엽게, 누구나 호불호 없도록 만들어줘.
