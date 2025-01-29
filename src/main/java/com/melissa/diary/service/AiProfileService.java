@@ -204,6 +204,12 @@ public class AiProfileService {
                     .feature1(node.get("feature1").asText())
                     .feature2(node.get("feature2").asText())
                     .feature3(node.get("feature3").asText())
+                    .q1(null)
+                    .q2(null)
+                    .q3(null)
+                    .q4(null)
+                    .q5(null)
+                    .q6(null)
                     .imageS3(node.has("imageS3") ? node.get("imageS3").asText() : null)
                     .promptText(jsonContent)
                     .build();

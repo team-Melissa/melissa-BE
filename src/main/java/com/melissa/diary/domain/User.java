@@ -50,9 +50,6 @@ public class User {
     private List<Donation> donationList = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<MonthlySummary> monthlySummaryList = new ArrayList<>();
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Thread> threadList = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
@@ -67,11 +64,6 @@ public class User {
     public void addDonation(Donation donation) {
         donationList.add(donation);
         donation.setUser(this);
-    }
-
-    public void addMonthlySummary(MonthlySummary monthlySummary) {
-        monthlySummaryList.add(monthlySummary);
-        monthlySummary.setUser(this);
     }
 
     public void addThread(Thread thread) {
