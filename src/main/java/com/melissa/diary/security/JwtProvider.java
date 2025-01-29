@@ -16,7 +16,7 @@ public class JwtProvider {
     private String secretKey;
 
     // 유효 기간
-    private final long ACCESS_TOKEN_VALID_MILLIS = 1000L * 60 * 60 * 100;       // 1시간
+    private final long ACCESS_TOKEN_VALID_MILLIS = 1000L * 60 * 3 * 100;       // 1시간 1000L * 60 * 60 * 100;
     private final long REFRESH_TOKEN_VALID_MILLIS = 1000L * 60 * 60 * 24 * 100; // 1일
 
     // Access Token 생성
