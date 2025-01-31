@@ -1,10 +1,12 @@
 package com.melissa.diary;
 
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.StreamingChatModel;
 import org.springframework.ai.image.ImageModel;
 import org.springframework.ai.image.ImageOptions;
 import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiImageModel;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.openai.api.OpenAiImageApi;
@@ -24,15 +26,7 @@ public class MelissaDiaryAssistantApplication {
 		SpringApplication.run(MelissaDiaryAssistantApplication.class, args);
 	}
 
-	@Bean
-	ImageModel imageModel(@Value("${spring.ai.openai.api-key}") String apiKey) {
-		return new OpenAiImageModel(new OpenAiImageApi(apiKey));
-	}
 
-	@Bean
-	ChatModel chatModel(@Value("${spring.ai.openai.api-key}") String apiKey) {
-		return new OpenAiChatModel(new OpenAiApi(apiKey));
-	}
 
 
 }
