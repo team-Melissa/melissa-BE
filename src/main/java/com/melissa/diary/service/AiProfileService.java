@@ -85,7 +85,7 @@ public class AiProfileService {
         AiProfile aiProfile = aiProfileRepository.findById(aiProfileId).orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
 
         if (!aiProfile.getUser().getId().equals(userId)){
-            throw new ErrorHandler(ErrorStatus.PROFILE_NOT_UNAUTHORIZED);
+            throw new ErrorHandler(ErrorStatus.PROFILE_FORBIDDEN);
         }
 
         return  AiProfileConverter.toResponse(aiProfile);
@@ -96,7 +96,7 @@ public class AiProfileService {
     public AiProfileResponseDTO.AiProfileQuestionResponse getAiProfileQuestion(Long userId, Long aiProfileId){
         AiProfile aiProfile = aiProfileRepository.findById(aiProfileId).orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
         if (!aiProfile.getUser().getId().equals(userId)){
-            throw new ErrorHandler(ErrorStatus.PROFILE_NOT_UNAUTHORIZED);
+            throw new ErrorHandler(ErrorStatus.PROFILE_FORBIDDEN);
         }
         return AiProfileConverter.toQuestion(aiProfile);
 
@@ -116,7 +116,7 @@ public class AiProfileService {
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
 
         if (!aiProfile.getUser().getId().equals(userId)) {
-            throw new ErrorHandler(ErrorStatus.PROFILE_NOT_UNAUTHORIZED);
+            throw new ErrorHandler(ErrorStatus.PROFILE_FORBIDDEN);
         }
         aiProfileRepository.delete(aiProfile);
     }

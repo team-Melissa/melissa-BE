@@ -24,10 +24,10 @@ public enum ErrorStatus implements BaseErrorCode {
     SETTING_ALREADY_ENROLL(HttpStatus.BAD_REQUEST, "SETTING4002", "해당 유저의 셋팅값이 이미 존재합니다."),
 
     // Profile
-    PROFILE_NOT_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "SETTING4001", "해당 프로필에 접근할 수 있는 권한이 없습니다,"),
+    PROFILE_FORBIDDEN(HttpStatus.FORBIDDEN, "SETTING4001", "해당 프로필에 접근할 수 있는 권한이 없습니다,"),
     PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "PROFILE4002", "해당 프로필이 존재하지 않습니다."),
 
-    // Calendar 관련 에러
+    // Calendar & Thread 관련 에러
     CALENDAR_NOT_FOUND(HttpStatus.NOT_FOUND, "CALENDAR4001", "해당 날짜 또는 월의 데이터가 존재하지 않습니다."),
     CALENDAR_FORBIDDEN(HttpStatus.FORBIDDEN, "CALENDAR4002", "해당 캘린더 데이터를 조회할 권한이 없습니다."),
     CALENDAR_INVALID_DATE(HttpStatus.BAD_REQUEST, "CALENDAR4003", "유효하지 않은 날짜입니다."),

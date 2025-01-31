@@ -24,11 +24,11 @@ public class Thread {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 255)
+/*    @Column(nullable = false, length = 255)
     private String gptThreadId;
 
     @Column(nullable = false, length = 255)
-    private String assistantId;
+    private String assistantId;*/
 
     @Column(nullable = false)
     private int year;
@@ -40,6 +40,14 @@ public class Thread {
     @Max(31) @Min(1)
     @Column(nullable = false)
     private int day;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne
+    @JoinColumn(name = "ai_profile_id", nullable = false)
+    private AiProfile aiProfile;
 
     // 아래부턴 요약필요라서 null 가능
     @Column(nullable = true, length = 30)
@@ -63,14 +71,6 @@ public class Thread {
 
     @Column(nullable = true)
     private LocalDateTime summaryCreatedAt;
-
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @ManyToOne
-    @JoinColumn(name = "ai_profile_id", nullable = false)
-    private AiProfile aiProfile;
 
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL)
     private List<DailyChatLog> dailyChatLogs = new ArrayList<>();
