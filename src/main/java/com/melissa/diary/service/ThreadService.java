@@ -13,9 +13,19 @@ import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.web.dto.ThreadResponseDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.melissa.diary.domain.Thread;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -31,6 +41,7 @@ public class ThreadService {
     private final UserRepository userRepository;
     private final AiProfileRepository aiProfileRepository;
     private final DailyChatLogRepository dailyChatLogRepository;
+    private final ChatClient chatClient;
 
     @Transactional
     public ThreadResponseDTO.ThreadResponse creatTread(Long userId, Long aiProfileId ,int year, int month, int day){
@@ -136,42 +147,98 @@ public class ThreadService {
         threadRepository.save(thread);
     }
 
-    // AI 메시지 전송 및 응답 그리고 DB 업데이트
-    @Transactional
-    public ThreadResponseDTO.ChatResponse sendMockMessageToAi(Long userId, int year, int month, int day, String userMessage) {
-        // 스레드 가져오기
+    // 단순화를 위해 동기 방식의 DB 호출(블록킹)과 reactive SSE 스트림을 혼합한 예시입니다.
+    public Flux<ServerSentEvent<String>> messageToAi(Long userId, int year, int month, int day, String userMessage) {
+        // 1. DB에서 스레드, AI 프로필, 채팅 기록을 조회하고 사용자 메시지를 저장 (블록킹 호출)
         Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
+        AiProfile aiProfile = thread.getAiProfile();
+        List<DailyChatLog> chatHistory = thread.getDailyChatLogs();
 
-        // 사용자 채팅을 DailyChatLog에 저장
-        DailyChatLog userChat = DailyChatLog.builder()
-                .role(Role.USER)
-                .content(userMessage)
-                .thread(thread)
-                .aiProfile(null)
-                .createdAt(LocalDateTime.now())
-                .build();
-        dailyChatLogRepository.save(userChat);
+        // 사용자 메시지를 저장
+        dailyChatLogRepository.save(
+                DailyChatLog.builder()
+                        .role(Role.USER)
+                        .content(userMessage)
+                        .thread(thread)
+                        .createdAt(LocalDateTime.now())
+                        .build()
+        );
 
-        // Mock AI응답 생성 TODO (실제로는 gpt 호출)
-        String mockAiText = "안녕하세요! 저는 AI예요. '" + userMessage + "' 라고 하셨군요? 반가워요.";
-        DailyChatLog aiChat = DailyChatLog.builder()
-                .role(Role.AI)
-                .content(mockAiText) // 해당 내용을 업데이트 해야함
-                .thread(thread)
-                .aiProfile(thread.getAiProfile()) // 현재 Thread의 AiProfile
-                .createdAt(LocalDateTime.now())
-                .build();
-        dailyChatLogRepository.save(aiChat);
+        // 2. 프롬프트 생성 (기존 채팅 기록과 AI 프로필을 포함)
+        String promptText = buildAiChatPrompt(userMessage, chatHistory, aiProfile);
 
-        // 4) 응답 DTO 구성
-        return ThreadResponseDTO.ChatResponse.builder()
-                .aiProfileName(thread.getAiProfile().getProfileName())
-                .aiProfileImageS3(thread.getAiProfile().getImageS3())
-                .role(aiChat.getRole().name())
-                .content(aiChat.getContent())
-                .createAt(aiChat.getCreatedAt())
-                .build();
+        // AI 응답을 누적할 StringBuilder
+        StringBuilder aiAnswerBuilder = new StringBuilder();
+
+        // 3. OpenAI 호출 및 SSE 이벤트 생성
+        return chatClient.prompt(new Prompt(
+                        promptText,
+                        OpenAiChatOptions.builder()
+                                .model(OpenAiApi.ChatModel.GPT_4_O_MINI)
+                                .temperature(0.4)
+                                .build()
+                ))
+                .stream()
+                .chatResponse()  // ChatResponse Flux 반환
+                .map(response -> {
+                    // 부분 응답 추출 (예시: 첫 번째 결과 사용)
+                    String partialMessage = response.getResults().get(0).getOutput().getText();
+                    aiAnswerBuilder.append(partialMessage);
+
+                    // SSE 이벤트 생성
+                    return ServerSentEvent.<String>builder()
+                            .id(String.valueOf(System.currentTimeMillis()))
+                            .event("aiMessage")
+                            .data(partialMessage)
+                            .build();
+                })
+                .doOnComplete(() -> {
+                    // 모든 응답이 완료되면 최종 AI 응답을 DB에 저장
+                    DailyChatLog aiChat = DailyChatLog.builder()
+                            .role(Role.AI)
+                            .content(aiAnswerBuilder.toString())
+                            .thread(thread)
+                            .aiProfile(aiProfile)
+                            .createdAt(LocalDateTime.now())
+                            .build();
+                    dailyChatLogRepository.save(aiChat);
+                })
+                .doOnError(e -> log.error("AI 응답 스트리밍 중 에러 발생", e));
+    }
+
+    // 기존 채팅 기록과 AI 프로필을 이용해 프롬프트를 만드는 단순한 메서드
+    private String buildAiChatPrompt(String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
+        StringBuilder prompt = new StringBuilder();
+
+        // AI 프로필 정보 추가
+        prompt.append("너는 사용자의 일기 작성을 돕는 AI야.\n")
+                .append("너의 성격: ")
+                .append(aiProfile.getFeature1()).append(", ")
+                .append(aiProfile.getFeature2()).append(", ")
+                .append(aiProfile.getFeature3()).append("\n")
+                .append("관련 해시태그: ")
+                .append(aiProfile.getHashTag1()).append(", ")
+                .append(aiProfile.getHashTag2()).append("\n")
+                .append("친근하고 공감할 수 있는 방식으로 답변해줘.\n\n");
+
+        // 기존 채팅 내역 추가 (있다면)
+        if (!chatHistory.isEmpty()) {
+            prompt.append("대화 기록:\n");
+            for (DailyChatLog log : chatHistory) {
+                prompt.append(log.getRole().name())
+                        .append(": ")
+                        .append(log.getContent())
+                        .append("\n");
+            }
+        }
+
+        // 새 사용자 입력 추가
+        prompt.append("사용자: ")
+                .append(userMessage)
+                .append("\nAI: ");
+
+        return prompt.toString();
     }
 
     //해당 날짜(Thread)의 채팅메시지 조회

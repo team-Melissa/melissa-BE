@@ -6,7 +6,10 @@ import com.melissa.diary.web.dto.ThreadResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 import java.security.Principal;
 
@@ -63,19 +66,18 @@ public class ThreadController {
         return ApiResponse.onSuccess("AI Profile 업데이트가 완료되었습니다.");
     }
 
-    // TODO 현재는 AI 대답이 아닌 목업데이터로 전송 및 추가
-    @Operation(description = "AI에게 채팅메시지를 전송합니다. (Mock)")
-    @PostMapping("/message")
-    public ApiResponse<ThreadResponseDTO.ChatResponse> messageToAi(
+    // 🔹 SSE 기반 AI 응답 스트리밍 API
+    @Operation(description = "AI에게 채팅 메시지를 전송하고, SSE로 실시간 응답을 받습니다.")
+    @PostMapping(value = "/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> messageToAi(
             @RequestParam(name = "content") String userMessage,
             @RequestParam(name = "year") int year,
             @RequestParam(name = "month") int month,
             @RequestParam(name = "day") int day,
             Principal principal
-    ){
+    ) {
         Long userId = Long.parseLong(principal.getName());
-        ThreadResponseDTO.ChatResponse aiResponse = threadService.sendMockMessageToAi(userId, year, month, day, userMessage);
-        return ApiResponse.onSuccess(aiResponse);
+        return threadService.messageToAi(userId, year, month, day, userMessage);
     }
 
     // 해당 날짜(Thread)의 채팅메시지 조회
