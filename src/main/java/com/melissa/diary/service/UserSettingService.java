@@ -43,7 +43,7 @@ public class UserSettingService {
     }
 
     public void createDefaultSetting(Long userId) {
-        // 이미 존재하면 등록하지 않음 (필요시 로직 조정)
+        // 이미 존재하면 등록하지 않음
         Optional<UserSetting> optional = userSettingRepository.findByUserId(userId);
         if (optional.isPresent()) { // 이미 존재할 때, 기본값 등록을 하려고하는 경우
             new ErrorHandler(ErrorStatus.SETTING_ALREADY_ENROLL);
