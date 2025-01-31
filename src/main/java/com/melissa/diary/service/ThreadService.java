@@ -146,8 +146,7 @@ public class ThreadService {
         thread.setAiProfile(aiProfile);
         threadRepository.save(thread);
     }
-
-    // 단순화를 위해 동기 방식의 DB 호출(블록킹)과 reactive SSE 스트림을 혼합한 예시입니다.
+    // 실시간 스트리밍
     public Flux<ServerSentEvent<String>> messageToAi(Long userId, int year, int month, int day, String userMessage) {
         // 1. DB에서 스레드, AI 프로필, 채팅 기록을 조회하고 사용자 메시지를 저장 (블록킹 호출)
         Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
@@ -165,10 +164,10 @@ public class ThreadService {
                         .build()
         );
 
-        // 2. 프롬프트 생성 (기존 채팅 기록과 AI 프로필을 포함)
+        // 2. 프롬프트 생성 (기존 채팅 기록과 AI 프로필을 포함) TODO 프롬프트 정리해서 드리기
         String promptText = buildAiChatPrompt(userMessage, chatHistory, aiProfile);
 
-        // AI 응답을 누적할 StringBuilder
+        // AI 응답을 누적할 StringBuilder -> SSE 보낼때마다 여기 저장
         StringBuilder aiAnswerBuilder = new StringBuilder();
 
         // 3. OpenAI 호출 및 SSE 이벤트 생성
@@ -182,7 +181,7 @@ public class ThreadService {
                 .stream()
                 .chatResponse()  // ChatResponse Flux 반환
                 .map(response -> {
-                    // 부분 응답 추출 (예시: 첫 번째 결과 사용)
+                    // 부분 응답 추출
                     String partialMessage = response.getResults().get(0).getOutput().getText();
                     aiAnswerBuilder.append(partialMessage);
 
@@ -207,7 +206,7 @@ public class ThreadService {
                 .doOnError(e -> log.error("AI 응답 스트리밍 중 에러 발생", e));
     }
 
-    // 기존 채팅 기록과 AI 프로필을 이용해 프롬프트를 만드는 단순한 메서드
+    // 기존 채팅 기록과 AI 프로필을 이용해 프롬프트 생성
     private String buildAiChatPrompt(String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
         StringBuilder prompt = new StringBuilder();
 
@@ -256,7 +255,7 @@ public class ThreadService {
         // Thread에 종속된 모든 채팅 로그
         List<DailyChatLog> chatLogs = thread.getDailyChatLogs();
 
-        // 정렬 (ID 오름차순 or 별도의 createdAt 오름차순)
+        // 정렬 (createdAt 오름차순)
         chatLogs.sort(Comparator.comparing(DailyChatLog::getCreatedAt));
 
         // DTO 매핑
