@@ -58,6 +58,16 @@ public class ThreadService {
             return threadRepository.save(newThread);
         });
 
+        // Ai Profile의 first Chat을 DailyChatLog에 저장
+        DailyChatLog firstChat = DailyChatLog.builder()
+                .role(Role.AI)
+                .content(aiProfile.getFirstChat())
+                .thread(thread)
+                .aiProfile(aiProfile)
+                .createdAt(LocalDateTime.now())
+                .build();
+        dailyChatLogRepository.save(firstChat);
+
         // 스레드 객체를 DTO로 변환해서 리턴
         return ThreadResponseDTO.ThreadResponse.builder()
                 .threadId(thread.getId())

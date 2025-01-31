@@ -25,6 +25,9 @@ public class AiProfile {
     @Column(nullable = true)
     private String profileName;
 
+    @Column(nullable = false)
+    private String firstChat;
+
     // 예: S3 경로
     @Column(length = 255)
     private String imageS3;
@@ -55,10 +58,6 @@ public class AiProfile {
     private String q5;
     @Column(length = 255)
     private String q6;
-
-
-
-
 
     // 생성 시각
     @CreationTimestamp
