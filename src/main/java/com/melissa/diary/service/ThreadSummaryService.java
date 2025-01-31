@@ -8,6 +8,7 @@ import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.domain.*;
 import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.enums.Mood;
+import com.melissa.diary.domain.enums.Role;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UserSettingRepository;
@@ -26,6 +27,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -76,83 +78,81 @@ public class ThreadSummaryService {
      */
     @Transactional
     public void generateDailySummaryForUser(Long userId) {
-        // 예: 오늘 날짜로 Thread 조회
         LocalDateTime now = LocalDateTime.now();
-
         int year = now.getYear();
         int month = now.getMonthValue();
         int day = now.getDayOfMonth();
         int hour = now.getHour();
 
-        // 오전 8시 이전에는 이전 날로 취급
+        // 오전 8시 이전은 전날로
         if (hour < 8) {
             day -= 1;
         }
 
-        // 1) thread 조회 (오늘 날짜에 해당하는 데이터가 있다고 가정)
-        try {
-            Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day).get();
+        // Thread 조회
+        Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
+                .orElse(null);
 
-            // 2) dailyChatLogs 가져오기 (현재는 목업)
-            List<DailyChatLog> dailyChatLogs = thread.getDailyChatLogs(); //null
-
-            // 실제로는 dailyChatLogs를 활용해야 하지만, 지금은 목업 채팅 내용만 사용
-            String mockLogs = buildMockChatLogs(dailyChatLogs);
-
-            // 3) 프롬프트 생성
-            String prompt = buildSummaryPrompt(mockLogs, thread);
-
-            // 4) LLM 호출
-            String llmResponse = callLLMForSummary(prompt);
-
-            // 5) LLM 응답 파싱 -> thread 업데이트
-            parseAndUpdateThread(thread, llmResponse);
-
-            // 6) thread를 바탕으로 이미지 프롬프팅 생성
-            String imagePrompt = buildImagePrompt(thread);
-
-            // 4) 사진 생성
-            String imageUrl = imageGenerator.genProfileImage(imagePrompt);
-            thread.setImageUrl(imageUrl);
-
-            // 5 DB 저장
-            Thread saved = threadRepository.save(thread);
-        } catch (Exception e) {
-            log.error("[ThreadSummary] 요약 생성 실패 - thread null. userId=" + userId, e);
+        if (thread == null) {
+            log.warn("[ThreadSummary] 해당 날짜 스레드가 없습니다. userId={}, {}-{}-{}", userId, year, month, day);
+            return;
         }
 
+        // dailyChatLogs를 기반으로 프롬프트 생성
+        List<DailyChatLog> logs = thread.getDailyChatLogs();
+        
+        // 채팅 내용이 없다면 요약 불필요 (AI 비용 절약)
+        if (logs == null || logs.isEmpty()) {
+            log.warn("[ThreadSummary] 채팅 로그가 없어 요약 불필요. userId={}, {}-{}-{}", userId, year, month, day);
+            return;
+        }
+        // 실제 채팅 기록으로 요약 프롬프트 생성
+        String chatLogsForPrompt = buildChatLogsPrompt(logs);
 
+        // 3) 프롬프트 생성
+        String prompt = buildSummaryPrompt(chatLogsForPrompt);
+
+        // 4) LLM 호출
+        String llmResponse = callLLMForSummary(prompt);
+
+        // 5) 파싱해서 thread에 업데이트
+        parseAndUpdateThread(thread, llmResponse);
+
+        // 6) 이미지 프롬프트 생성
+        String imagePrompt = buildImagePrompt(thread);
+
+        // 7) 목업 ImageGenerator 로 이미지 url 생성
+        String imageUrl = imageGenerator.genProfileImage(imagePrompt);
+        thread.setImageUrl(imageUrl);
+
+        // 8) DB 저장
+        threadRepository.save(thread);
     }
 
-    private String buildMockChatLogs(List<DailyChatLog> dailyChatLogs) {
-        // 여기서는 단순히 샘플 문자열을 반환
-        // TODO dailyChatLogs의 role(사용자/AI) + content를 이어붙여서 프롬프트를 만드는 로직으로 업데이트 해야함.
-        return """
-                [User] 오늘 하루 너무 힘들었어. 몸이 지치네...
-                [Assistant] 그래도 노력한 만큼 보상이 있을 거예요.
-                [User] 덕분에 위로가 되네. 기분전환으로 저녁에 산책하고 왔어.
-                [Assistant] 산책은 건강에도 좋고 마음도 편해지죠!
-               """;
+    private String buildChatLogsPrompt(List<DailyChatLog> logs) {
+        return logs.stream()
+                .map(log -> {
+                    if (log.getRole() == Role.USER) {
+                        return "[User] " + log.getContent();
+                    } else {
+                        return "[Assistant] " + log.getContent();
+                    }
+                })
+                .collect(Collectors.joining("\n"));
     }
 
-    /**
-     * 요약 생성을 위한 프롬프트 작성 예시
-     */
-    private String buildSummaryPrompt(String chatLogs, Thread thread) {
+    private String buildSummaryPrompt(String chatLogs) {
         return """
-               chatLogs를 아래 처럼 요약해줘. 오른쪽은 세부사항이야. 리턴값을 꼭 맞춰줘!
-               
-               "chatLogs": 
+               아래는 오늘의 채팅 로그입니다:
                %s
-               
-               'summaryTitle' (길이 30자 이하),
-               'mood' (무조건 HAPPY, SAD, TIRED, ANGRY, RELAX 중에서 선택),
-               'summaryContent' (200자 이내 요약),
-               'hashTag1' (주제관련),
-               'hashTag2 (주제관련)'
-               
-               답변은 JSON 형태로 위의 세부사항을 꼭 맞춰야해.:
-               
+
+               위 대화를 요약해 주세요. 
+               - summaryTitle(30자 이하)
+               - mood(HAPPY, SAD, TIRED, ANGRY, RELAX 중 하나)
+               - summaryContent(200자 이하)
+               - hashTag1, hashTag2(주제 연관 해시태그)
+
+               아래 JSON 형식으로 꼭 답변해주세요:
                {
                  "summaryTitle":"...",
                  "mood":"...", 
@@ -163,9 +163,7 @@ public class ThreadSummaryService {
                """.formatted(chatLogs);
     }
 
-    /**
-     * LLM 호출 (ChatModel 이용) -> 결과를 문자열로 반환
-     */
+    //LLM 호출 (ChatModel 이용) -> 결과를 문자열로 반환
     private String callLLMForSummary(String prompt) {
         ChatResponse response = chatModel.call(
                 new Prompt(
@@ -180,9 +178,8 @@ public class ThreadSummaryService {
         return response.getResult().getOutput().getText();
     }
 
-    /**
-     * LLM 응답(JSON)을 파싱하여 Thread에 summaryTitle, mood, summaryContent 등 업데이트 후 저장
-     */
+
+    //LLM 응답(JSON)을 파싱하여 Thread에 summaryTitle, mood, summaryContent 등 업데이트 후 저장
     private void parseAndUpdateThread(Thread thread, String llmResponse) {
         // 1. JSON 파싱
         try {
@@ -228,9 +225,9 @@ public class ThreadSummaryService {
         }
     }
 
-    /**
-     * 이미지 생성용 프롬프트 - Thread 객체를 활용해 프롬프트 생성
-     */
+
+    // 이미지 생성용 프롬프트 - Thread 객체를 활용해 프롬프트 생성
+
     private String buildImagePrompt(Thread thread) {
         // "제목 + 무드 + 해시태그 + 요약내용"을 바탕으로 이미지를 프롬프팅
         String moodText = thread.getMood() == null ? "HAPPY" : thread.getMood().name();

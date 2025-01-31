@@ -129,8 +129,9 @@ public class AiProfileService {
                아래의 6가지 정보를 바탕으로, 다음 JSON을 생성해주세요:
                반드시 형식을 지켜 예시 응답(Json)처럼 리턴해주세요.
                1) profileName: 대화 상대에 어울리는 귀여운 이름. 형용상 뒤의 이름은 동물이나 사물로 한정 (예: "행복한 빵빵이")
-               2) hashTag1, hashTag2: 2가지 해시태그
-               3) feature1, feature2, feature3: 3가지 특징
+               2) firstChat : 첫 인사말을 성격과 특징에 맞게 작성
+               3) hashTag1, hashTag2: 2가지 해시태그
+               4) feature1, feature2, feature3: 3가지 특징
                
                질문과 답변:
                Q1(성격): %s
@@ -143,6 +144,7 @@ public class AiProfileService {
                형식:
                {
                  "profileName": "...",
+                 "firstChat": "...",
                  "imageS3": "...",
                  "hashTag1": "...",
                  "hashTag2": "...",
@@ -154,6 +156,7 @@ public class AiProfileService {
                답변 예시:
                {
                  "profileName": "행복한 빵빵이",
+                 "firstChat": "오늘 하루는 어땠어?",
                  "hashTag1": "무사태평",
                  "hashTag2": "공감",
                  "feature1": "쾌활하고 친근함",
@@ -199,6 +202,7 @@ public class AiProfileService {
             // 4. 필요한 필드를 꺼내서 AiProfile 객체를 구성한다.
             return AiProfile.builder()
                     .profileName(node.get("profileName").asText())
+                    .firstChat(node.get("firstChat").asText())
                     .hashTag1(node.get("hashTag1").asText())
                     .hashTag2(node.get("hashTag2").asText())
                     .feature1(node.get("feature1").asText())
