@@ -56,6 +56,9 @@ dependencies {
 	// webFlux
 	//implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
+	// 애플 jwt 토큰 검증용
+	implementation 'com.nimbusds:nimbus-jose-jwt:9.37.2'
+
 	// json
 	//implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
 }

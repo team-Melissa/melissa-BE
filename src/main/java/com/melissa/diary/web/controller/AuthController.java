@@ -62,9 +62,11 @@ public class AuthController {
         return ApiResponse.onSuccess(result);
     }
 
-    /*@PostMapping("/oauth/apple")
+    // --- Apple 로그인 ---
+    @PostMapping("/apple")
+    @Operation(description = "애플 로그인 (idToken 입력)")
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> appleLogin(
-            @RequestBody @Valid UserRequestDTO.AppleOAuthDto request
+            @RequestBody @Valid UserRequestDTO.AppleOAuthDTO request
     ) {
         User user = userService.socialLoginApple(request);
         String accessToken = userService.createAccessToken(user);
@@ -72,7 +74,7 @@ public class AuthController {
         UserResponseDTO.OAuthLoginResultDTO result =
                 UserConverter.toOAuthLoginResultDTO(user, accessToken, refreshToken);
         return ApiResponse.onSuccess(result);
-    }*/
+    }
 
 
     // Refresh Token 재발급

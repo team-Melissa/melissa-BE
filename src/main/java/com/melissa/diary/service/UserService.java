@@ -78,7 +78,7 @@ public class UserService {
 
 
 
-    /*
+
     @Transactional
     public User socialLoginApple(UserRequestDTO.AppleOAuthDTO request) {
         SocialAuthService.ApplePayload payload =
@@ -87,11 +87,11 @@ public class UserService {
         if (payload == null) {
             throw new ErrorHandler(ErrorStatus.SOCIAL_LOGIN_FAILED);
         }
-        User user = userRepository.findByOauthProviderAndOauthProviderId("APPLE", payload.getSub())
+        User user = userRepository.findByProviderAndProviderId("APPLE", payload.getSub())
                 .orElseGet(() -> {
                     User newU = User.builder()
-                            .oauthProvider("APPLE")
-                            .oauthProviderId(payload.getSub())
+                            .provider("APPLE")
+                            .providerId(payload.getSub())
                             .email(payload.getEmail())
                             .nickname(payload.getName())
                             .build();
@@ -101,7 +101,7 @@ public class UserService {
         if (payload.getName() != null) user.setNickname(payload.getName());
         return user;
     }
-    */
+
 
     /**
      * [AccessToken, RefreshToken] 발급
