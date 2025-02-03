@@ -129,8 +129,8 @@ public class SocialAuthService {
                 log.error("Apple Token 검증 실패: Token expired");
                 return null;
             }
-            // Audience 검증: 본인의 client id(서비스 ID 또는 Bundle ID)로 변경
-            String clientId = "com.melissa.apps"; // 실제 서비스의 client id로 변경
+            // Audience 검증
+            String clientId = "com.melissa.melissaFE"; // 실제 서비스의 client id
             if (!claims.getAudience().contains(clientId)) {
                 log.error("Apple Token 검증 실패: Audience does not match. Expected: {}", clientId);
                 return null;
