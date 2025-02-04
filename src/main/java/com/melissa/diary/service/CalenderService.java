@@ -53,6 +53,24 @@ public class CalenderService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<CalenderResponseDTO.dailySummaryResponseDTO> getMonthlyView(Long userId, int year, int month) {
+        if (!isValidMonth(year, month)) {
+            throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_DATE);
+        }
+
+        List<Thread> threads = threadRepository.findByUserIdAndYearAndMonth(userId, year, month);
+
+        if (threads.isEmpty()) {
+            throw new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND);
+        }
+
+        return threads.stream()
+                .map(ThreadConverter::toDailySummaryResponseDTO)
+                .collect(Collectors.toList());
+    }
+
+
     private boolean isValidDate(int year, int month, int day) {
         if (month < 1 || month > 12) return false;
         if (day < 1 || day > 31) return false;
