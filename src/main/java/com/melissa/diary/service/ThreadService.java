@@ -148,13 +148,13 @@ public class ThreadService {
     }
     // 실시간 스트리밍
     public Flux<ServerSentEvent<String>> messageToAi(Long userId, int year, int month, int day, String userMessage) {
-        // 1. DB에서 스레드, AI 프로필, 채팅 기록을 조회하고 사용자 메시지를 저장 (블록킹 호출)
+        // 1. DB에서 스레드, AI 프로필, 채팅 기록을 조회 (블록킹 호출)
         Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
         AiProfile aiProfile = thread.getAiProfile();
         List<DailyChatLog> chatHistory = thread.getDailyChatLogs();
 
-        // 사용자 메시지를 저장
+        // 2. 사용자 메시지를 저장
         dailyChatLogRepository.save(
                 DailyChatLog.builder()
                         .role(Role.USER)
@@ -164,14 +164,11 @@ public class ThreadService {
                         .build()
         );
 
-        // 2. 프롬프트 생성 (기존 채팅 기록과 AI 프로필을 포함) TODO 프롬프트 정리해서 드리기
         String promptText = buildAiChatPrompt(userMessage, chatHistory, aiProfile);
-
-        // AI 응답을 누적할 StringBuilder -> SSE 보낼때마다 여기 저장
         StringBuilder aiAnswerBuilder = new StringBuilder();
 
-        // 3. OpenAI 호출 및 SSE 이벤트 생성
-        return chatClient.prompt(new Prompt(
+        // AI 응답을 SSE 이벤트로 매핑하는 Flux
+        Flux<ServerSentEvent<String>> aiMessageFlux = chatClient.prompt(new Prompt(
                         promptText,
                         OpenAiChatOptions.builder()
                                 .model(OpenAiApi.ChatModel.GPT_4_O_MINI)
@@ -179,19 +176,18 @@ public class ThreadService {
                                 .build()
                 ))
                 .stream()
-                .chatResponse()  // ChatResponse Flux 반환
+                .chatResponse()
                 .map(response -> {
-                    // 부분 응답 추출
                     String partialMessage = response.getResults().get(0).getOutput().getText();
                     aiAnswerBuilder.append(partialMessage);
 
-                    // SSE 이벤트 생성
                     return ServerSentEvent.<String>builder()
                             .id(String.valueOf(System.currentTimeMillis()))
                             .event("aiMessage")
                             .data(partialMessage)
                             .build();
                 })
+                .doOnError(e -> log.error("AI 응답 스트리밍 중 에러 발생", e))
                 .doOnComplete(() -> {
                     // 모든 응답이 완료되면 최종 AI 응답을 DB에 저장
                     DailyChatLog aiChat = DailyChatLog.builder()
@@ -202,8 +198,19 @@ public class ThreadService {
                             .createdAt(LocalDateTime.now())
                             .build();
                     dailyChatLogRepository.save(aiChat);
-                })
-                .doOnError(e -> log.error("AI 응답 스트리밍 중 에러 발생", e));
+                });
+
+        // finish 이벤트를 내보내는 Flux (단일 이벤트)
+        Flux<ServerSentEvent<String>> finishEventFlux = Flux.just(
+                ServerSentEvent.<String>builder()
+                        .id(String.valueOf(System.currentTimeMillis()))
+                        .event("finish")
+                        .data("finish")
+                        .build()
+        );
+
+        // 두 Flux를 순차적으로 연결하여, aiMessageFlux가 완료된 뒤 finish 이벤트를 발행
+        return Flux.concat(aiMessageFlux, finishEventFlux);
     }
 
     // 기존 채팅 기록과 AI 프로필을 이용해 프롬프트 생성
