@@ -20,6 +20,7 @@ public class ThreadResponseDTO {
     @Getter
     @Builder
     public static class ChatResponse{
+        private Long chatId;
         private String role;
         private String content;
         private LocalDateTime createAt;

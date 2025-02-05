@@ -279,6 +279,7 @@ public class ThreadService {
         // DTO 매핑
         List<ThreadResponseDTO.ChatResponse> mappedChats = chatLogs.stream()
                 .map(log -> ThreadResponseDTO.ChatResponse.builder()
+                        .chatId(log.getId())
                         .role(log.getRole().name())
                         .aiProfileName(Optional.ofNullable(log.getAiProfile())
                                 .map(AiProfile::getProfileName)
