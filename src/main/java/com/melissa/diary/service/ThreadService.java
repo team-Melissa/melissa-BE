@@ -44,48 +44,52 @@ public class ThreadService {
     private final ChatClient chatClient;
 
     @Transactional
-    public ThreadResponseDTO.ThreadResponse creatTread(Long userId, Long aiProfileId ,int year, int month, int day){
-        // 유저 존재하는지 체크 없으면 유저 없다고 리턴
-        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+    public ThreadResponseDTO.ThreadResponse createThread(Long userId, Long aiProfileId, int year, int month, int day) {
+        // 1. 유저와 AI 프로필 검증
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
 
-        // ai 프로필 존재하는지 체크 없으면 없다고 리턴
-        AiProfile aiProfile = aiProfileRepository.findById(aiProfileId).orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
+        AiProfile aiProfile = aiProfileRepository.findById(aiProfileId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
 
-        // ai 프로필이 유저의 것인지 체크
         if (!aiProfile.getUser().getId().equals(userId)) {
             throw new ErrorHandler(ErrorStatus.PROFILE_FORBIDDEN);
         }
-        
-        // 해당 유저 id와 연월일 정보로 기존 쓰레드 있으면 리턴
-        Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day).orElseGet(() -> {
-            // 없으면 새로운 스레드 생성해서 리턴
-            Thread newThread = Thread.builder()
-                    .user(user)
-                    .aiProfile(aiProfile)
-                    .year(year)
-                    .month(month)
-                    .day(day)
-                    .build();
-            return threadRepository.save(newThread);
-        });
 
-        // Ai Profile의 first Chat을 DailyChatLog에 저장
-        DailyChatLog firstChat = DailyChatLog.builder()
-                .role(Role.AI)
-                .content(aiProfile.getFirstChat())
-                .thread(thread)
-                .aiProfile(aiProfile)
-                .createdAt(LocalDateTime.now())
-                .build();
-        dailyChatLogRepository.save(firstChat);
+        // 2. 해당 날짜에 이미 존재하는 스레드를 조회하거나, 없으면 생성
+        Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
+                .orElseGet(() -> createNewThread(user, aiProfile, year, month, day));
 
-        // 스레드 객체를 DTO로 변환해서 리턴
+        // 3. 스레드 객체를 DTO로 변환하여 반환
         return ThreadResponseDTO.ThreadResponse.builder()
                 .threadId(thread.getId())
                 .year(thread.getYear())
                 .month(thread.getMonth())
                 .day(thread.getDay())
                 .build();
+    }
+    private Thread createNewThread(User user, AiProfile aiProfile, int year, int month, int day) {
+        // 스레드 생성 및 저장
+        Thread newThread = Thread.builder()
+                .user(user)
+                .aiProfile(aiProfile)
+                .year(year)
+                .month(month)
+                .day(day)
+                .build();
+        threadRepository.save(newThread);
+
+        // AI 프로필의 첫 채팅 내용을 DailyChatLog로 저장
+        DailyChatLog firstChat = DailyChatLog.builder()
+                .role(Role.AI)
+                .content(aiProfile.getFirstChat())
+                .thread(newThread)
+                .aiProfile(aiProfile)
+                .createdAt(LocalDateTime.now())
+                .build();
+        dailyChatLogRepository.save(firstChat);
+
+        return newThread;
     }
 
     @Transactional
