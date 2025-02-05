@@ -46,7 +46,7 @@ public class CalenderController {
         return ApiResponse.onSuccess(response);
     }
 
-    @Operation(description = "해당 월의 모든 날짜의 해시 태그와 이미지를 조회합니다.")
+    @Operation(description = "해당 월의 모든 날짜의 해시 태그와 이미지, 요약내용을 조회합니다.")
     @GetMapping("/month/summary")
     public ApiResponse<List<CalenderResponseDTO.dailySummaryResponseDTO>> getCalenderView(
             @RequestParam(name = "year") int year,
