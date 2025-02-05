@@ -32,7 +32,7 @@ public class ThreadController {
 
         Long userId = Long.parseLong(principal.getName());
 
-        ThreadResponseDTO.ThreadResponse response = threadService.creatTread(userId, aiProfileId, year, month, day);
+        ThreadResponseDTO.ThreadResponse response = threadService. createThread(userId, aiProfileId, year, month, day);
 
         return ApiResponse.onSuccess(response);
     }
