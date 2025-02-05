@@ -10,4 +10,7 @@ public interface ThreadRepository extends JpaRepository<Thread,Long> {
     Optional<Thread> findByUserIdAndYearAndMonthAndDay(Long userId, int year, int month, int day);
 
     List<Thread> findByUserIdAndYearAndMonth(Long userId, int year, int month);
+
+    void deleteAllByUserId(Long userId);
+
 }

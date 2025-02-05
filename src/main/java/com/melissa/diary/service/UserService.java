@@ -2,15 +2,21 @@ package com.melissa.diary.service;
 
 import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
+import com.melissa.diary.converter.UserConverter;
 import com.melissa.diary.domain.User;
+import com.melissa.diary.repository.AiProfileRepository;
+import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
+import com.melissa.diary.repository.UserSettingRepository;
 import com.melissa.diary.security.JwtProvider;
 import com.melissa.diary.web.dto.UserRequestDTO;
+import com.melissa.diary.web.dto.UserResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.PriorityQueue;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +25,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final SocialAuthService socialAuthService;
     private final JwtProvider jwtProvider;
+    private final ThreadRepository threadRepository;
+    private final UserSettingRepository userSettingRepository;
+    private final AiProfileRepository aiProfileRepository;
+
 
     @Transactional
     public User socialLoginGoogle(UserRequestDTO.GoogleOAuthDTO request) {
@@ -154,4 +164,28 @@ public class UserService {
         user.setRefreshTokenExpiry(null);
 
     }
+
+    @Transactional
+    public UserResponseDTO.DeleteResultDTO deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
+        // 유저의 스레드 및 관련 채팅 내역 삭제
+        threadRepository.deleteAllByUserId(userId);
+
+        // 유저의 AI 프로필 삭제
+        aiProfileRepository.deleteAllByUserId(userId);
+
+        // 유저 설정 삭제
+        userSettingRepository.deleteByUserId(userId);
+
+        // 삭제될 유저 정보를 DTO로 변환
+        UserResponseDTO.DeleteResultDTO deleteDTO = UserConverter.toDeleteDTO(user);
+
+        // 유저 계정 삭제
+        userRepository.delete(user);
+
+        return deleteDTO;
+    }
+
 }
