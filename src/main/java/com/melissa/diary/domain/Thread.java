@@ -18,7 +18,12 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "`thread`")
+@Table(
+        name = "thread",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user_id", "year", "month", "day"}) // 유저별 날짜 유니크 조건 추가
+        }
+)
 public class Thread {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

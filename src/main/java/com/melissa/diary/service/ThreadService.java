@@ -69,7 +69,7 @@ public class ThreadService {
                 .build();
     }
     private Thread createNewThread(User user, AiProfile aiProfile, int year, int month, int day) {
-        // 스레드 생성 및 저장
+        // 스레드 생성
         Thread newThread = Thread.builder()
                 .user(user)
                 .aiProfile(aiProfile)
@@ -77,9 +77,16 @@ public class ThreadService {
                 .month(month)
                 .day(day)
                 .build();
-        threadRepository.save(newThread);
 
-        // AI 프로필의 첫 채팅 내용을 DailyChatLog로 저장
+        // ====== 유니크 예외 방지를 위한 try-catch ======
+        try {
+            threadRepository.save(newThread);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // 이미 같은 (user, year, month, day)로 insert가 들어갔을 경우
+            throw new ErrorHandler(ErrorStatus.THREAD_ALREADY_ENROLL);
+        }
+
+        // AI 프로필의 첫 채팅 저장
         DailyChatLog firstChat = DailyChatLog.builder()
                 .role(Role.AI)
                 .content(aiProfile.getFirstChat())
