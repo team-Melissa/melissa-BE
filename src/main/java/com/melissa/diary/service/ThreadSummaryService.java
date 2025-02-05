@@ -14,11 +14,13 @@ import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UserSettingRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,14 +33,22 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ThreadSummaryService {
 
     private final UserRepository userRepository;
     private final ThreadRepository threadRepository;
     private final UserSettingRepository userSettingRepository;
-    private final ChatModel chatModel;
+    private final ChatClient summaryClient;
     private final ImageGenerator imageGenerator;
+
+    public ThreadSummaryService(UserRepository userRepository, ThreadRepository threadRepository, UserSettingRepository userSettingRepository,
+                                @Qualifier("summaryClient") ChatClient summaryClient, ImageGenerator imageGenerator) {
+        this.userRepository = userRepository;
+        this.threadRepository = threadRepository;
+        this.userSettingRepository = userSettingRepository;
+        this.summaryClient = summaryClient;
+        this.imageGenerator = imageGenerator;
+    }
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -143,39 +153,30 @@ public class ThreadSummaryService {
 
     private String buildSummaryPrompt(String chatLogs) {
         return """
-               아래는 오늘의 채팅 로그입니다:
-               %s
+                오늘의 채팅 로그입니다: %s
 
-               위 대화를 요약해 주세요. 
-               - summaryTitle(30자 이하)
-               - mood(HAPPY, SAD, TIRED, ANGRY, RELAX 중 하나)
-               - summaryContent(200자 이하)
-               - hashTag1, hashTag2(주제 연관 해시태그)
-
-               아래 JSON 형식으로 꼭 답변해주세요:
-               {
-                 "summaryTitle":"...",
-                 "mood":"...", 
-                 "summaryContent":"...",
-                 "hashTag1":"...",
-                 "hashTag2":"..."
-               }
-               """.formatted(chatLogs);
+                위 대화를 오늘의 채팅로그를 기반으로 그림일기 형식으로 요약해 주세요.
+                - mood(HAPPY, SAD, TIRED, ANGRY, RELAX 중 하나)
+                - title(30자 이하, 평범한 제목이 아니라 유쾌하고 흥미로운 표현을 사용, 이모티콘 안 쓰도록)
+                   * 예시: "김치전엔 소주지! 수원에서 한 잔", "전주 가려다 수원행, "전이냐 감자탕이냐, 그것이 문제로다"
+                - story(300자 이하, 일기 형식)
+                - hashTag1, hashTag2(주제 연관 해시태그)
+                                
+                아래 JSON 형식으로 꼭 답변해주세요:
+                                
+                {
+                  "mood": "...",
+                  "title": "...",
+                  "story": "...",
+                  "hashTag1": "...",
+                  "hashTag2": "..."
+                }
+                """.formatted(chatLogs);
     }
 
     //LLM 호출 (ChatModel 이용) -> 결과를 문자열로 반환
     private String callLLMForSummary(String prompt) {
-        ChatResponse response = chatModel.call(
-                new Prompt(
-                        prompt,
-                        OpenAiChatOptions.builder()
-                                .model(OpenAiApi.ChatModel.GPT_4_O_MINI)
-                                .temperature(0.7)
-                                .build()
-                )
-        );
-        // LLM의 응답 텍스트
-        return response.getResult().getOutput().getText();
+        return summaryClient.prompt().user(prompt).call().content();
     }
 
 
@@ -191,9 +192,9 @@ public class ThreadSummaryService {
             String jsonContent = llmResponse.substring(startIndex, endIndex + 1);
             JsonNode node = objectMapper.readTree(jsonContent);
 
-            String summaryTitle = node.has("summaryTitle") ? node.get("summaryTitle").asText() : null;
+            String summaryTitle = node.has("title") ? node.get("title").asText() : null;
             String moodStr = node.has("mood") ? node.get("mood").asText() : null;
-            String summaryContent = node.has("summaryContent") ? node.get("summaryContent").asText() : null;
+            String summaryContent = node.has("story") ? node.get("story").asText() : null;
             String hashTag1 = node.has("hashTag1") ? node.get("hashTag1").asText() : null;
             String hashTag2 = node.has("hashTag2") ? node.get("hashTag2").asText() : null;
 
@@ -227,7 +228,6 @@ public class ThreadSummaryService {
 
 
     // 이미지 생성용 프롬프트 - Thread 객체를 활용해 프롬프트 생성
-
     private String buildImagePrompt(Thread thread) {
         // "제목 + 무드 + 해시태그 + 요약내용"을 바탕으로 이미지를 프롬프팅
         String moodText = thread.getMood() == null ? "HAPPY" : thread.getMood().name();
@@ -236,13 +236,13 @@ public class ThreadSummaryService {
                 thread.getHashtag2() == null ? "" : thread.getHashtag2());
 
         return """
-               오늘 하루를 표현하는 일러스트 이미지를 만들어줘.
-               분위기: %s
-               요약 제목: %s
-               요약 내용: %s
-               해시태그: %s
-               카툰 스타일, 파스텔 톤, 밝은 느낌.
-               """.formatted(
+                그림일기에 들어갈 그림을 그려줘
+                NO TEXT!!!
+                분위기: %s
+                요약 제목: %s
+                요약 내용: %s
+                해시태그: %s
+                """.formatted(
                 moodText,
                 thread.getSummaryTitle() == null ? "Untitled" : thread.getSummaryTitle(),
                 thread.getSummaryContent() == null ? "" : thread.getSummaryContent(),
