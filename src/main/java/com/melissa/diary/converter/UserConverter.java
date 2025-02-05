@@ -23,4 +23,15 @@ public class UserConverter {
                 .tokenType("Bearer")
                 .build();
     }
+
+    public UserResponseDTO.DeleteResultDTO toDeleteDTO(User user){
+
+        return UserResponseDTO.DeleteResultDTO.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .oauthProvider(user.getProvider())
+                .nickname(user.getNickname())
+                .providerId(user.getProviderId())
+                .build();
+    }
 }

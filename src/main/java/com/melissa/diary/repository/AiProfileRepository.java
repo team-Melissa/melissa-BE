@@ -8,4 +8,5 @@ import java.util.List;
 public interface AiProfileRepository extends JpaRepository<AiProfile, Long> {
     List<AiProfile> findByUserId(Long userId);
     boolean existsByUserId(Long userId);
+    void deleteAllByUserId(Long userId);
 }
