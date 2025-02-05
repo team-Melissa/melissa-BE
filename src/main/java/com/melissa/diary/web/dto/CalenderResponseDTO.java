@@ -17,6 +17,8 @@ public class CalenderResponseDTO {
         private String summaryTitle;
         private String summaryMood;
         private String summaryContent;
+        private String hashTag1;
+        private String hashTag2;
         private String imageS3;
     }
 

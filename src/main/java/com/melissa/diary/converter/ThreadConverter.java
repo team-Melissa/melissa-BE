@@ -13,6 +13,8 @@ public class ThreadConverter {
                 .summaryTitle(thread.getSummaryTitle())
                 .summaryMood(thread.getMood() != null ? thread.getMood().name() : null)
                 .summaryContent(thread.getSummaryContent())
+                .hashTag1(thread.getHashtag1())
+                .hashTag2(thread.getHashtag2())
                 .imageS3(thread.getImageUrl())
                 .build();
     }
