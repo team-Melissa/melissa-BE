@@ -68,7 +68,7 @@ public class AiProfileController {
     @DeleteMapping("/{aiProfileId}")
     public ApiResponse<Void> deleteAiProfile(
             Principal principal,
-            @PathVariable Long aiProfileId) {
+            @PathVariable(name = "aiProfileId") Long aiProfileId) {
 
         Long userId = Long.parseLong(principal.getName());
         aiProfileService.deleteAiProfile(userId, aiProfileId);

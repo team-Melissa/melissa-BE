@@ -68,6 +68,9 @@ public class AiProfile {
     @JoinColumn(name = "user_id")
     private User user;
 
-
+    // DB 컬럼에 not null + 기본값 true
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
 
 }
