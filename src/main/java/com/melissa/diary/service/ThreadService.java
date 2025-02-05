@@ -203,10 +203,13 @@ public class ThreadService {
                 })
                 .doOnError(e -> log.error("AI 응답 스트리밍 중 에러 발생", e))
                 .doOnComplete(() -> {
+
+                    String answer = aiAnswerBuilder.toString().replace("null", "").trim();
+
                     // 모든 응답이 완료되면 최종 AI 응답을 DB에 저장
                     DailyChatLog aiChat = DailyChatLog.builder()
                             .role(Role.AI)
-                            .content(aiAnswerBuilder.toString())
+                            .content(answer)
                             .thread(thread)
                             .aiProfile(aiProfile)
                             .createdAt(LocalDateTime.now())
@@ -214,7 +217,7 @@ public class ThreadService {
                     dailyChatLogRepository.save(aiChat);
                 });
 
-        // finish 이벤트를 내보내는 Flux (단일 이벤트)
+        // finish 이벤트를 내보내는 Flux (단일 이벤트) : 현성이 요청
         Flux<ServerSentEvent<String>> finishEventFlux = Flux.just(
                 ServerSentEvent.<String>builder()
                         .id(String.valueOf(System.currentTimeMillis()))

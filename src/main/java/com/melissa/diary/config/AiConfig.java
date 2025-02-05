@@ -60,4 +60,25 @@ public class AiConfig {
                 .defaultSystem("사용자와 채팅을 나누면서, 일기를 작성할 정보를 추출하거나 공감해줘. 대답에서 해시태그는 사용하지마. {system}")
                 .build();
     }
+
+    @Bean(name = "summaryClient")
+    ChatClient summaryClient(){
+        OpenAiApi api = new OpenAiApi(apiKey);
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(OpenAiApi.ChatModel.GPT_4_O_MINI)
+                .temperature(0.5)
+                .build();
+
+        String system = """
+                당신은 사용자와의 대화를 통해 그림일기를 작성하는 전문 에이전트입니다.
+                - 대화에서 중요한 사건, 감정, 생각을 파악하여 그림일기 형식으로 정리합니다.
+                - 시간 순서와 인과관계를 고려하여 자연스럽게 이야기를 구성합니다.
+                - 사용자의 감정 변화를 섬세하게 반영하여 적절한 mood를 설정합니다.
+                - 그림일기에 어울리는 제목과 내용을 작성하고, 그림을 상상할 수 있도록 상세한 묘사를 포함합니다.
+                - 주제에 맞는 해시태그를 추가하여 일기의 특징을 강조합니다.""";
+
+        return ChatClient.builder(new OpenAiChatModel(api, options))
+                .defaultSystem(system)
+                .build();
+    }
 }
