@@ -16,11 +16,13 @@ import com.melissa.diary.repository.UuidRepository;
 import com.melissa.diary.web.dto.AiProfileRequestDTO;
 import com.melissa.diary.web.dto.AiProfileResponseDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,15 +32,21 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class AiProfileService {
 
     private final AiProfileRepository aiProfileRepository;
     private final UserRepository userRepository;
-    private final ChatModel chatModel;
+    private final ChatClient chatClient;
     private final ImageGenerator imageGenerator;
     // Jackson : json 맵핑 도와주는 객체
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public AiProfileService(AiProfileRepository aiProfileRepository, UserRepository userRepository, @Qualifier("profileClient") ChatClient chatClient, ImageGenerator imageGenerator) {
+        this.aiProfileRepository = aiProfileRepository;
+        this.userRepository = userRepository;
+        this.chatClient = chatClient;
+        this.imageGenerator = imageGenerator;
+    }
 
     @Transactional
     public AiProfileResponseDTO.AiProfileResponse createAiProfile(Long userId,
@@ -54,7 +62,6 @@ public class AiProfileService {
 
         // 3) JSON 파싱 + 결과 프롬프트 저장 -> 객체생성
         AiProfile newProfile = parseLlmResponse(llmResponseJson);
-        newProfile.setPromptText(promptText); // LLM에게 보낸 프롬프트 전문 저장
         newProfile.setUser(user);
 
         // 4) 프롬프트 생성
@@ -123,63 +130,77 @@ public class AiProfileService {
 
 
     private String buildPromptProfileText(AiProfileRequestDTO.AiProfileCreateRequest req) {
-        // 예시: Q들의 답변을 이어붙여서 프롬프트 형태로 구성
-        // 실제로는 좀 더 정교하게 작성 가능
         return """
-               아래의 6가지 정보를 바탕으로, 다음 JSON을 생성해주세요:
-               반드시 형식을 지켜 예시 응답(Json)처럼 리턴해주세요.
-               1) profileName: 대화 상대에 어울리는 귀여운 이름. 형용상 뒤의 이름은 동물이나 사물로 한정 (예: "행복한 빵빵이")
-               2) firstChat : 첫 인사말을 성격과 특징에 맞게 작성
-               3) hashTag1, hashTag2: 2가지 해시태그
-               4) feature1, feature2, feature3: 3가지 특징
-               
-               질문과 답변:
-               Q1(성격): %s
-               Q2(대화주제): %s
-               Q3(대화스타일): %s
-               Q4(연령대/분위기): %s
-               Q5(목적성): %s
-               Q6(언어표현방식): %s
-               
-               형식:
-               {
-                 "profileName": "...",
-                 "firstChat": "...",
-                 "imageS3": "...",
-                 "hashTag1": "...",
-                 "hashTag2": "...",
-                 "feature1": "...",
-                 "feature2": "...",
-                 "feature3": "..."
-               }
-               
-               답변 예시:
-               {
-                 "profileName": "행복한 빵빵이",
-                 "firstChat": "오늘 하루는 어땠어?",
-                 "hashTag1": "무사태평",
-                 "hashTag2": "공감",
-                 "feature1": "쾌활하고 친근함",
-                 "feature2": "언제나 긍정적인 에너지",
-                 "feature3": "친구처럼 편한 대화"
-               }
-               """.formatted(
+                 아래의 6가지 정보를 바탕으로, 다음 JSON을 생성해주세요:
+                 반드시 형식을 지켜 예시 응답(Json)처럼 리턴해주세요.
+                                
+                 1) profileName: 대화 상대에 어울리는 귀여운 이름. 형용사 뒤의 이름은 사물 또는 동물로 한정
+                 (예: '행복한 빵빵이, 즐거운 몽몽이, 말랑한 구름이, 달콤한 마시멜로우, 보송한 리본, 엉뚱한 솔방울')
+                 2) firstChat : 첫 인사말 작성
+                 - 연령대에 맞는 표현 활용
+                 - 이모티콘 적절히 사용 (profileName에 관련된 이모티콘 또는 인사말에 맞는 이모티콘 선택)
+                 ٩(ˊᗜˋ*)و // ｡•̀ᴗ-)✧//◝(⑅•ᴗ•⑅)◜..°♡ //  (◍•ᴗ•◍) //  (ﾉ≧∀≦)ﾉ
+                 - 함께할 내용 제안, 상대방 상황에 대한 공감/질문, 인사말
+                 - "안녕하세요", "반갑습니다" 같은 형식적 인사 금지
+                 3) hashTag1, hashTag2: 2가지 해시태그
+                 - 대화 상대의 연령대와 분위기 반영
+                 4) feature1, feature2, feature3: 3가지 구체적인 행동이나 특징, 15자 이내
+                 5) defaultSystem: 채팅 서비스에서 ai의 성격 정의
+                 - 사용자가 원하는 특징을 지닌 프로필에 대한 설명을 적어줘.
+                 - 이는 나중에 사용자의 대화를 이끌 ai의 프로필 정의항목에 들어갈 예정.
+                 - 그리고 생성한 프로필과도 잘 융합하도록 반영해.
+                                
+                 질문과 답변:
+                 Q1(성격): %s
+                 Q2(대화주제): %s
+                 Q3(대화스타일): %s
+                 Q4(연령대/분위기): %s
+                 Q5(목적성): %s
+                 Q6(언어표현방식): %s
+                                
+                                
+                 반드시 형식을 지켜 예시 응답(Json)처럼 리턴해주세요.
+                 형식:
+                 {
+                   "profileName": "...",
+                   "firstChat": "...",
+                   "hashTag1": "...",
+                   "hashTag2": "...",
+                   "feature1": "...",
+                   "feature2": "...",
+                   "feature3": "...",
+                   "defaultSystem": "..."
+                 }
+                                
+                 답변 예시:
+                 {
+                   "profileName": "행복한 빵빵이",
+                   "firstChat": "오늘 하루는 어땠어?",
+                   "hashTag1": "일잘러들의_TMI",
+                   "hashTag2": "오늘의_발견",
+                   "feature1": "지루한 IT 용어도 맛있게 씹어먹는 달달 설명",
+                   "feature2": "퇴근 후 우리만의 자기계발 수다",
+                   "feature3": "찰떡같이 알아듣는 맞춤 솔루션",
+                   "defaultSystem": "이 AI의 프로필 이름은 '행복한 빵빵이'이다. 첫 메시지는 항상 '오늘 하루는 어땠어?'로 시작한다.
+                                     이 AI는 '#일잘러들의_TMI'와 '#오늘의_발견'이라는 해시태그를 기반으로 대화의 흐름을 유지하며, 다음과 같은 특징을 갖는다.
+                                     
+                                     첫째, 어려운 IT 용어를 쉽게 풀어 설명하여 누구나 이해할 수 있도록 한다.
+                                     둘째, 퇴근 후 자기계발과 관련된 다양한 주제로 대화를 나눈다.
+                                     셋째, 상대방이 원하는 정보를 정확히 이해하고 최적의 맞춤형 솔루션을 제공한다.
+                                     
+                                     이에 따라, AI는 IT 용어를 친근하게 설명하고, 자기계발 관련 대화를 유도하며, 사용자의 질문이나 고민에 대해 쉽게 이해할 수 있는 맞춤형 답변을 제공하도록 한다."
+                 }
+                """.formatted(
                 req.getQ1(), req.getQ2(), req.getQ3(),
                 req.getQ4(), req.getQ5(), req.getQ6()
         );
     }
 
     private String callLLM(String promptText) {
-        ChatResponse response = chatModel.call(
-                new Prompt(
-                        promptText,
-                        OpenAiChatOptions.builder()
-                                .model(OpenAiApi.ChatModel.GPT_4_O)
-                                .temperature(0.4)
-                                .build()
-                ));
-        System.out.println(response.getResult().getOutput().getText());
-        return response.getResult().getOutput().getText();
+        return chatClient.prompt()
+                .user(promptText)
+                .call()
+                .content();
     }
 
     private AiProfile parseLlmResponse(String llmResponseJson) {
@@ -190,7 +211,7 @@ public class AiProfileService {
 
             // 만약 { 또는 } 가 없다면 잘못된 형식이므로 예외 처리
             if (startIndex == -1 || endIndex == -1) {
-                throw new RuntimeException("JSON 형식이 올바르지 않습니다: " + llmResponseJson);
+                throw new ErrorHandler(ErrorStatus.PARSING_FAIL);
             }
 
             // 2. 실제 JSON 내용만 잘라낸다.
@@ -208,6 +229,7 @@ public class AiProfileService {
                     .feature1(node.get("feature1").asText())
                     .feature2(node.get("feature2").asText())
                     .feature3(node.get("feature3").asText())
+                    .promptText(node.get("defaultSystem").asText())
                     .q1(null)
                     .q2(null)
                     .q3(null)
@@ -219,34 +241,16 @@ public class AiProfileService {
                     .build();
 
         } catch (IOException e) {
-            throw new RuntimeException("LLM 응답 파싱 실패", e);
+            throw new ErrorHandler(ErrorStatus.PARSING_FAIL);
         }
     }
 
     private String buildPromptProfileImage(AiProfile aiProfile) {
         // 예시: Q들의 답변을 이어붙여서 프롬프트 형태로 구성
         return """
-               아래 7가지 정보를 바탕으로 캐릭터 프로필 사진을 만들어줘.
-               그림체는 카툰풍으로 귀엽게, 누구나 호불호 없도록 만들어줘.
-               이름을 바탕으로 해당 동물을 생성하고 해시태그와 특징을 그림에 잘 녹여줘.
-               얼굴을 메인으로 프로필사진! 글은 쓰지마.
-               
-               {
-                 "profileName": %s,
-                 "hashTag1": "%s,
-                 "hashTag2": %s,
-                 "feature1": %s,
-                 "feature2": %s,
-                 "feature3": %s
-               }
-               
-               """.formatted(
-                aiProfile.getProfileName(),
-                aiProfile.getHashTag1(),
-                aiProfile.getHashTag2(),
-                aiProfile.getFeature1(),
-                aiProfile.getFeature2(),
-                aiProfile.getFeature3()
+                %s. 단일 캐릭터의 카툰 일러스트. 픽사 스타일. 디즈니 스타일.
+                """.formatted(
+                aiProfile.getProfileName()
                 );
     }
 

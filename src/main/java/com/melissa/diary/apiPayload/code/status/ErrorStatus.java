@@ -23,6 +23,9 @@ public enum ErrorStatus implements BaseErrorCode {
     SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "SETTING4001", "해당 유저의 셋팅을 찾을 수 없습니다."),
     SETTING_ALREADY_ENROLL(HttpStatus.BAD_REQUEST, "SETTING4002", "해당 유저의 셋팅값이 이미 존재합니다."),
 
+    // AI
+    PARSING_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "AI5001", "llm 파싱 도중 실패했습니다."),
+
     // Profile
     PROFILE_FORBIDDEN(HttpStatus.FORBIDDEN, "SETTING4001", "해당 프로필에 접근할 수 있는 권한이 없습니다,"),
     PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "PROFILE4002", "해당 프로필이 존재하지 않습니다."),
