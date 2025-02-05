@@ -45,13 +45,13 @@ public class UserSettingService {
     public void createDefaultSetting(Long userId) {
         // 이미 존재하면 등록하지 않음
         Optional<UserSetting> optional = userSettingRepository.findByUserId(userId);
-        if (optional.isPresent()) { // 이미 존재할 때, 기본값 등록을 하려고하는 경우
-            new ErrorHandler(ErrorStatus.SETTING_ALREADY_ENROLL);
+        if (optional.isPresent()) {
+            throw new ErrorHandler(ErrorStatus.SETTING_ALREADY_ENROLL);
         }
 
         // 유저 찾기
         User user = userRepository.findById(userId)
-                .orElseThrow(() ->  new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
 
         // 기본값 설정
         UserSetting defaultSetting = UserSetting.builder()
@@ -62,7 +62,13 @@ public class UserSettingService {
                 .notificationQna(true)
                 .build();
 
-        userSettingRepository.save(defaultSetting);
+        // 예외 처리를 위해 try-catch로 감쌈
+        try {
+            userSettingRepository.save(defaultSetting);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // DB 유니크 제약 에러가 터지면, 우리가 원하는 커스텀 예외로 던진다.
+            throw new ErrorHandler(ErrorStatus.SETTING_ALREADY_ENROLL);
+        }
     }
 
     public boolean isNewUser(Long userId) {
