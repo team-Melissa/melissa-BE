@@ -19,6 +19,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,6 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor // 롬복으로 의존성 주입
 public class ThreadService {
 
     private final ThreadRepository threadRepository;
@@ -42,6 +42,14 @@ public class ThreadService {
     private final AiProfileRepository aiProfileRepository;
     private final DailyChatLogRepository dailyChatLogRepository;
     private final ChatClient chatClient;
+
+    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, @Qualifier("aiChatClient") ChatClient chatClient) {
+        this.threadRepository = threadRepository;
+        this.userRepository = userRepository;
+        this.aiProfileRepository = aiProfileRepository;
+        this.dailyChatLogRepository = dailyChatLogRepository;
+        this.chatClient = chatClient;
+    }
 
     @Transactional
     public ThreadResponseDTO.ThreadResponse createThread(Long userId, Long aiProfileId, int year, int month, int day) {
@@ -179,13 +187,8 @@ public class ThreadService {
         StringBuilder aiAnswerBuilder = new StringBuilder();
 
         // AI 응답을 SSE 이벤트로 매핑하는 Flux
-        Flux<ServerSentEvent<String>> aiMessageFlux = chatClient.prompt(new Prompt(
-                        promptText,
-                        OpenAiChatOptions.builder()
-                                .model(OpenAiApi.ChatModel.GPT_4_O_MINI)
-                                .temperature(0.4)
-                                .build()
-                ))
+        Flux<ServerSentEvent<String>> aiMessageFlux = chatClient.prompt(promptText)
+                .system(sp -> sp.param("system", aiProfile.getPromptText()))
                 .stream()
                 .chatResponse()
                 .map(response -> {
