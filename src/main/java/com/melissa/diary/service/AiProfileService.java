@@ -98,6 +98,10 @@ public class AiProfileService {
 
     @Transactional
     public AiProfileResponseDTO.AiProfileResponse getAiProfile(Long userId, Long aiProfileId){
+
+        // 정상적인 유저인지 보호
+        User user = getUser(userId);
+
         AiProfile aiProfile = aiProfileRepository.findByIdAndActiveIsTrue(aiProfileId).orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
 
         if (!aiProfile.getUser().getId().equals(userId)){
@@ -110,6 +114,10 @@ public class AiProfileService {
 
     @Transactional
     public AiProfileResponseDTO.AiProfileQuestionResponse getAiProfileQuestion(Long userId, Long aiProfileId){
+
+        // 정상적인 유저인지 보호
+        User user = getUser(userId);
+
         AiProfile aiProfile = aiProfileRepository.findByIdAndActiveIsTrue(aiProfileId).orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
         if (!aiProfile.getUser().getId().equals(userId)){
             throw new ErrorHandler(ErrorStatus.PROFILE_FORBIDDEN);
@@ -120,6 +128,10 @@ public class AiProfileService {
 
     @Transactional
     public List<AiProfileResponseDTO.AiProfileResponse> getAiProfileList(Long userId){
+
+        // 정상적인 유저인지 보호
+        User user = getUser(userId);
+
         List<AiProfile> aiProfileList = aiProfileRepository.findByUserIdAndActiveIsTrue(userId);
 
         return aiProfileList.stream().map(AiProfileConverter::toResponse).toList();
@@ -128,6 +140,10 @@ public class AiProfileService {
 
     @Transactional
     public void deleteAiProfile(Long userId, Long aiProfileId) {
+
+        // 정상적인 유저인지 보호
+        User user = getUser(userId);
+
         // 상태가 true인 조건을 추가해서 찾기. -> 기존의 에러처리 그대로 가져갈 수 있음.
         AiProfile aiProfile = aiProfileRepository.findByIdAndActiveIsTrue(aiProfileId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));

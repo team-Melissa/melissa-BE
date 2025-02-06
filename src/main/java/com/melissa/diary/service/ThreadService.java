@@ -55,9 +55,9 @@ public class ThreadService {
 
     @Transactional
     public ThreadResponseDTO.ThreadResponse createThread(Long userId, Long aiProfileId, int year, int month, int day) {
-        // 1. 유저와 AI 프로필 검증
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+        // 유저와 AI 프로필 검증
+        // 정상적인 유저인지 보호
+        User user = getUser(userId);
 
         AiProfile aiProfile = aiProfileRepository.findById(aiProfileId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
@@ -66,11 +66,11 @@ public class ThreadService {
             throw new ErrorHandler(ErrorStatus.PROFILE_FORBIDDEN);
         }
 
-        // 2. 해당 날짜에 이미 존재하는 스레드를 조회하거나, 없으면 생성
+        // 해당 날짜에 이미 존재하는 스레드를 조회하거나, 없으면 생성
         Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
                 .orElseGet(() -> createNewThread(user, aiProfile, year, month, day));
 
-        // 3. 스레드 객체를 DTO로 변환하여 반환
+        // 스레드 객체를 DTO로 변환하여 반환
         return ThreadResponseDTO.ThreadResponse.builder()
                 .threadId(thread.getId())
                 .year(thread.getYear())
@@ -111,9 +111,8 @@ public class ThreadService {
 
     @Transactional
     public ThreadResponseDTO.ThreadResponse deleteTread(Long userId, int year, int month, int day){
-        // 유저 존재하는지 체크 없으면 예외 발생
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+        // 정상적인 유저인지 보호
+        User user = getUser(userId);
 
         // 해당 스레드가 존재하는지 조회
         Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
@@ -141,9 +140,8 @@ public class ThreadService {
      // Thread에 AI 프로필 업데이트 -> 이후 채팅 생성시 변경된 프로필로 생성
     @Transactional
     public void updateThreadAiProfile(Long userId, Long aiProfileId, int year, int month, int day) {
-        // 유저가져오기
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+        // 정상적인 유저인지 보호
+        User user = getUser(userId);
 
         // 스레드가져오기
         Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
@@ -169,10 +167,11 @@ public class ThreadService {
     }
     // 실시간 스트리밍
     public Flux<ServerSentEvent<String>> messageToAi(Long userId, int year, int month, int day, String userMessage) {
-        // (1) blocking DB 접근 및 사용자 메시지 저장 (트랜잭션 내)
-        ThreadData threadData = getThreadData(userId, year, month, day, userMessage);
+        // 정상적인 유저인지 보호
+        User user = getUser(userId);
 
-        // (2) 프롬프트 생성 (이미 로드된 데이터 사용)
+        // 프롬프트 생성 -> 좀더 자세히 보면, 여기서 이미 Lazy를 대비해 로드까지 해놓음
+        ThreadData threadData = getThreadData(userId, year, month, day, userMessage);
         String promptText = buildAiChatPrompt(userMessage, threadData.getChatHistory(), threadData.getAiProfile());
 
         StringBuilder aiAnswerBuilder = new StringBuilder();
@@ -209,6 +208,12 @@ public class ThreadService {
 
         // 두 Flux를 순차적으로 연결하여, aiMessageFlux가 완료된 뒤 finish 이벤트를 발행
         return Flux.concat(aiMessageFlux, finishEventFlux);
+    }
+
+    @Transactional(readOnly = true)
+    public User getUser(Long userId) {
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        return userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
     }
 
     private void saveAiMessage(String answer, ThreadData threadData) {
@@ -289,6 +294,9 @@ public class ThreadService {
     //해당 날짜(Thread)의 채팅메시지 조회
     @Transactional(readOnly = true)
     public ThreadResponseDTO.ChatListResponse getThreadMessages(Long userId, int year, int month, int day) {
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
         // Thread 가져오기
         Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
