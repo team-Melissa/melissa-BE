@@ -2,6 +2,7 @@ package com.melissa.diary.web.controller;
 
 import com.melissa.diary.apiPayload.ApiResponse;
 import com.melissa.diary.service.ThreadService;
+import com.melissa.diary.web.dto.ThreadRequestDTO;
 import com.melissa.diary.web.dto.ThreadResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -70,14 +71,11 @@ public class ThreadController {
     @Operation(description = "AI에게 채팅 메시지를 전송하고, SSE로 실시간 응답을 받습니다.")
     @PostMapping(value = "/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> messageToAi(
-            @RequestParam(name = "content") String userMessage,
-            @RequestParam(name = "year") int year,
-            @RequestParam(name = "month") int month,
-            @RequestParam(name = "day") int day,
+            @RequestBody ThreadRequestDTO.AiChatRequest request,
             Principal principal
     ) {
         Long userId = Long.parseLong(principal.getName());
-        return threadService.messageToAi(userId, year, month, day, userMessage);
+        return threadService.messageToAi(userId, request.getYear(), request.getMonth(), request.getDay(), request.getContent());
     }
 
     // 해당 날짜(Thread)의 채팅메시지 조회

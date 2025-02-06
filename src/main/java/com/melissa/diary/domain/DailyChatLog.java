@@ -23,7 +23,7 @@ public class DailyChatLog {
     @Column(nullable = false)
     private Role role;
 
-    @Column(nullable = false) // 단순 채팅밖에 안됨
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @CreatedDate
