@@ -263,7 +263,6 @@ public class AiProfileService {
                     .q5(null)
                     .q6(null)
                     .imageS3(node.has("imageS3") ? node.get("imageS3").asText() : null)
-                    .promptText(jsonContent)
                     .build();
 
         } catch (IOException e) {
