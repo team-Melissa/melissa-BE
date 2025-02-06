@@ -134,15 +134,7 @@ public class ThreadSummaryService {
      * 최신 스레드를 반환합니다.
      */
     @Transactional
-    public ThreadSummaryResponseDTO.dailySummaryResponseDTO generateImmediateSummary(Long userId) {
-        LocalDateTime now = LocalDateTime.now();
-        int year = now.getYear();
-        int month = now.getMonthValue();
-        int day = now.getDayOfMonth();
-        // 오전 8시 이전이면 전날로 처리
-        if (now.getHour() < 8) {
-            day -= 1;
-        }
+    public ThreadSummaryResponseDTO.dailySummaryResponseDTO generateImmediateSummary(Long userId, int year, int month, int day) {
 
         ThreadSummaryData summaryData = fetchThreadSummaryData(userId, year, month, day);
         if (summaryData == null) {

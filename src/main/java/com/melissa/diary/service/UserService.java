@@ -126,6 +126,7 @@ public class UserService {
         String token = jwtProvider.createRefreshToken(user.getId(), user.getProvider());
         user.setRefreshToken(token);
         user.setRefreshTokenExpiry(LocalDateTime.now().plusDays(1));
+        userRepository.save(user);
         return token;
     }
 
