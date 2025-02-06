@@ -27,6 +27,9 @@ public class UserSettingService {
     // 조회
     @Transactional(readOnly = true)
     public UserSettingResponseDTO.UserSettingResponse getUserSettings(Long userId) {
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
         UserSetting userSetting = userSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
 
@@ -37,6 +40,9 @@ public class UserSettingService {
     // 수정
     @Transactional
     public UserSettingResponseDTO.UserSettingResponse updateUserSettings(Long userId, UserSettingRequestDTO.UserSettingRequest request) {
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
         UserSetting existingSetting = userSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
 
@@ -48,15 +54,15 @@ public class UserSettingService {
 
     @Transactional
     public void createDefaultSetting(Long userId) {
+
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
         // 이미 존재하면 등록하지 않음
         Optional<UserSetting> optional = userSettingRepository.findByUserId(userId);
         if (optional.isPresent()) {
             throw new ErrorHandler(ErrorStatus.SETTING_ALREADY_ENROLL);
         }
-
-        // 유저 찾기
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
 
         // 기본값 설정
         UserSetting defaultSetting = UserSetting.builder()
@@ -78,6 +84,9 @@ public class UserSettingService {
 
     @Transactional(readOnly = true)
     public boolean isNewUser(Long userId) {
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
         // 설정값이 있으면 신규가입이 아님 (기본값이라도 있으면, 기존유저)
         return !userSettingRepository.existsByUserId(userId);
     }
