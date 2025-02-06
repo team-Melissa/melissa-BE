@@ -17,10 +17,13 @@ spring:
     username: ${AWS_DB_USERNAME} #root #
     password: ${AWS_DB_PASSWORD} #12341234 #
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 50 # 풀 크기 늘리기
   sql:
     init:
       mode: never
   jpa:
+    open-in-view: false # 요청 전/후로 EntityManager를 물고 있지 않도록
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
