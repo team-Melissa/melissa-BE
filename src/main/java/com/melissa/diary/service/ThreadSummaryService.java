@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.melissa.diary.ai.ImageGenerator;
 import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
+import com.melissa.diary.converter.ThreadSummaryConverter;
 import com.melissa.diary.domain.*;
 import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.enums.Mood;
@@ -12,6 +13,7 @@ import com.melissa.diary.domain.enums.Role;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UserSettingRepository;
+import com.melissa.diary.web.dto.ThreadSummaryResponseDTO;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +61,8 @@ public class ThreadSummaryService {
 
     /**
      * 매 정각 실행 – 사용자가 설정한 시간과 현재 시각의 시(hour)가 동일한 경우에만 요약 생성
+     * 
+     * 변경사항 : 민석이형의 요청으로 스케줄러는 보수적 접근으로 사용 -> 채팅로그는 존재하지만 채팅방을 나가는 유저의 개개인 트리거가 작동하지 않은 경우 추가
      */
     @Scheduled(cron = "0 0 * * * *")
     public void generateDailySummaryForAllUsers() {
@@ -70,7 +74,7 @@ public class ThreadSummaryService {
             LocalTime userSummaryTime = userSetting.getSleepTime().toLocalTime();
             if (currentTime.getHour() == userSummaryTime.getHour()) {
                 try {
-                    generateDailySummaryForUser(user.getId());
+                    generateDailySummaryForUserScheduled(user.getId());
                 } catch (Exception e) {
                     log.error("[ThreadSummary] 요약 생성 실패. userId=" + user.getId(), e);
                 }
@@ -85,7 +89,7 @@ public class ThreadSummaryService {
      *    외부 API 호출(LLM, 이미지 생성)은 트랜잭션 외부에서 실행하고,
      *    최종 업데이트는 별도의 신규 트랜잭션(REQUIRES_NEW)에서 처리한다.
      */
-    public void generateDailySummaryForUser(Long userId) {
+    public void generateDailySummaryForUserScheduled(Long userId) {
         LocalDateTime now = LocalDateTime.now();
         int year = now.getYear();
         int month = now.getMonthValue();
@@ -102,9 +106,15 @@ public class ThreadSummaryService {
             log.warn("[ThreadSummary] 해당 날짜 스레드가 없습니다. userId={}, {}-{}-{}", userId, year, month, day);
             return;
         }
+        Thread thread = summaryData.getThread();
         List<DailyChatLog> logs = summaryData.getLogs();
         if (logs == null || logs.isEmpty()) {
             log.warn("[ThreadSummary] 채팅 로그가 없어 요약 불필요. userId={}, {}-{}-{}", userId, year, month, day);
+            return;
+        }
+        // 이미 요약 내용이 존재하면 스케줄러에서는 실행하지 않도록 수정!!
+        if (thread.getSummaryContent() != null && !thread.getSummaryContent().trim().isEmpty()) {
+            log.info("[ThreadSummary] 요약 내용이 이미 존재하여 스케줄러 생략. userId={}, {}-{}-{}", userId, year, month, day);
             return;
         }
         String chatLogsForPrompt = buildChatLogsPrompt(logs);
@@ -116,7 +126,58 @@ public class ThreadSummaryService {
         String imageUrl = imageGenerator.genProfileImage(imagePrompt);
 
         // 신규 트랜잭션에서 스레드 업데이트 (요약 결과 및 이미지 URL 반영)
-        updateThreadSummary(summaryData.getThread().getId(), llmResponse, imageUrl);
+        updateThreadSummary(thread.getId(), llmResponse, imageUrl);
+    }
+
+    /**
+     * 유저가 API를 호출하면 즉각 실행되어 무조건 요약 데이터를 덮어씌우고,
+     * 최신 스레드를 반환합니다.
+     */
+    @Transactional
+    public ThreadSummaryResponseDTO.dailySummaryResponseDTO generateImmediateSummary(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        int year = now.getYear();
+        int month = now.getMonthValue();
+        int day = now.getDayOfMonth();
+        // 오전 8시 이전이면 전날로 처리
+        if (now.getHour() < 8) {
+            day -= 1;
+        }
+
+        ThreadSummaryData summaryData = fetchThreadSummaryData(userId, year, month, day);
+        if (summaryData == null) {
+            throw new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND);
+        }
+        Thread thread = summaryData.getThread();
+        List<DailyChatLog> logs = summaryData.getLogs();
+        if (logs == null || logs.isEmpty()) {
+            throw new ErrorHandler(ErrorStatus.CHAT_NOT_FOUND);
+        }
+
+        // 기존 요약 내용과 관계없이 무조건 덮어씌웁니다.
+        String chatLogsForPrompt = buildChatLogsPrompt(logs);
+        String prompt = buildSummaryPrompt(chatLogsForPrompt);
+
+        String llmResponse = callLLMForSummary(prompt);
+        String imagePrompt = buildImagePrompt(thread);
+        String imageUrl = imageGenerator.genProfileImage(imagePrompt);
+
+        // 이미지 관련 내용 업데이트
+        updateThreadSummary(thread.getId(), llmResponse, imageUrl);
+
+        // 최신 스레드를 재조회하여 반환합니다.
+        return getDailySummaryResponseDTO(userId, year, month, day);
+
+    }
+
+    @Transactional(readOnly = true)
+    public ThreadSummaryResponseDTO.dailySummaryResponseDTO getDailySummaryResponseDTO(Long userId, int year, int month, int day) {
+        Thread thread1 = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
+
+        ThreadSummaryResponseDTO.dailySummaryResponseDTO response = ThreadSummaryConverter.toSummaryDTO(thread1);
+
+        return response;
     }
 
     // 스레드 조회로직 트랜잭션 분리
