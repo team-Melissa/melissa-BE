@@ -11,6 +11,7 @@ import com.melissa.diary.repository.DailyChatLogRepository;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.web.dto.ThreadResponseDTO;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import com.melissa.diary.domain.Thread;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -167,28 +169,17 @@ public class ThreadService {
     }
     // 실시간 스트리밍
     public Flux<ServerSentEvent<String>> messageToAi(Long userId, int year, int month, int day, String userMessage) {
-        // 1. DB에서 스레드, AI 프로필, 채팅 기록을 조회 (블록킹 호출)
-        Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
-        AiProfile aiProfile = thread.getAiProfile();
-        List<DailyChatLog> chatHistory = thread.getDailyChatLogs();
+        // (1) blocking DB 접근 및 사용자 메시지 저장 (트랜잭션 내)
+        ThreadData threadData = getThreadData(userId, year, month, day, userMessage);
 
-        // 2. 사용자 메시지를 저장
-        dailyChatLogRepository.save(
-                DailyChatLog.builder()
-                        .role(Role.USER)
-                        .content(userMessage)
-                        .thread(thread)
-                        .createdAt(LocalDateTime.now())
-                        .build()
-        );
+        // (2) 프롬프트 생성 (이미 로드된 데이터 사용)
+        String promptText = buildAiChatPrompt(userMessage, threadData.getChatHistory(), threadData.getAiProfile());
 
-        String promptText = buildAiChatPrompt(userMessage, chatHistory, aiProfile);
         StringBuilder aiAnswerBuilder = new StringBuilder();
 
         // AI 응답을 SSE 이벤트로 매핑하는 Flux
         Flux<ServerSentEvent<String>> aiMessageFlux = chatClient.prompt(promptText)
-                .system(sp -> sp.param("system", aiProfile.getPromptText()))
+                .system(sp -> sp.param("system", threadData.getAiProfile().getPromptText()))
                 .stream()
                 .chatResponse()
                 .map(response -> {
@@ -203,18 +194,8 @@ public class ThreadService {
                 })
                 .doOnError(e -> log.error("AI 응답 스트리밍 중 에러 발생", e))
                 .doOnComplete(() -> {
-
                     String answer = aiAnswerBuilder.toString().replace("null", "").trim();
-
-                    // 모든 응답이 완료되면 최종 AI 응답을 DB에 저장
-                    DailyChatLog aiChat = DailyChatLog.builder()
-                            .role(Role.AI)
-                            .content(answer)
-                            .thread(thread)
-                            .aiProfile(aiProfile)
-                            .createdAt(LocalDateTime.now())
-                            .build();
-                    dailyChatLogRepository.save(aiChat);
+                    saveAiMessage(answer, threadData);
                 });
 
         // finish 이벤트를 내보내는 Flux (단일 이벤트) : 현성이 요청
@@ -228,6 +209,47 @@ public class ThreadService {
 
         // 두 Flux를 순차적으로 연결하여, aiMessageFlux가 완료된 뒤 finish 이벤트를 발행
         return Flux.concat(aiMessageFlux, finishEventFlux);
+    }
+
+    private void saveAiMessage(String answer, ThreadData threadData) {
+        // 모든 응답이 완료되면 최종 AI 응답을 DB에 저장
+        DailyChatLog aiChat = DailyChatLog.builder()
+                .role(Role.AI)
+                .content(answer)
+                .thread(threadData.getThread())
+                .aiProfile(threadData.getAiProfile())
+                .createdAt(LocalDateTime.now())
+                .build();
+        dailyChatLogRepository.save(aiChat);
+    }
+
+
+    @Transactional
+    public ThreadData getThreadData(Long userId, int year, int month, int day, String userMessage) {
+        // 스레드 조회
+        com.melissa.diary.domain.Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
+
+        // 스레드 소유자 체크
+        if (!thread.getUser().getId().equals(userId)) {
+            throw new ErrorHandler(ErrorStatus.CALENDAR_FORBIDDEN);
+        }
+
+        // AI 프로필 및 채팅 내역 가져오기
+        AiProfile aiProfile = thread.getAiProfile();
+        List<DailyChatLog> chatHistory = thread.getDailyChatLogs();
+
+        // 사용자 메시지 저장
+        DailyChatLog userLog = DailyChatLog.builder()
+                .role(Role.USER)
+                .content(userMessage)
+                .thread(thread)
+                .aiProfile(aiProfile)
+                .createdAt(LocalDateTime.now())
+                .build();
+        dailyChatLogRepository.save(userLog);
+
+        return new ThreadData(thread, aiProfile, chatHistory);
     }
 
     // 기존 채팅 기록과 AI 프로필을 이용해 프롬프트 생성
@@ -304,6 +326,19 @@ public class ThreadService {
                 .aiProfileImageS3(thread.getAiProfile().getImageS3())
                 .chats(mappedChats)
                 .build();
+    }
+
+    @Getter
+    protected static class ThreadData {
+        private final Thread thread;
+        private final AiProfile aiProfile;
+        private final List<DailyChatLog> chatHistory;
+
+        public ThreadData(com.melissa.diary.domain.Thread thread, AiProfile aiProfile, List<DailyChatLog> chatHistory) {
+            this.thread = thread;
+            this.aiProfile = aiProfile;
+            this.chatHistory = chatHistory;
+        }
     }
 
 }

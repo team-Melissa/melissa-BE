@@ -13,9 +13,9 @@ spring:
           quality: standard
           response_format: b64_json
   datasource:
-    url: jdbc:mysql://${AWS_DB_URL}:3306/melissa_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=true&requireSSL=true #jdbc:mysql://127.0.0.1:3306/melissa_db  #
-    username: ${AWS_DB_USERNAME} #root #
-    password: ${AWS_DB_PASSWORD} #12341234 #
+    url: jdbc:mysql://127.0.0.1:3306/melissa_db  #jdbc:mysql://${AWS_DB_URL}:3306/melissa_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=true&requireSSL=true #
+    username: root #${AWS_DB_USERNAME} #
+    password: 12341234 #${AWS_DB_PASSWORD} #
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 50 # 풀 크기 늘리기
