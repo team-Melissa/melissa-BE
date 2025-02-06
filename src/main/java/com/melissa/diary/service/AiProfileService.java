@@ -51,8 +51,7 @@ public class AiProfileService {
     @Transactional
     public AiProfileResponseDTO.AiProfileResponse createAiProfile(Long userId,
                                                                   AiProfileRequestDTO.AiProfileCreateRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+        User user = getUser(userId);
 
         // 1) 프롬프트 생성
         String promptText = buildPromptProfileText(request);
@@ -77,14 +76,24 @@ public class AiProfileService {
         newProfile.setQ5(request.getQ5());
         newProfile.setQ6(request.getQ6());
 
-        // 5 DB 저장
-        AiProfile saved = aiProfileRepository.save(newProfile);
-
-        // 6 변환 후 반환
-        return AiProfileConverter.toResponse(saved);
+        // 5) ai 프로필 저장 및 리턴을 트랜잭션으로 분리
+        return saveAiProfile(newProfile);
     }
 
+    // 사용자 조회 -> 트랜잭션 분리
+    @Transactional(readOnly = true)
+    public User getUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+        return user;
+    }
 
+    // AiProfile 저장 (쓰기 트랜잭션) -> 트랜잭션 분리
+    @Transactional
+    public AiProfileResponseDTO.AiProfileResponse saveAiProfile(AiProfile aiProfile) {
+        AiProfile saved = aiProfileRepository.save(aiProfile);
+        return AiProfileConverter.toResponse(saved);
+    }
 
 
     @Transactional

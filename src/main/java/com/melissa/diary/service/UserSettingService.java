@@ -12,6 +12,7 @@ import com.melissa.diary.web.dto.UserSettingRequestDTO;
 import com.melissa.diary.web.dto.UserSettingResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Time;
 import java.util.Optional;
@@ -24,6 +25,7 @@ public class UserSettingService {
 
 
     // 조회
+    @Transactional(readOnly = true)
     public UserSettingResponseDTO.UserSettingResponse getUserSettings(Long userId) {
         UserSetting userSetting = userSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
@@ -31,7 +33,9 @@ public class UserSettingService {
         return UserSettingConverter.toResponse(userSetting);
     }
 
+
     // 수정
+    @Transactional
     public UserSettingResponseDTO.UserSettingResponse updateUserSettings(Long userId, UserSettingRequestDTO.UserSettingRequest request) {
         UserSetting existingSetting = userSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
@@ -42,6 +46,7 @@ public class UserSettingService {
         return UserSettingConverter.toResponse(updated);
     }
 
+    @Transactional
     public void createDefaultSetting(Long userId) {
         // 이미 존재하면 등록하지 않음
         Optional<UserSetting> optional = userSettingRepository.findByUserId(userId);
@@ -71,6 +76,7 @@ public class UserSettingService {
         }
     }
 
+    @Transactional(readOnly = true)
     public boolean isNewUser(Long userId) {
         // 설정값이 있으면 신규가입이 아님 (기본값이라도 있으면, 기존유저)
         return !userSettingRepository.existsByUserId(userId);
