@@ -55,7 +55,7 @@ public class Thread {
     private AiProfile aiProfile;
 
     // 아래부턴 요약필요라서 null 가능
-    @Column(nullable = true, length = 50)
+    @Column(nullable = true, columnDefinition = "TEXT") // 암호화적용 필드
     @Convert(converter = com.melissa.diary.converter.EncryptionAttributeConverter.class)
     private String summaryTitle;
 
