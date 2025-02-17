@@ -57,3 +57,5 @@ cloud:
 security:
   jwt:
     secret-key: ${MELISSA_JWT_SECRET_KEY}
+  encrypt:
+    secret-key: ${ENC_SECRET_KEY}

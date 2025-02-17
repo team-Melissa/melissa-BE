@@ -24,6 +24,7 @@ public class DailyChatLog {
     private Role role;
 
     @Column(columnDefinition = "TEXT")
+    @Convert(converter = com.melissa.diary.converter.EncryptionAttributeConverter.class)
     private String content;
 
     @CreatedDate
