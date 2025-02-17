@@ -56,6 +56,7 @@ public class Thread {
 
     // 아래부턴 요약필요라서 null 가능
     @Column(nullable = true, length = 50)
+    @Convert(converter = com.melissa.diary.converter.EncryptionAttributeConverter.class)
     private String summaryTitle;
 
     @Enumerated(EnumType.STRING)
@@ -63,6 +64,7 @@ public class Thread {
     private Mood mood;
 
     @Column(nullable = true, columnDefinition = "TEXT")
+    @Convert(converter = com.melissa.diary.converter.EncryptionAttributeConverter.class)
     private String summaryContent;
 
     @Column(nullable = true, length = 30)
