@@ -1,0 +1,9 @@
+
+h
+java:S62045"RReplace this usage of 'Stream.collect(Collectors.toList())' with 'Stream.toList()'(ª™¨¹
+o
+java:S6204F"RReplace this usage of 'Stream.collect(Collectors.toList())' with 'Stream.toList()'(ª™¨¹8–÷õŽÍ2
+A
+java:S1172\"+Remove this unused method parameter "year".(³ª¿ö
+9
+java:S1128	"Remove this duplicated import.(«¢ˆÇøÿÿÿÿ

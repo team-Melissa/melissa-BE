@@ -25,6 +25,9 @@ public class AiProfile {
     @Column(nullable = true)
     private String profileName;
 
+    @Column(nullable = false)
+    private String firstChat;
+
     // 예: S3 경로
     @Column(length = 255)
     private String imageS3;
@@ -43,6 +46,19 @@ public class AiProfile {
     @Column(length = 255)
     private String feature3;
 
+    @Column(length = 255)
+    private String q1;
+    @Column(length = 255)
+    private String q2;
+    @Column(length = 255)
+    private String q3;
+    @Column(length = 255)
+    private String q4;
+    @Column(length = 255)
+    private String q5;
+    @Column(length = 255)
+    private String q6;
+
     // 생성 시각
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -52,6 +68,9 @@ public class AiProfile {
     @JoinColumn(name = "user_id")
     private User user;
 
-
+    // DB 컬럼에 not null + 기본값 true
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
 
 }

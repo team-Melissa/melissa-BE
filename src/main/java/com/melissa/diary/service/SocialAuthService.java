@@ -1,5 +1,11 @@
 package com.melissa.diary.service;
 
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,6 +13,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import java.security.interfaces.RSAKey;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * 소셜 로그인(구글/카카오/애플) 토큰 검증 및 유저정보 조회
@@ -76,15 +88,72 @@ public class SocialAuthService {
 
 
     // Apple (ID Token 검증)
-    // Apple Developer Program 등록 이후 개발 진행
-    /*
     public ApplePayload verifyAppleToken(String idToken) {
-        // (1) https://appleid.apple.com/auth/keys 에서 JWKS라는 걸 가져오기
-        // (2) idToken의 header.kid 등과 매칭하기
-        // (3) aud(클라이언트ID), iss, exp, sub 등 검증
-        return null;
+        try {
+            // 1. 애플의 공개키를 가져옵니다.
+            String appleKeysUrl = "https://appleid.apple.com/auth/keys";
+            RestTemplate restTemplate = new RestTemplate();
+            String response = restTemplate.getForObject(appleKeysUrl, String.class);
+            JWKSet jwkSet = JWKSet.parse(response);
+
+            // 2. 전달받은 idToken을 파싱합니다.
+            SignedJWT signedJWT = SignedJWT.parse(idToken);
+            String keyId = signedJWT.getHeader().getKeyID();
+
+            // 3. token의 header.kid와 일치하는 JWK를 찾습니다.
+            JWK jwk = jwkSet.getKeyByKeyId(keyId);
+            if (jwk == null) {
+                log.error("Apple Token 검증 실패: Matching JWK not found for kid: {}", keyId);
+                return null;
+            }
+            com.nimbusds.jose.jwk.RSAKey rsaKey = (com.nimbusds.jose.jwk.RSAKey) jwk;
+            RSAPublicKey publicKey = rsaKey.toRSAPublicKey();
+
+            // 4. JWT 서명을 검증합니다.
+            JWSVerifier verifier = new RSASSAVerifier(publicKey);
+            if (!signedJWT.verify(verifier)) {
+                log.error("Apple Token 검증 실패: Signature verification failed");
+                return null;
+            }
+
+            // 5. Claims를 파싱하고 검증합니다.
+            JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
+            // 발급자(issuer) 검증
+            if (!"https://appleid.apple.com".equals(claims.getIssuer())) {
+                log.error("Apple Token 검증 실패: Invalid issuer: {}", claims.getIssuer());
+                return null;
+            }
+            // 토큰 만료 여부 확인
+            Date now = new Date();
+            if (claims.getExpirationTime() == null || claims.getExpirationTime().before(now)) {
+                log.error("Apple Token 검증 실패: Token expired");
+                return null;
+            }
+            // Audience 검증
+            String clientId = "com.melissa.melissaFE"; // 실제 서비스의 client id
+            if (!claims.getAudience().contains(clientId)) {
+                log.error("Apple Token 검증 실패: Audience does not match. Expected: {}", clientId);
+                return null;
+            }
+            // 6. 사용자 정보 추출
+            String sub = claims.getSubject();
+            String email = claims.getStringClaim("email");
+            String name = generateRandomNickname();
+            return ApplePayload.builder()
+                    .sub(sub)
+                    .email(email)
+                    .name(name)
+                    .build();
+        } catch (Exception e) {
+            log.error("Apple Token 검증 실패", e);
+            return null;
+        }
     }
-    */
+
+    // 애플의 페이로드에서 name을 지원하지 않음.
+    public String generateRandomNickname() {
+        return "user-" + UUID.randomUUID().toString().substring(0, 8); // 예: user-a1b2c3d4
+    }
 
 
     // 내부 DTOs for Google, Kakao, Apple
@@ -139,7 +208,6 @@ public class SocialAuthService {
 
 
     // Apple
-    /*
     @Builder
     @Getter
     public static class ApplePayload {
@@ -147,5 +215,4 @@ public class SocialAuthService {
         private String email;  // null 가능
         private String name;   // null 가능
     }
-    */
 }

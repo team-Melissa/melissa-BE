@@ -12,6 +12,7 @@ import com.melissa.diary.web.dto.UserSettingRequestDTO;
 import com.melissa.diary.web.dto.UserSettingResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Time;
 import java.util.Optional;
@@ -24,15 +25,24 @@ public class UserSettingService {
 
 
     // 조회
+    @Transactional(readOnly = true)
     public UserSettingResponseDTO.UserSettingResponse getUserSettings(Long userId) {
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
         UserSetting userSetting = userSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
 
         return UserSettingConverter.toResponse(userSetting);
     }
 
+
     // 수정
+    @Transactional
     public UserSettingResponseDTO.UserSettingResponse updateUserSettings(Long userId, UserSettingRequestDTO.UserSettingRequest request) {
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
         UserSetting existingSetting = userSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
 
@@ -42,16 +52,17 @@ public class UserSettingService {
         return UserSettingConverter.toResponse(updated);
     }
 
+    @Transactional
     public void createDefaultSetting(Long userId) {
-        // 이미 존재하면 등록하지 않음 (필요시 로직 조정)
-        Optional<UserSetting> optional = userSettingRepository.findByUserId(userId);
-        if (optional.isPresent()) { // 이미 존재할 때, 기본값 등록을 하려고하는 경우
-            new ErrorHandler(ErrorStatus.SETTING_ALREADY_ENROLL);
-        }
 
-        // 유저 찾기
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->  new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
+        // 이미 존재하면 등록하지 않음
+        Optional<UserSetting> optional = userSettingRepository.findByUserId(userId);
+        if (optional.isPresent()) {
+            throw new ErrorHandler(ErrorStatus.SETTING_ALREADY_ENROLL);
+        }
 
         // 기본값 설정
         UserSetting defaultSetting = UserSetting.builder()
@@ -62,10 +73,20 @@ public class UserSettingService {
                 .notificationQna(true)
                 .build();
 
-        userSettingRepository.save(defaultSetting);
+        // 예외 처리를 위해 try-catch로 감쌈
+        try {
+            userSettingRepository.save(defaultSetting);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // DB 유니크 제약 에러가 터지면, 우리가 원하는 커스텀 예외로 던진다.
+            throw new ErrorHandler(ErrorStatus.SETTING_ALREADY_ENROLL);
+        }
     }
 
+    @Transactional(readOnly = true)
     public boolean isNewUser(Long userId) {
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
         // 설정값이 있으면 신규가입이 아님 (기본값이라도 있으면, 기존유저)
         return !userSettingRepository.existsByUserId(userId);
     }

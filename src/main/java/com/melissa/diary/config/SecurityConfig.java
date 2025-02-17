@@ -40,7 +40,7 @@ public class SecurityConfig {
 
                     .authorizeHttpRequests((authorizeRequests) ->
                             authorizeRequests.requestMatchers("/health","/api/v1/auth/**",
-                                            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**").permitAll()
+                                            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/test/**").permitAll()
 
                                     .anyRequest().authenticated()
                     )

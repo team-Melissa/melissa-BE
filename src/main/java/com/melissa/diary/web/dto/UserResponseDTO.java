@@ -11,7 +11,6 @@ public class UserResponseDTO {
         private String oauthProvider; // "GOOGLE", "KAKAO", etc
         private String email;
         private String nickname;
-
         private String accessToken;
         private String refreshToken;
         private String tokenType;
@@ -25,4 +24,15 @@ public class UserResponseDTO {
         private int expireIn;
 
     }
+
+    @Getter
+    @Builder
+    public static class DeleteResultDTO {
+        private Long userId;
+        private String oauthProvider; // "GOOGLE", "KAKAO", etc
+        private String providerId;
+        private String email;
+        private String nickname;
+    }
+
 }

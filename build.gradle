@@ -20,6 +20,8 @@ configurations {
 
 repositories {
 	mavenCentral()
+	maven { url 'https://repo.spring.io/milestone' }
+	maven { url 'https://repo.spring.io/snapshot' }
 }
 
 dependencies {
@@ -43,11 +45,19 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
+	// Spring AI
+	implementation platform("org.springframework.ai:spring-ai-bom:1.0.0-SNAPSHOT")
+	// - 사용하려는 ai 모듈 목록
+	implementation 'org.springframework.ai:spring-ai-openai'
+
 	// S3
 	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
 	// webFlux
 	//implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+	// 애플 jwt 토큰 검증용
+	implementation 'com.nimbusds:nimbus-jose-jwt:9.37.2'
 
 	// json
 	//implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'

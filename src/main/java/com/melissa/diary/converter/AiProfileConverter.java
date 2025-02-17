@@ -17,6 +17,19 @@ public class AiProfileConverter {
                 .feature3(aiProfile.getFeature3())
                 .hashTag1(aiProfile.getHashTag1())
                 .hashTag2(aiProfile.getHashTag2())
+                .imageUrl(aiProfile.getImageS3())
+                .createdAt(aiProfile.getCreatedAt())
+                .build();
+    }
+
+    public static AiProfileResponseDTO.AiProfileQuestionResponse toQuestion(AiProfile aiProfile){
+        return AiProfileResponseDTO.AiProfileQuestionResponse.builder()
+                .q1(aiProfile.getQ1())
+                .q2(aiProfile.getQ2())
+                .q3(aiProfile.getQ3())
+                .q4(aiProfile.getQ4())
+                .q5(aiProfile.getQ5())
+                .q6(aiProfile.getQ6())
                 .createdAt(aiProfile.getCreatedAt())
                 .build();
     }
