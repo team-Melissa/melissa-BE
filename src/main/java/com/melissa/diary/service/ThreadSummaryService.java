@@ -280,17 +280,15 @@ public class ThreadSummaryService {
                 thread.getHashtag1() == null ? "" : thread.getHashtag1(),
                 thread.getHashtag2() == null ? "" : thread.getHashtag2());
         return """
-                주제에 집중된 일러스트를 그려줘
+                해시태그에 집중된 일러스트를 그려
                 NO TEXT!!!
                 디즈니, 픽사, 애니메이션 스타일
                 분위기: %s
                 요약 제목: %s
-                요약 내용: %s
                 해시태그: %s
                 """.formatted(
                 moodText,
                 thread.getSummaryTitle() == null ? "Untitled" : thread.getSummaryTitle(),
-                thread.getSummaryContent() == null ? "" : thread.getSummaryContent(),
                 hashtagPart
         );
     }
