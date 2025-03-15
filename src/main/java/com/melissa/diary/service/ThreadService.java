@@ -178,7 +178,15 @@ public class ThreadService {
 
         // AI 응답을 SSE 이벤트로 매핑하는 Flux
         Flux<ServerSentEvent<String>> aiMessageFlux = chatClient.prompt(promptText)
-                .system(sp -> sp.param("system", threadData.getAiProfile().getPromptText()))
+                .system(sp -> sp.param("system", threadData.getAiProfile().getPromptText())
+                                .param("q1",threadData.getAiProfile().getQ1())
+                                .param("q2",threadData.getAiProfile().getQ2())
+                                .param("q3",threadData.getAiProfile().getQ3())
+                                .param("q4",threadData.getAiProfile().getQ4())
+                                .param("q5",threadData.getAiProfile().getQ5())
+                                .param("q6",threadData.getAiProfile().getQ6())
+
+                )
                 .stream()
                 .chatResponse()
                 .map(response -> {

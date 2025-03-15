@@ -212,7 +212,7 @@ public class ThreadSummaryService {
         return """
                 오늘의 채팅 로그입니다: %s
 
-                위 대화를 오늘의 채팅로그를 기반으로 그림일기 형식으로 요약해 주세요.
+                위 대화를 오늘의 채팅로그를 기반으로 일기 형식으로 요약해 주세요.
                 - mood(HAPPY, SAD, TIRED, ANGRY, RELAX 중 하나)
                 - title(30자 이하, 유쾌하고 흥미로운 표현, 이모티콘 미사용)
                 - story(300자 이하, 일기 형식)
@@ -280,8 +280,9 @@ public class ThreadSummaryService {
                 thread.getHashtag1() == null ? "" : thread.getHashtag1(),
                 thread.getHashtag2() == null ? "" : thread.getHashtag2());
         return """
-                그림일기에 들어갈 그림을 그려줘
+                주제에 집중된 일러스트를 그려줘
                 NO TEXT!!!
+                디즈니, 픽사, 애니메이션 스타일
                 분위기: %s
                 요약 제목: %s
                 요약 내용: %s
