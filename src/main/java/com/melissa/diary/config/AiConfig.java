@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestClient;
 
 @Configuration
 public class AiConfig {
@@ -19,7 +20,10 @@ public class AiConfig {
     @Value("${spring.ai.openai.api-key}") String apiKey;
     @Bean
     ImageModel imageModel() {
-        return new OpenAiImageModel(new OpenAiImageApi(apiKey));
+        OpenAiImageApi api = OpenAiImageApi.builder()
+                .apiKey(apiKey)
+                .build();
+        return new OpenAiImageModel(api);
     }
 
     @Bean
