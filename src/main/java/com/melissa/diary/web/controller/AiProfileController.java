@@ -44,6 +44,18 @@ public class AiProfileController {
         return ApiResponse.onSuccess(response);
     }
 
+    @Operation(description = "최근 사용한 AI 프로필 ID를 조회합니다.")
+    @GetMapping("/recent")
+    public ApiResponse<AiProfileResponseDTO.AiProfileResponse> getAiProfileIdRecent(Principal principal) {
+
+        Long userId = Long.parseLong(principal.getName());
+
+        // 서비스 로직 호출
+        AiProfileResponseDTO.AiProfileResponse response = aiProfileService.getRecentAiProfileId(userId);
+
+        return ApiResponse.onSuccess(response);
+    }
+
     @Operation(description = "특정 AI 프로필을 만들 당시의 질문을 조회합니다.")
     @GetMapping("/{aiProfileId}/question")
     public ApiResponse<AiProfileResponseDTO.AiProfileQuestionResponse> getAiQuestionProfile(

@@ -1,5 +1,6 @@
 package com.melissa.diary.domain;
 
+import com.melissa.diary.domain.common.BaseEntity;
 import com.melissa.diary.domain.enums.Mood;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,7 +25,7 @@ import java.util.List;
                 @UniqueConstraint(columnNames = {"user_id", "year", "month", "day"}) // 유저별 날짜 유니크 조건 추가
         }
 )
-public class Thread {
+public class Thread extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
