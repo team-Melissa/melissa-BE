@@ -8,9 +8,11 @@ import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.aws.s3.AmazonS3Manager;
 import com.melissa.diary.converter.AiProfileConverter;
 import com.melissa.diary.domain.AiProfile;
+import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.domain.Uuid;
 import com.melissa.diary.repository.AiProfileRepository;
+import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UuidRepository;
 import com.melissa.diary.web.dto.AiProfileRequestDTO;
@@ -35,14 +37,16 @@ import java.util.UUID;
 public class AiProfileService {
 
     private final AiProfileRepository aiProfileRepository;
+    private final ThreadRepository threadRepository;
     private final UserRepository userRepository;
     private final ChatClient chatClient;
     private final ImageGenerator imageGenerator;
     // Jackson : json 맵핑 도와주는 객체
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AiProfileService(AiProfileRepository aiProfileRepository, UserRepository userRepository, @Qualifier("profileClient") ChatClient chatClient, ImageGenerator imageGenerator) {
+    public AiProfileService(AiProfileRepository aiProfileRepository, ThreadRepository threadRepository,UserRepository userRepository, @Qualifier("profileClient") ChatClient chatClient, ImageGenerator imageGenerator) {
         this.aiProfileRepository = aiProfileRepository;
+        this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.chatClient = chatClient;
         this.imageGenerator = imageGenerator;
@@ -279,4 +283,12 @@ public class AiProfileService {
                 );
     }
 
+    public AiProfileResponseDTO.AiProfileResponse getRecentAiProfileId(Long userId){
+        // 유저마다의 최근 스레드를 찾기
+        Thread thread = threadRepository.findFirstByUserIdOrderByYearDescMonthDescDayDesc(userId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.THREAD_LATEST_NOT_FOUND));
+
+        // 최근 스레드에서 ai 프로필 id를 리턴
+        return AiProfileConverter.toResponse(thread.getAiProfile());
+    }
 }

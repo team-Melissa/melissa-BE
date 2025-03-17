@@ -24,4 +24,11 @@ public interface ThreadRepository extends JpaRepository<Thread,Long> {
 
     void deleteAllByUserId(Long userId);
 
+    // userId 기준 가장 최근 createdAt 레코드 하나 조회
+    /**
+     * userId 기준으로 year -> month -> day 내림차순 정렬,
+     * 가장 첫 번째(최신) Thread를 가져오는 메서드
+     */
+    Optional<Thread> findFirstByUserIdOrderByYearDescMonthDescDayDesc(Long userId);
+
 }
