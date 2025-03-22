@@ -280,7 +280,7 @@ public class ThreadSummaryService {
                 thread.getHashtag1() == null ? "" : thread.getHashtag1(),
                 thread.getHashtag2() == null ? "" : thread.getHashtag2());
         return """
-                %s한 분위기, %s, %s의 애니, 동화 풍의 일러스트 생성
+                %s한 분위기, %s, %s의 귀엽고, 애니, 동화, 디즈니 풍의 일러스트
                 """.formatted(
                 moodText,
                 thread.getSummaryTitle() == null ? "Untitled" : thread.getSummaryTitle(),
