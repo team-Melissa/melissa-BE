@@ -27,8 +27,9 @@ public class ImageGenerator {
         ImageOptions imageOptions = OpenAiImageOptions
                 .builder()
                 .model("dall-e-3")
-                .withHeight(1024)
-                .withWidth(1024)
+                .style("natural")
+                .withHeight(512)
+                .withWidth(512)
                 .responseFormat("b64_json")
                 .build();
         ImagePrompt imagePrompt = new ImagePrompt(prompt, imageOptions);

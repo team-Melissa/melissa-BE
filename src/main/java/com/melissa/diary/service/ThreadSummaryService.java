@@ -276,16 +276,11 @@ public class ThreadSummaryService {
     // 이미지 생성 프롬프트
     private String buildImagePrompt(Thread thread) {
         String moodText = thread.getMood() == null ? "HAPPY" : thread.getMood().name();
-        String hashtagPart = String.format("#%s #%s",
+        String hashtagPart = String.format("%s, %s",
                 thread.getHashtag1() == null ? "" : thread.getHashtag1(),
                 thread.getHashtag2() == null ? "" : thread.getHashtag2());
         return """
-                해시태그에 집중된 일러스트를 그려
-                NO TEXT!!!
-                디즈니, 픽사, 애니메이션 스타일
-                분위기: %s
-                요약 제목: %s
-                해시태그: %s
+                %s한 분위기, %s, %s
                 """.formatted(
                 moodText,
                 thread.getSummaryTitle() == null ? "Untitled" : thread.getSummaryTitle(),
