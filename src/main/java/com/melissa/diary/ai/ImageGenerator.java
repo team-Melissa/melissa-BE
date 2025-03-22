@@ -28,8 +28,8 @@ public class ImageGenerator {
                 .builder()
                 .model("dall-e-3")
                 .style("natural")
-                .withHeight(512)
-                .withWidth(512)
+                .withHeight(1024)
+                .withWidth(1024)
                 .responseFormat("b64_json")
                 .build();
         ImagePrompt imagePrompt = new ImagePrompt(prompt, imageOptions);
