@@ -269,7 +269,7 @@ public class ThreadService {
     private String buildAiChatPrompt(String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
         StringBuilder prompt = new StringBuilder();
 
-        // AI 프로필 정보 추가
+        /*// AI 프로필 정보 추가
         prompt.append("너는 사용자의 일기 작성을 돕는 AI야.\n")
                 .append("너의 성격: ")
                 .append(aiProfile.getFeature1()).append(", ")
@@ -278,9 +278,15 @@ public class ThreadService {
                 .append("관련 해시태그: ")
                 .append(aiProfile.getHashTag1()).append(", ")
                 .append(aiProfile.getHashTag2()).append("\n")
-                .append("친근하고 공감할 수 있는 방식으로 답변해줘.\n\n");
+                .append("친근하고 공감할 수 있는 방식으로 답변해줘.\n\n");*/
 
-        // 기존 채팅 내역 추가 (있다면)
+        // * 시스템 메시지에 위 프로필 정보들을 모두 적었음. 이제는 채팅내역을 기반으로 다음 대화내용을 알려달라고 하면됨.
+        prompt.append("""
+                기존의 대화 기록을 줄게. 너는 너의 성격을 기반으로 사용자 입력에 알맞는 적절한 다음 답변을 생성해줘. 답변함에 있어, 너의 성격을 무조건 반영해야해.
+                """);
+
+
+        // 기존 채팅 내역 추가
         if (!chatHistory.isEmpty()) {
             prompt.append("대화 기록:\n");
             for (DailyChatLog log : chatHistory) {
@@ -292,7 +298,7 @@ public class ThreadService {
         }
 
         // 새 사용자 입력 추가
-        prompt.append("사용자: ")
+        prompt.append("사용자 입력: ")
                 .append(userMessage)
                 .append("\nAI: ");
 

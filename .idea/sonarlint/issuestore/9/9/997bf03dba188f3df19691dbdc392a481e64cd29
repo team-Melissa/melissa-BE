@@ -1,14 +1,21 @@
 
-h	java:S112Á"FDefine and throw a dedicated exception instead of using a generic one.(½À‡ùÿÿÿÿ8˜ôåÍ2
-h	java:S112Ş"FDefine and throw a dedicated exception instead of using a generic one.(á¥—úÿÿÿÿ8˜ôåÍ2
-G	java:S106µ"+Replace this use of System.out by a logger.(¢ÍŞd8ÄôåÍ2
-b
-java:S1128"ERemove this unused import 'com.melissa.diary.aws.s3.AmazonS3Manager'.(Æ¨Äİ8ËÑùõÌ2
-\
-java:S1128":Remove this unused import 'com.melissa.diary.domain.Uuid'.(¤½ıÇùÿÿÿÿ8ËÑùõÌ2
-j
-java:S1128"HRemove this unused import 'com.melissa.diary.repository.UuidRepository'.(½ ¯÷ùÿÿÿÿ8ËÑùõÌ2
-Q
-java:S1128"/Remove this unused import 'java.util.Optional'.(¨˜ëİüÿÿÿÿ8ĞôåÍ2
-M
-java:S1128"+Remove this unused import 'java.util.UUID'.(ÀãÄ£úÿÿÿÿ8ĞôåÍ2
+~
+java:S1488Z"\Immediately return this expression instead of assigning it to the temporary variable "user".(Š½ËÛøÿÿÿÿ8àÛ½ÊÚ2
+m
+java:S2259C"P"NullPointerException" will be thrown when invoking method "parseLlmResponse()".(†½¦º8õÛ½ÊÚ2
+U
+java:S1854k"8Remove this useless assignment to local variable "user".(ÌğØä8‡Ü½ÊÚ2
+F
+java:S1481k")Remove this unused "user" local variable.(ÌğØä8ˆÜ½ÊÚ2
+U
+java:S1854{"8Remove this useless assignment to local variable "user".(ÌğØä8‰Ü½ÊÚ2
+F
+java:S1481{")Remove this unused "user" local variable.(ÌğØä8‰Ü½ÊÚ2
+V
+java:S1854‰"8Remove this useless assignment to local variable "user".(ÌğØä8ŠÜ½ÊÚ2
+G
+java:S1481‰")Remove this unused "user" local variable.(ÌğØä8ŠÜ½ÊÚ2
+V
+java:S1854•"8Remove this useless assignment to local variable "user".(ÌğØä8‹Ü½ÊÚ2
+G
+java:S1481•")Remove this unused "user" local variable.(ÌğØä8ŒÜ½ÊÚ2
