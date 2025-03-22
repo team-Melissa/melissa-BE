@@ -37,6 +37,7 @@ public class AiConfig {
     @Bean(name = "profileClient")
     ChatClient profileClient(){
 
+        // 프로필 생성에서는 결정론적인 응답보다는, 사용자에 따라 랜덤한 값을 어느정도 주는 것이 좋다고 판단하여 temperature를 유지했습니다.
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(OpenAiApi.ChatModel.GPT_4_O_MINI)
                 .temperature(0.5)
@@ -66,7 +67,7 @@ public class AiConfig {
                 .build();
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(OpenAiApi.ChatModel.GPT_4_O_MINI)
-                .temperature(0.5)
+                .temperature(0.2)
                 .build();
 
         return ChatClient.builder(OpenAiChatModel.builder().openAiApi(api).defaultOptions(options).build())
@@ -90,7 +91,7 @@ public class AiConfig {
                 .build();
         OpenAiChatOptions options = OpenAiChatOptions.builder()
                 .model(OpenAiApi.ChatModel.GPT_4_O_MINI)
-                .temperature(0.5)
+                .temperature(0.2)
                 .build();
 
         String system = """
