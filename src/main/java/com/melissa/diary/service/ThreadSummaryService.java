@@ -141,10 +141,17 @@ public class ThreadSummaryService {
             throw new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND);
         }
         Thread thread = summaryData.getThread();
+        
+        // 채팅 로그 불러오기
         List<DailyChatLog> logs = summaryData.getLogs();
         if (logs == null || logs.isEmpty()) {
             throw new ErrorHandler(ErrorStatus.CHAT_NOT_FOUND);
         }
+        
+        // 채팅 로그에서 UserRole인 것만 남기기
+        logs = logs.stream()
+                .filter(s -> s.getRole().equals("USER"))
+                .collect(Collectors.toList());
 
         // 기존 요약 내용과 관계없이 무조건 덮어씌웁니다.
         String chatLogsForPrompt = buildChatLogsPrompt(logs);
