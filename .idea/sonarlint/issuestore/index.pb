@@ -118,3 +118,7 @@ P
 0src/main/java/com/melissa/diary/service/.gitkeep,6\9\699b47da5e9207d4972aab9786714888c0a02591
 f
 6src/main/java/com/melissa/diary/ai/ImageGenerator.java,d\2\d272ca431d2e140d6e6b7624e2b72e5fbf9529a9
+r
+Bsrc/main/java/com/melissa/diary/web/controller/UserController.java,9\3\9341adf18369c2ae692a80a9c91aaeeacea662c5
+y
+Isrc/main/java/com/melissa/diary/web/controller/UserSettingController.java,f\8\f8ee13703c91edfa4e23558666c26417c4eb21b6

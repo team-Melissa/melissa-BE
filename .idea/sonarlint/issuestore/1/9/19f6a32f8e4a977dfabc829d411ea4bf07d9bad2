@@ -1,11 +1,15 @@
 
 X
-java:S1141‚"5Extract this nested try block into a separate method.(¡»¢üùÿÿÿÿ8ÌÜ½ÊÚ2
+java:S1141‰"5Extract this nested try block into a separate method.(¡»¢üùÿÿÿÿ8ÜËˆ™İ2
 ƒ
-java:S1488ª"`Immediately return this expression instead of assigning it to the temporary variable "response".(ò¥µ¹şÿÿÿÿ8ÍÜ½ÊÚ2
+java:S1488±"`Immediately return this expression instead of assigning it to the temporary variable "response".(ò¥µ¹şÿÿÿÿ8ÜËˆ™İ2
 ~
-java:S2229"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8ÿÜ½ÊÚ2
+java:S2229¥"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8Ìˆ™İ2
 €
-java:S2229h"c"fetchThreadSummaryData's" @Transactional requirement is incompatible with the one for this method.(øñé8ÿÜ½ÊÚ2
+java:S2229h"c"fetchThreadSummaryData's" @Transactional requirement is incompatible with the one for this method.(øñé8‚Ìˆ™İ2
 ~
-java:S2229"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8€İ½ÊÚ2
+java:S2229"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8‚Ìˆ™İ2
+p
+java:S6204š"RReplace this usage of 'Stream.collect(Collectors.toList())' with 'Stream.toList()'(ª™¨¹8’Ìˆ™İ2
+t
+java:S2159™"VRemove this call to "equals"; comparisons between unrelated types always return false.(¤Şñ8’Ìˆ™İ2

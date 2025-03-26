@@ -150,7 +150,7 @@ public class ThreadSummaryService {
         
         // 채팅 로그에서 UserRole인 것만 남기기
         logs = logs.stream()
-                .filter(s -> s.getRole().equals("USER"))
+                .filter(s -> s.getRole().equals(Role.USER))
                 .collect(Collectors.toList());
 
         // 기존 요약 내용과 관계없이 무조건 덮어씌웁니다.
