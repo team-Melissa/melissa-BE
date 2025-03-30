@@ -283,12 +283,19 @@ public class AiProfileService {
                 );
     }
 
-    public AiProfileResponseDTO.AiProfileResponse getRecentAiProfileId(Long userId){
+    public AiProfileResponseDTO.AiProfileResponse getRecentAiProfileId(Long userId) {
         // 유저마다의 최근 스레드를 찾기
-        Thread thread = threadRepository.findFirstByUserIdOrderByYearDescMonthDescDayDesc(userId)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.THREAD_LATEST_NOT_FOUND));
+        Optional<Thread> optionalThread = threadRepository.findFirstByUserIdOrderByYearDescMonthDescDayDesc(userId);
 
-        // 최근 스레드에서 ai 프로필 id를 리턴
-        return AiProfileConverter.toResponse(thread.getAiProfile());
+        if (optionalThread.isPresent()) {
+            // 최근 스레드에서 ai 프로필 id를 리턴
+            return AiProfileConverter.toResponse(optionalThread.get().getAiProfile());
+        } else {
+            // 대체제인 유저의 최근 AiProfile을 createdAt 기준으로 찾음
+            AiProfile aiProfile = aiProfileRepository.findFirstByUserIdAndActiveIsTrueOrderByCreatedAtDesc(userId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
+
+            return AiProfileConverter.toResponse(aiProfile);
+        }
     }
 }
