@@ -15,6 +15,8 @@ public interface AiProfileRepository extends JpaRepository<AiProfile, Long> {
     // ID, active 둘 다 만족하는 프로필 조회 -> 단건 조회
     Optional<AiProfile> findByIdAndActiveIsTrue(Long id);
 
+    // 가장 최근에 생성된 AiProfile (active 상태) 하나 조회
+    Optional<AiProfile> findFirstByUserIdAndActiveIsTrueOrderByCreatedAtDesc(Long userId);
 
     boolean existsByUserId(Long userId);
     void deleteAllByUserId(Long userId);
