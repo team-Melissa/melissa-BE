@@ -269,29 +269,21 @@ public class ThreadService {
     private String buildAiChatPrompt(String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
         StringBuilder prompt = new StringBuilder();
 
-        /*// AI 프로필 정보 추가
-        prompt.append("너는 사용자의 일기 작성을 돕는 AI야.\n")
-                .append("너의 성격: ")
-                .append(aiProfile.getFeature1()).append(", ")
-                .append(aiProfile.getFeature2()).append(", ")
-                .append(aiProfile.getFeature3()).append("\n")
-                .append("관련 해시태그: ")
-                .append(aiProfile.getHashTag1()).append(", ")
-                .append(aiProfile.getHashTag2()).append("\n")
-                .append("친근하고 공감할 수 있는 방식으로 답변해줘.\n\n");*/
+        prompt.append("너는 아래와 같은 성격을 지녔어. 새 사용자의 입력을 이 성격을 기반으로 생성해야해 : \n");
+        prompt.append(aiProfile.getPromptText());
 
         // * 시스템 메시지에 위 프로필 정보들을 모두 적었음. 이제는 채팅내역을 기반으로 다음 대화내용을 알려달라고 하면됨.
         prompt.append("""
-                기존의 대화 기록을 줄게. 너는 너의 성격을 기반으로 사용자 입력에 알맞는 적절한 다음 답변을 생성해줘. 답변함에 있어, 너의 성격을 무조건, 필수적으로 반영해야해. 이모지 사용 자제
+                기존의 대화 기록을 줄게. 너는 너의 성격을 기반으로 사용자 입력에 알맞는 적절한 다음 답변을 생성해줘.
                 """);
 
         if (aiProfile.getQ2().contains("짧")){ // 답변 길이에 더 강력한 rule 프롬프트에 추가 적용
             prompt.append("""
-                답변은 한글 문자 수 기준, 공백 포함 최대 25자로 작성해줘. 그 이하면 더 좋아.
+                답변은 한글 문자 수 기준, 공백 포함 최대 40자로 작성해줘.
                 """);
         } else {
             prompt.append("""
-                    답변은 한글 문자 수 기준, 공백 포함 최대 130자로 작성해줘. 그 이하면 더 좋아.
+                    답변은 한글 문자 수 기준, 공백 포함 최대 150자로 작성해줘.
                     """);
         }
 

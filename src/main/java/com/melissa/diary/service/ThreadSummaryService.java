@@ -153,6 +153,10 @@ public class ThreadSummaryService {
                 .filter(s -> Role.USER.equals(s.getRole()))
                 .collect(Collectors.toList());
 
+        if (logs.size() <= 2){
+            throw new ErrorHandler(ErrorStatus.CHAT_NOT_FOUND);
+        }
+
         // 기존 요약 내용과 관계없이 무조건 덮어씌웁니다.
         String chatLogsForPrompt = buildChatLogsPrompt(logs);
         String prompt = buildSummaryPrompt(chatLogsForPrompt);
