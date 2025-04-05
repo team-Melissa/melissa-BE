@@ -199,10 +199,17 @@ public class ThreadService {
                             .data(partialMessage)
                             .build();
                 })
-                .doOnError(e -> log.error("AI 응답 스트리밍 중 에러 발생", e))
                 .doOnComplete(() -> {
                     String answer = aiAnswerBuilder.toString().replace("null", "").trim();
                     saveAiMessage(answer, threadData);
+                })
+                .onErrorResume(e -> {
+                    // 클라이언트가 끊었거나, AI 응답 중 오류가 발생시 여기서 캐치
+                    // SSE로 에러 이벤트를 전송 후 스트림 종료
+                    return Flux.just(ServerSentEvent.<String>builder()
+                            .event("error")
+                            .data("SSE 스트리밍 도중 오류가 발생했습니다: " + e.getMessage())
+                            .build());
                 });
 
         // finish 이벤트를 내보내는 Flux (단일 이벤트) : 현성이 요청
@@ -215,7 +222,15 @@ public class ThreadService {
         );
 
         // 두 Flux를 순차적으로 연결하여, aiMessageFlux가 완료된 뒤 finish 이벤트를 발행
-        return Flux.concat(aiMessageFlux, finishEventFlux);
+        return Flux.concat(aiMessageFlux, finishEventFlux)
+                .onErrorResume(e -> {
+            // SSE 에러 이벤트로 마무리
+            log.error("전체 SSE 스트리밍 도중 오류가 발생했습니다: ", e);
+            return Flux.just(ServerSentEvent.<String>builder()
+                    .event("error")
+                    .data("스트리밍 도중 서버 오류가 발생했습니다: " + e.getMessage())
+                    .build());
+        });
     }
 
     @Transactional(readOnly = true)
