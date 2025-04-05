@@ -75,23 +75,8 @@ public class ThreadController {
     @PostMapping(value = "/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> messageToAi(
             @RequestBody ThreadRequestDTO.AiChatRequest request,
-            Principal principal,
-            ServerHttpRequest httpRequest
-    ) {
+            Principal principal) {
         Long userId = Long.parseLong(principal.getName());
-
-        // Accept 헤더가 text/event-stream 인지 검증
-        boolean acceptHeaderValid = httpRequest.getHeaders().getAccept().stream()
-                .anyMatch(mt -> mt.isCompatibleWith(MediaType.TEXT_EVENT_STREAM));
-
-        if (!acceptHeaderValid) {
-            // 만약 올바르지 않다면, SSE 에러 이벤트 한 번 전송하고 종료
-            log.warn("클라이언트가 Accept 헤더를 누락했거나 잘못 보냄: {}", httpRequest.getHeaders().getAccept());
-            return Flux.just(ServerSentEvent.<String>builder()
-                    .event("error")
-                    .data("잘못된 요청입니다. Accept: text/event-stream 헤더가 필요합니다.")
-                    .build());
-        }
 
         return threadService.messageToAi(userId, request.getYear(), request.getMonth(), request.getDay(), request.getContent());
     }
