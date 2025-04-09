@@ -1,22 +1,23 @@
 
 r
-java:S2229«"T"getUser's" @Transactional requirement is incompatible with the one for this method.(ÌğØä8îØú˜İ2
+java:S2229«"T"getUser's" @Transactional requirement is incompatible with the one for this method.(ÌğØä8ó¬­à2
 x
-java:S2229®"Z"getThreadData's" @Transactional requirement is incompatible with the one for this method.(İ›8îØú˜İ2
+java:S2229®"Z"getThreadData's" @Transactional requirement is incompatible with the one for this method.(İ›8ô¬­à2
 U
-java:S1854s"8Remove this useless assignment to local variable "user".(ÌğØä8ôØú˜İ2
+java:S1854s"8Remove this useless assignment to local variable "user".(ÌğØä8û¬­à2
 F
-java:S1481s")Remove this unused "user" local variable.(ÌğØä8ôØú˜İ2
+java:S1481s")Remove this unused "user" local variable.(ÌğØä8û¬­à2
 V
-java:S1854"8Remove this useless assignment to local variable "user".(ÌğØä8öØú˜İ2
+java:S1854"8Remove this useless assignment to local variable "user".(ÌğØä8ü¬­à2
 G
-java:S1481")Remove this unused "user" local variable.(ÌğØä8öØú˜İ2
+java:S1481")Remove this unused "user" local variable.(ÌğØä8ı¬­à2
 V
-java:S1854«"8Remove this useless assignment to local variable "user".(ÌğØä8÷Øú˜İ2
+java:S1854«"8Remove this useless assignment to local variable "user".(ÌğØä8ş¬­à2
 G
-java:S1481«")Remove this unused "user" local variable.(ÌğØä8øØú˜İ2
-Y	java:S125™"<This block of commented-out lines of code should be removed.(ã¨üì8şØú˜İ2
+java:S1481«")Remove this unused "user" local variable.(ÌğØä8ÿ¬­à2
+v
+java:S1602Î"SRemove useless curly braces around statement and then remove useless return keyword(‚œ§Øÿÿÿÿÿ8ê‡ö­à2
 V
-java:S1854Â"8Remove this useless assignment to local variable "user".(õÌ¼²8ÿØú˜İ2
+java:S1854É"8Remove this useless assignment to local variable "user".(õÌ¼²8åù”­à2
 G
-java:S1481Â")Remove this unused "user" local variable.(õÌ¼²8ÿØú˜İ2
+java:S1481É")Remove this unused "user" local variable.(õÌ¼²8æù”­à2
