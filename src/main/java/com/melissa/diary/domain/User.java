@@ -49,8 +49,9 @@ public class User {
     private Integer dailyQuota;     // 오늘 남은 수량
     private LocalDate quotaDate;    // 마지막 초기화 날짜
 
-    @Version                       // 동시성 보호
-    private Long version;
+    @Version
+    @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    private Long version = 0L;
 
     // 마이그레이션용, Initialize를 통해 기존 사용자도 처리위해 추가
     @PrePersist
