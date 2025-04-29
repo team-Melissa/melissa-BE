@@ -230,14 +230,17 @@ public class ThreadService {
     }
 
     private void saveAiMessage(String answer, ThreadData threadData) {
-        // 모든 응답이 완료되면 최종 AI 응답을 DB에 저장
+        // "null" 문자열을 제거
+        String cleanAnswer = answer.replace("null", "").trim();
+
         DailyChatLog aiChat = DailyChatLog.builder()
                 .role(Role.AI)
-                .content(answer)
+                .content(cleanAnswer)
                 .thread(threadData.getThread())
                 .aiProfile(threadData.getAiProfile())
                 .createdAt(LocalDateTime.now())
                 .build();
+
         dailyChatLogRepository.save(aiChat);
     }
 
