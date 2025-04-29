@@ -11,6 +11,7 @@ import com.melissa.diary.domain.AiProfile;
 import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.domain.Uuid;
+import com.melissa.diary.domain.enums.UsageCost;
 import com.melissa.diary.repository.AiProfileRepository;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
@@ -41,21 +42,28 @@ public class AiProfileService {
     private final UserRepository userRepository;
     private final ChatClient chatClient;
     private final ImageGenerator imageGenerator;
+
+    private final QuotaService quotaService;
     // Jackson : json 맵핑 도와주는 객체
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AiProfileService(AiProfileRepository aiProfileRepository, ThreadRepository threadRepository,UserRepository userRepository, @Qualifier("profileClient") ChatClient chatClient, ImageGenerator imageGenerator) {
+    public AiProfileService(AiProfileRepository aiProfileRepository, ThreadRepository threadRepository,UserRepository userRepository, @Qualifier("profileClient") ChatClient chatClient, ImageGenerator imageGenerator, QuotaService quotaService) {
         this.aiProfileRepository = aiProfileRepository;
         this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.chatClient = chatClient;
         this.imageGenerator = imageGenerator;
+        this.quotaService = quotaService;
     }
 
     @Transactional
     public AiProfileResponseDTO.AiProfileResponse createAiProfile(Long userId,
                                                                   AiProfileRequestDTO.AiProfileCreateRequest request) {
+
         User user = getUser(userId);
+
+        quotaService.checkAndConsume(userId, UsageCost.PROFILE);
+
 
         // 1) 프롬프트 생성
         String promptText = buildPromptProfileText(request);

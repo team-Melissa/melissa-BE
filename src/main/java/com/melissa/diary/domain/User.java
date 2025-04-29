@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,20 @@ public class User {
 
     @LastModifiedDate
     private LocalDateTime updateAt;
+
+    // ✨ 새 필드
+    private Integer dailyQuota;     // 오늘 남은 수량
+    private LocalDate quotaDate;    // 마지막 초기화 날짜
+
+    @Version                       // 동시성 보호
+    private Long version;
+
+    // 마이그레이션용, Initialize를 통해 기존 사용자도 처리위해 추가
+    @PrePersist
+    public void initQuota() {          // 신규 가입 시
+        if (dailyQuota == null) dailyQuota = 100;
+        if (quotaDate  == null) quotaDate  = LocalDate.now();
+    }
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<UserSetting> userSettingList = new ArrayList<>();

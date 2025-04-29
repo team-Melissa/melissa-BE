@@ -10,6 +10,7 @@ import com.melissa.diary.domain.*;
 import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.enums.Mood;
 import com.melissa.diary.domain.enums.Role;
+import com.melissa.diary.domain.enums.UsageCost;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UserSettingRepository;
@@ -45,18 +46,22 @@ public class ThreadSummaryService {
     private final ChatClient summaryClient;
     private final ImageGenerator imageGenerator;
 
+    private final QuotaService quotaService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     public ThreadSummaryService(UserRepository userRepository,
                                 ThreadRepository threadRepository,
                                 UserSettingRepository userSettingRepository,
                                 @Qualifier("summaryClient")
                                 ChatClient summaryClient,
-                                ImageGenerator imageGenerator) {
+                                ImageGenerator imageGenerator,
+                                QuotaService quotaService) {
         this.userRepository = userRepository;
         this.threadRepository = threadRepository;
         this.userSettingRepository = userSettingRepository;
         this.summaryClient = summaryClient;
         this.imageGenerator = imageGenerator;
+        this.quotaService = quotaService;
     }
 
     /**
@@ -135,6 +140,8 @@ public class ThreadSummaryService {
      */
     @Transactional
     public ThreadSummaryResponseDTO.dailySummaryResponseDTO generateImmediateSummary(Long userId, int year, int month, int day) {
+
+        quotaService.checkAndConsume(userId, UsageCost.SUMMARY);
 
         ThreadSummaryData summaryData = fetchThreadSummaryData(userId, year, month, day);
         if (summaryData == null) {
