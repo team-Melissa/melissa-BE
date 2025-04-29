@@ -30,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.melissa.diary.domain.Thread;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -169,74 +171,56 @@ public class ThreadService {
         thread.setAiProfile(aiProfile);
         threadRepository.save(thread);
     }
+
     // 실시간 스트리밍
-    public Flux<ServerSentEvent<String>> messageToAi(Long userId, int year, int month, int day, String userMessage) {
-        // 정상적인 유저인지 보호
-        User user = getUser(userId);
+    public Flux<ServerSentEvent<String>> messageToAi(Long userId,
+                                                     int year, int month, int day,
+                                                     String userMessage) {
 
-        quotaService.checkAndConsume(user, UsageCost.CHAT);
+        /* 블로킹(JPA) 차감 → 별도 스레드 풀 */
+        Mono<Void> quotaMono = Mono.fromRunnable(() ->
+                        quotaService.checkAndConsume(userId, UsageCost.CHAT))
+                .subscribeOn(Schedulers.boundedElastic()).then();
 
-        // 프롬프트 생성 -> 좀더 자세히 보면, 여기서 이미 Lazy를 대비해 로드까지 해놓음
-        ThreadData threadData = getThreadData(userId, year, month, day, userMessage);
-        String promptText = buildAiChatPrompt(userMessage, threadData.getChatHistory(), threadData.getAiProfile());
+        /* quotaMono 종료 → AI 스트림 실행 (Flux) */
+        return quotaMono.thenMany(
+                buildAiStream(userId, year, month, day, userMessage)
+        );
+    }
 
-        StringBuilder aiAnswerBuilder = new StringBuilder();
+    /* ---------- 기존 플럭스 부분만 메서드로 분리 ---------- */
+    private Flux<ServerSentEvent<String>> buildAiStream(Long userId, int year, int month,
+                                                        int day, String userMessage) {
 
-        // AI 응답을 SSE 이벤트로 매핑하는 Flux
-        Flux<ServerSentEvent<String>> aiMessageFlux = chatClient.prompt(promptText)
-                .system(sp -> sp.param("system", threadData.getAiProfile().getPromptText())
-                                .param("q1",threadData.getAiProfile().getQ1())
-                                .param("q2",threadData.getAiProfile().getQ2())
-                                .param("q3",threadData.getAiProfile().getQ3())
-                                .param("q4",threadData.getAiProfile().getQ4())
-                                .param("q5",threadData.getAiProfile().getQ5())
-                                .param("q6",threadData.getAiProfile().getQ6())
+        ThreadData td   = getThreadData(userId, year, month, day, userMessage);
+        String prompt   = buildAiChatPrompt(userMessage, td.getChatHistory(), td.getAiProfile());
+        StringBuilder b = new StringBuilder();
 
-                )
+        Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt(prompt)
+                .system(sp -> sp.param("system", td.getAiProfile().getPromptText())
+                        .param("q1", td.getAiProfile().getQ1())
+                        .param("q2", td.getAiProfile().getQ2())
+                        .param("q3", td.getAiProfile().getQ3())
+                        .param("q4", td.getAiProfile().getQ4())
+                        .param("q5", td.getAiProfile().getQ5())
+                        .param("q6", td.getAiProfile().getQ6()))
                 .stream()
                 .chatResponse()
-                .map(response -> {
-                    String partialMessage = response.getResults().get(0).getOutput().getText();
-                    aiAnswerBuilder.append(partialMessage);
-
+                .map(r -> {
+                    String part = r.getResults().get(0).getOutput().getText();
+                    b.append(part);
                     return ServerSentEvent.<String>builder()
-                            .id(String.valueOf(System.currentTimeMillis()))
-                            .event("aiMessage")
-                            .data(partialMessage)
-                            .build();
+                            .event("aiMessage").data(part).build();
                 })
-                .doOnComplete(() -> {
-                    String answer = aiAnswerBuilder.toString().replace("null", "").trim();
-                    saveAiMessage(answer, threadData);
-                })
-                .onErrorResume(e -> {
-                    // 클라이언트가 끊었거나, AI 응답 중 오류가 발생시 여기서 캐치
-                    // SSE로 에러 이벤트를 전송 후 스트림 종료
-                    return Flux.just(ServerSentEvent.<String>builder()
-                            .event("error")
-                            .data("SSE 스트리밍 도중 오류가 발생했습니다: " + e.getMessage())
-                            .build());
-                });
+                .doOnComplete(() -> saveAiMessage(b.toString().trim(), td))
+                .onErrorResume(e -> Flux.just(ServerSentEvent.<String>builder()
+                        .event("error").data("SSE 오류: " + e.getMessage()).build()));
 
-        // finish 이벤트를 내보내는 Flux (단일 이벤트) : 현성이 요청
-        Flux<ServerSentEvent<String>> finishEventFlux = Flux.just(
-                ServerSentEvent.<String>builder()
-                        .id(String.valueOf(System.currentTimeMillis()))
-                        .event("finish")
-                        .data("finish")
-                        .build()
-        );
+        /* finish 이벤트 붙여서 반환 */
+        Flux<ServerSentEvent<String>> finish = Flux.just(
+                ServerSentEvent.<String>builder().event("finish").data("finish").build());
 
-        // 두 Flux를 순차적으로 연결하여, aiMessageFlux가 완료된 뒤 finish 이벤트를 발행
-        return Flux.concat(aiMessageFlux, finishEventFlux)
-                .onErrorResume(e -> {
-            // SSE 에러 이벤트로 마무리
-            log.error("전체 SSE 스트리밍 도중 오류가 발생했습니다: ", e);
-            return Flux.just(ServerSentEvent.<String>builder()
-                    .event("error")
-                    .data("스트리밍 도중 서버 오류가 발생했습니다: " + e.getMessage())
-                    .build());
-        });
+        return Flux.concat(aiFlux, finish);
     }
 
     @Transactional(readOnly = true)

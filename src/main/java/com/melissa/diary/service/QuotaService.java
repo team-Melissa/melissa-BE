@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +20,24 @@ public class QuotaService {
 
     @Transactional
     public void checkAndConsume(User u, UsageCost type) {
+        /* 날짜 바뀌면 초기화 */
+        if (!u.getQuotaDate().equals(LocalDate.now())) {
+            u.setDailyQuota(100);
+            u.setQuotaDate(LocalDate.now());
+        }
+
+        if (u.getDailyQuota() < type.getCost())
+            throw new ErrorHandler(ErrorStatus.QUOTA_LIMIT_EXCEEDED);
+
+        u.setDailyQuota(u.getDailyQuota() - type.getCost());
+        userRepo.save(u);
+    }
+
+    @Transactional
+    public void checkAndConsume(Long userId, UsageCost type) {
+
+        User u = userRepo.findById(userId).orElseThrow(()->{throw new ErrorHandler(ErrorStatus.USER_NOT_FOUND);});
+
         /* 날짜 바뀌면 초기화 */
         if (!u.getQuotaDate().equals(LocalDate.now())) {
             u.setDailyQuota(100);
