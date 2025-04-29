@@ -174,7 +174,7 @@ public class ThreadService {
         // 정상적인 유저인지 보호
         User user = getUser(userId);
 
-        quotaService.checkAndConsume(userId, UsageCost.CHAT);
+        quotaService.checkAndConsume(user, UsageCost.CHAT);
 
         // 프롬프트 생성 -> 좀더 자세히 보면, 여기서 이미 Lazy를 대비해 로드까지 해놓음
         ThreadData threadData = getThreadData(userId, year, month, day, userMessage);

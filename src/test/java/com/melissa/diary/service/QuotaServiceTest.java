@@ -33,7 +33,7 @@ class QuotaServiceTest {
         user.setQuotaDate(java.time.LocalDate.now());
         when(userRepo.findById(anyLong())).thenReturn(Optional.of(user));
 
-        quotaService.checkAndConsume(1L, UsageCost.CHAT);   // 3 소비
+        quotaService.checkAndConsume(user, UsageCost.CHAT);   // 3 소비
 
         assertEquals(97, user.getDailyQuota());
     }
@@ -49,7 +49,7 @@ class QuotaServiceTest {
 
         // when + then
         ErrorHandler ex = assertThrows(ErrorHandler.class,
-                () -> quotaService.checkAndConsume(2L, UsageCost.CHAT));
+                () -> quotaService.checkAndConsume(user, UsageCost.CHAT));
 
         assertEquals(ErrorStatus.QUOTA_LIMIT_EXCEEDED, ex.getErrorCode());
     }

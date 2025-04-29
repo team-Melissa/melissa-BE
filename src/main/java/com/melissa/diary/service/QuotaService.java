@@ -18,10 +18,7 @@ public class QuotaService {
     private final UserRepository userRepo;
 
     @Transactional
-    public void checkAndConsume(Long userId, UsageCost type) {
-        User u = userRepo.findById(userId)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
-
+    public void checkAndConsume(User u, UsageCost type) {
         /* 날짜 바뀌면 초기화 */
         if (!u.getQuotaDate().equals(LocalDate.now())) {
             u.setDailyQuota(100);
