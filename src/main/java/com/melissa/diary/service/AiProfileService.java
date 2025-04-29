@@ -62,7 +62,7 @@ public class AiProfileService {
 
         User user = getUser(userId);
 
-        quotaService.checkAndConsume(userId, UsageCost.PROFILE);
+        quotaService.checkAndConsume(user, UsageCost.PROFILE);
 
 
         // 1) 프롬프트 생성

@@ -134,14 +134,21 @@ public class ThreadSummaryService {
         updateThreadSummary(thread.getId(), llmResponse, imageUrl);
     }
 
+    @Transactional(readOnly = true)
+    public User getUser(Long userId) {
+        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
+        return userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+    }
+
+
     /**
      * 유저가 API를 호출하면 즉각 실행되어 무조건 요약 데이터를 덮어씌우고,
      * 최신 스레드를 반환합니다.
      */
     @Transactional
     public ThreadSummaryResponseDTO.dailySummaryResponseDTO generateImmediateSummary(Long userId, int year, int month, int day) {
-
-        quotaService.checkAndConsume(userId, UsageCost.SUMMARY);
+        User user = getUser(userId);
+        quotaService.checkAndConsume(user, UsageCost.SUMMARY);
 
         ThreadSummaryData summaryData = fetchThreadSummaryData(userId, year, month, day);
         if (summaryData == null) {
