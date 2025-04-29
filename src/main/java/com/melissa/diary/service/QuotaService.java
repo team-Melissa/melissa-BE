@@ -29,7 +29,5 @@ public class QuotaService {
             throw new ErrorHandler(ErrorStatus.QUOTA_LIMIT_EXCEEDED);
 
         u.setDailyQuota(u.getDailyQuota() - type.getCost());
-
-        userRepo.save(u)
     }
 }
