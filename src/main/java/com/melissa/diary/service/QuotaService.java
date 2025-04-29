@@ -30,6 +30,6 @@ public class QuotaService {
 
         u.setDailyQuota(u.getDailyQuota() - type.getCost());
 
-        userRepo.save(u)
+        userRepo.save(u);
     }
 }
