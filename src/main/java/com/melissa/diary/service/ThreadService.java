@@ -6,6 +6,7 @@ import com.melissa.diary.domain.AiProfile;
 import com.melissa.diary.domain.DailyChatLog;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.domain.enums.Role;
+import com.melissa.diary.domain.enums.UsageCost;
 import com.melissa.diary.repository.AiProfileRepository;
 import com.melissa.diary.repository.DailyChatLogRepository;
 import com.melissa.diary.repository.ThreadRepository;
@@ -45,12 +46,15 @@ public class ThreadService {
     private final DailyChatLogRepository dailyChatLogRepository;
     private final ChatClient chatClient;
 
-    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, @Qualifier("aiChatClient") ChatClient chatClient) {
+    private final QuotaService quotaService;
+
+    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService) {
         this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.aiProfileRepository = aiProfileRepository;
         this.dailyChatLogRepository = dailyChatLogRepository;
         this.chatClient = chatClient;
+        this.quotaService = quotaService;
     }
 
     @Transactional
@@ -169,6 +173,8 @@ public class ThreadService {
     public Flux<ServerSentEvent<String>> messageToAi(Long userId, int year, int month, int day, String userMessage) {
         // 정상적인 유저인지 보호
         User user = getUser(userId);
+
+        quotaService.checkAndConsume(userId, UsageCost.CHAT);
 
         // 프롬프트 생성 -> 좀더 자세히 보면, 여기서 이미 Lazy를 대비해 로드까지 해놓음
         ThreadData threadData = getThreadData(userId, year, month, day, userMessage);
