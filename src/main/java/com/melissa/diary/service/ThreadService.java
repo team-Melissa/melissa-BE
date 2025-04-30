@@ -34,6 +34,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -196,27 +197,36 @@ public class ThreadService {
     private Flux<ServerSentEvent<String>> buildAiStream(Long userId, int year, int month,
                                                         int day, String userMessage) {
 
+        ThreadData td   = getThreadData(userId, year, month, day, userMessage);
+        String prompt   = buildAiChatPrompt(userMessage, td.getChatHistory(), td.getAiProfile());
+        StringBuilder b = new StringBuilder();
+
         /* 탈옥 시도 검사 */
         if (jailbreakDetector.isJailbreakAttempt(userMessage)) {
+            String rejectMsg = "죄송합니다. 해당 요청은 처리할 수 없습니다.";
+
             Flux<ServerSentEvent<String>> errFlux = Flux.just(
-                    ServerSentEvent.<String>builder()
-                            .event("aiMessage")
-                            .data("죄송합니다. 해당 요청은 처리할 수 없습니다.")
-                            .build()
-            );
+                            ServerSentEvent.<String>builder()
+                                    .event("aiMessage")
+                                    .data(rejectMsg)
+                                    .build()
+                    )
+                    // 에러 메시지 전송 완료 시점에 저장
+                    .doOnComplete(() -> saveAiMessage(rejectMsg, td));
+
             Flux<ServerSentEvent<String>> finishFlux = Flux.just(
                     ServerSentEvent.<String>builder()
                             .event("finish")
                             .data("finish")
                             .build()
             );
-            // concat 으로 두 스트림을 순차 연결
-            return Flux.concat(errFlux, finishFlux);
+
+            // 10ms 간격으로 보내기
+            return Flux.concat(errFlux, finishFlux)
+                    .delayElements(Duration.ofMillis(10));
         }
 
-        ThreadData td   = getThreadData(userId, year, month, day, userMessage);
-        String prompt   = buildAiChatPrompt(userMessage, td.getChatHistory(), td.getAiProfile());
-        StringBuilder b = new StringBuilder();
+
 
         Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt(prompt)
                 .system(sp -> sp.param("system", td.getAiProfile().getPromptText())
