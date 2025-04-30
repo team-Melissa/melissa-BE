@@ -11,6 +11,7 @@ import com.melissa.diary.repository.AiProfileRepository;
 import com.melissa.diary.repository.DailyChatLogRepository;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
+import com.melissa.diary.security.JailbreakDetector;
 import com.melissa.diary.web.dto.ThreadResponseDTO;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -50,13 +51,16 @@ public class ThreadService {
 
     private final QuotaService quotaService;
 
-    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService) {
+    private final JailbreakDetector jailbreakDetector;
+
+    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService, JailbreakDetector jailbreakDetector) {
         this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.aiProfileRepository = aiProfileRepository;
         this.dailyChatLogRepository = dailyChatLogRepository;
         this.chatClient = chatClient;
         this.quotaService = quotaService;
+        this.jailbreakDetector = jailbreakDetector;
     }
 
     @Transactional
@@ -176,6 +180,20 @@ public class ThreadService {
     public Flux<ServerSentEvent<String>> messageToAi(Long userId,
                                                      int year, int month, int day,
                                                      String userMessage) {
+
+        /* 탈옥 시도 검사 */
+        if (jailbreakDetector.isJailbreakAttempt(userMessage)) {
+            return Flux.just(
+                    ServerSentEvent.<String>builder()
+                            .event("aiMessage")
+                            .data("죄송합니다, 해당 요청을 처리할 수 없습니다.")
+                            .build(),
+                    ServerSentEvent.<String>builder()
+                            .event("finish")
+                            .data("finish")
+                            .build()
+            );
+        }
 
         /* 블로킹(JPA) 차감 → 별도 스레드 풀 */
         Mono<Void> quotaMono = Mono.fromRunnable(() ->

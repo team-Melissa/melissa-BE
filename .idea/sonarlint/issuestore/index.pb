@@ -130,3 +130,13 @@ X
 (.ebextensions_dev/01-set-timezone.config,0\8\0864eef6264487b38d5b3f88f147678d897ec2cb
 U
 %.ebextensions_dev/00-makeFiles.config,3\9\393fef0ecb5085d7739656760d926356275375bc
+k
+;src/main/java/com/melissa/diary/domain/enums/UsageCost.java,1\4\14e4c323934ce4c4b0a94cc0ac4ee416a98ce59b
+o
+?src/main/java/com/melissa/diary/bootstrap/QuotaInitializer.java,d\0\d07ae50368e04d5997cd4eab346e9e6b27f24c89
+m
+=src/test/java/com/melissa/diary/service/QuotaServiceTest.java,0\4\04d352d18adab791b67ae6f70ba476ca9ea9fe46
+r
+Bsrc/main/java/com/melissa/diary/scheduler/QuotaResetScheduler.java,3\6\36dd875fe1cdb7b480fe339d6514435297e60eef
+i
+9src/main/java/com/melissa/diary/service/QuotaService.java,e\1\e19ab4e691da8aeea1dfe8bffad4d7c0767a01a8
