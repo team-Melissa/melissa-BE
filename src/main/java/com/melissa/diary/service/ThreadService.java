@@ -181,20 +181,6 @@ public class ThreadService {
                                                      int year, int month, int day,
                                                      String userMessage) {
 
-        /* 탈옥 시도 검사 */
-        if (jailbreakDetector.isJailbreakAttempt(userMessage)) {
-            return Flux.just(
-                    ServerSentEvent.<String>builder()
-                            .event("aiMessage")
-                            .data("죄송합니다, 해당 요청을 처리할 수 없습니다.")
-                            .build(),
-                    ServerSentEvent.<String>builder()
-                            .event("finish")
-                            .data("finish")
-                            .build()
-            );
-        }
-
         /* 블로킹(JPA) 차감 → 별도 스레드 풀 */
         Mono<Void> quotaMono = Mono.fromRunnable(() ->
                         quotaService.checkAndConsume(userId, UsageCost.CHAT))
@@ -209,6 +195,24 @@ public class ThreadService {
     /* ---------- 기존 플럭스 부분만 메서드로 분리 ---------- */
     private Flux<ServerSentEvent<String>> buildAiStream(Long userId, int year, int month,
                                                         int day, String userMessage) {
+
+        /* 탈옥 시도 검사 */
+        if (jailbreakDetector.isJailbreakAttempt(userMessage)) {
+            Flux<ServerSentEvent<String>> errFlux = Flux.just(
+                    ServerSentEvent.<String>builder()
+                            .event("aiMessage")
+                            .data("죄송합니다. 해당 요청은 처리할 수 없습니다.")
+                            .build()
+            );
+            Flux<ServerSentEvent<String>> finishFlux = Flux.just(
+                    ServerSentEvent.<String>builder()
+                            .event("finish")
+                            .data("finish")
+                            .build()
+            );
+            // concat 으로 두 스트림을 순차 연결
+            return Flux.concat(errFlux, finishFlux);
+        }
 
         ThreadData td   = getThreadData(userId, year, month, day, userMessage);
         String prompt   = buildAiChatPrompt(userMessage, td.getChatHistory(), td.getAiProfile());
