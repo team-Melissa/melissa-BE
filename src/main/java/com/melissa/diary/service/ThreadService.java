@@ -34,6 +34,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -211,7 +212,7 @@ public class ThreadService {
                             .build()
             );
             // concat 으로 두 스트림을 순차 연결
-            return Flux.concat(errFlux, finishFlux);
+            return Flux.concat(errFlux, finishFlux).delayElements(Duration.ofMillis(10));
         }
 
         ThreadData td   = getThreadData(userId, year, month, day, userMessage);
