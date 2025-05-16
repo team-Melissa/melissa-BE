@@ -19,3 +19,23 @@ V
 java:S1854"8Remove this useless assignment to local variable "user".(ÌğØä8£¥Œˆè2
 G
 java:S1481")Remove this unused "user" local variable.(ÌğØä8¤¥Œˆè2
+b
+java:S1128"ERemove this unused import 'com.melissa.diary.aws.s3.AmazonS3Manager'.(Æ¨Äİ8¼ñŸ“ì2
+\
+java:S1128":Remove this unused import 'com.melissa.diary.domain.Uuid'.(¤½ıÇùÿÿÿÿ8¼ñŸ“ì2
+j
+java:S1128"HRemove this unused import 'com.melissa.diary.repository.UuidRepository'.(½ ¯÷ùÿÿÿÿ8½ñŸ“ì2
+]
+java:S1128";Remove this unused import 'lombok.RequiredArgsConstructor'.(ÑØúøÿÿÿÿ8½ñŸ“ì2
+j
+java:S1128"HRemove this unused import 'org.springframework.ai.chat.model.ChatModel'.(šĞØ¾øÿÿÿÿ8½ñŸ“ì2
+g
+java:S1128"KRemove this unused import 'org.springframework.ai.chat.model.ChatResponse'.(½âÇ48½ñŸ“ì2
+c
+java:S1128"FRemove this unused import 'org.springframework.ai.chat.prompt.Prompt'.(çŞ¤ˆ8½ñŸ“ì2
+n
+java:S1128"LRemove this unused import 'org.springframework.ai.openai.OpenAiChatOptions'.(ÚÕ­ºıÿÿÿÿ8½ñŸ“ì2
+j
+java:S1128"HRemove this unused import 'org.springframework.ai.openai.api.OpenAiApi'.(«†«ğşÿÿÿÿ8½ñŸ“ì2
+M
+java:S1128#"+Remove this unused import 'java.util.UUID'.(ÀãÄ£úÿÿÿÿ8½ñŸ“ì2

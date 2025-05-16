@@ -140,3 +140,17 @@ r
 Bsrc/main/java/com/melissa/diary/scheduler/QuotaResetScheduler.java,3\6\36dd875fe1cdb7b480fe339d6514435297e60eef
 i
 9src/main/java/com/melissa/diary/service/QuotaService.java,e\1\e19ab4e691da8aeea1dfe8bffad4d7c0767a01a8
+o
+?src/main/java/com/melissa/diary/security/JailbreakDetector.java,d\7\d7fa7283175bc6c3957b57f0103a68cbb07e5605
+o
+?src/main/java/com/melissa/diary/security/EncryptionManager.java,9\5\95a9869809e7c456b7d8246abbf670e4d3aa3c78
+_
+/src/main/java/com/melissa/diary/config/.gitkeep,9\7\972205facc12c50b633dd62f126f62041ce3835e
+v
+Fsrc/main/java/com/melissa/diary/repository/DailyChatLogRepository.java,5\f\5fc1fa1a7f7fde92ee3205511bfe639baafe8fc9
+u
+Esrc/main/java/com/melissa/diary/converter/ThreadSummaryConverter.java,f\7\f75811977a9ceb6548a2ad3fe8be2dc275a57763
+g
+7src/main/java/com/melissa/diary/config/AsyncConfig.java,9\9\9902e53409f4721522be6697c3496fa734b1e652
+}
+Msrc/main/java/com/melissa/diary/web/controller/ThreadSummaryV2Controller.java,c\5\c59533f8e15b9b3300fc83c917146f1bf5785973

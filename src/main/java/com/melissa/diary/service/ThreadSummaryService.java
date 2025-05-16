@@ -25,6 +25,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -48,6 +49,8 @@ public class ThreadSummaryService {
 
     private final QuotaService quotaService;
 
+    private final ThreadImageService threadImageService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     public ThreadSummaryService(UserRepository userRepository,
                                 ThreadRepository threadRepository,
@@ -55,13 +58,16 @@ public class ThreadSummaryService {
                                 @Qualifier("summaryClient")
                                 ChatClient summaryClient,
                                 ImageGenerator imageGenerator,
-                                QuotaService quotaService) {
+                                QuotaService quotaService,
+                                ThreadImageService threadImageService
+    ) {
         this.userRepository = userRepository;
         this.threadRepository = threadRepository;
         this.userSettingRepository = userSettingRepository;
         this.summaryClient = summaryClient;
         this.imageGenerator = imageGenerator;
         this.quotaService = quotaService;
+        this.threadImageService = threadImageService;
     }
 
     /**
@@ -313,6 +319,63 @@ public class ThreadSummaryService {
         );
     }
 
+    // ────────────────────────────────────────────────────────────
+    // V2: 요약 즉시, 이미지는 @Async 로 처리
+    // ────────────────────────────────────────────────────────────
+    @Transactional
+    public ThreadSummaryResponseDTO.dailySummaryResponseDTO generateImmediateSummaryV2(
+            Long userId, int year, int month, int day) {
+
+        // 권한·쿼터 체크
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+        quotaService.checkAndConsume(user, UsageCost.SUMMARY);
+
+        // Thread + 채팅 로그 조회
+        ThreadSummaryData data = fetchThreadSummaryData(userId, year, month, day);
+        if (data == null) throw new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND);
+
+        Thread thread = data.getThread();
+        List<DailyChatLog> logs = data.getLogs().stream()
+                .filter(l -> Role.USER.equals(l.getRole()))
+                .collect(Collectors.toList());
+        if (logs.size() <= 2) throw new ErrorHandler(ErrorStatus.CHAT_NOT_FOUND);
+
+        // LLM 호출 → 요약 JSON
+        String llmResp = callLLMForSummary(
+                buildSummaryPrompt(buildChatLogsPrompt(logs)));
+
+        // 요약 JSON 기반 DTO 작성 (imageUrl=null 상태)
+        ThreadSummaryResponseDTO.dailySummaryResponseDTO dto =
+                buildDtoFromLlm(thread, llmResp);
+
+        // thread 저장 (imageUrl=null)
+        updateThreadSummary(thread.getId(), llmResp, null);
+
+        // 이미지 처리 비동기 시작
+        threadImageService.generateAndSaveImage(thread.getId());
+
+        // 7) 즉시 응답
+        return dto;
+    }
+
+    /* 요약 JSON → DTO (imageS3 는 null) */
+    private ThreadSummaryResponseDTO.dailySummaryResponseDTO buildDtoFromLlm(Thread t, String resp){
+        Thread temp = new Thread();          // 임시 객체
+        parseAndUpdateThread(temp, resp);    // 동일 로직 재사용
+        return ThreadSummaryResponseDTO.dailySummaryResponseDTO.builder()
+                .year(t.getYear())
+                .month(t.getMonth())
+                .day(t.getDay())
+                .summaryTitle(temp.getSummaryTitle())
+                .summaryContent(temp.getSummaryContent())
+                .summaryMood(temp.getMood() == null ? null : temp.getMood().name())
+                .hashTag1(temp.getHashtag1())
+                .hashTag2(temp.getHashtag2())
+                .imageS3(null)               // 처음엔 null
+                .build();
+    }
+
     /**
      * 내부 DTO 클래스 – DB에서 조회한 Thread와 채팅 로그를 담기 위함
      */
@@ -326,4 +389,5 @@ public class ThreadSummaryService {
             this.logs = logs;
         }
     }
+
 }

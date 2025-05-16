@@ -1,13 +1,15 @@
 
+e
+java:S1192Û"GDefine a constant instead of duplicating this literal "finish" 4 times.(ÍàÜÌ8Í¡¡“ì2
 U
-java:S1854y"8Remove this useless assignment to local variable "user".(ÌğØä8§Ó½‹è2
+java:S1854~"8Remove this useless assignment to local variable "user".(ÌğØä8ê¡¡“ì2
 F
-java:S1481y")Remove this unused "user" local variable.(ÌğØä8Îó©‹è2
+java:S1481~")Remove this unused "user" local variable.(ÌğØä8—†¡“ì2
 V
-java:S1854–"8Remove this useless assignment to local variable "user".(ÌğØä8¨Ó½‹è2
+java:S1854›"8Remove this useless assignment to local variable "user".(ÌğØä8ë¡¡“ì2
 G
-java:S1481–")Remove this unused "user" local variable.(ÌğØä8¨Ó½‹è2
+java:S1481›")Remove this unused "user" local variable.(ÌğØä8ì¡¡“ì2
 V
-java:S1854Â"8Remove this useless assignment to local variable "user".(õÌ¼²8â‹“‹è2
+java:S1854â"8Remove this useless assignment to local variable "user".(õÌ¼²8é¯ñ¸è2
 G
-java:S1481Â")Remove this unused "user" local variable.(õÌ¼²8¯Ó½‹è2
+java:S1481â")Remove this unused "user" local variable.(õÌ¼²8ö¡¡“ì2

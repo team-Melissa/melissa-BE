@@ -1,0 +1,26 @@
+
+g
+java:S1128"JRemove this unused import 'org.springframework.ai.chat.client.ChatClient'.(ÏÈ¢µ8ÕÇ”ì2
+j
+java:S1128"HRemove this unused import 'org.springframework.ai.chat.model.ChatModel'.(šĞØ¾øÿÿÿÿ8‚ÕÇ”ì2
+n
+java:S1128"QRemove this unused import 'org.springframework.ai.chat.model.StreamingChatModel'.(¸çı8„ÕÇ”ì2
+a
+java:S1128"DRemove this unused import 'org.springframework.ai.image.ImageModel'.(¯Ì„§8†ÕÇ”ì2
+c
+java:S1128"FRemove this unused import 'org.springframework.ai.image.ImageOptions'.(óÄ†¨8ˆÕÇ”ì2
+l
+java:S1128"JRemove this unused import 'org.springframework.ai.openai.OpenAiChatModel'.(ƒ¢‘©ÿÿÿÿÿ8‰ÕÇ”ì2
+n
+java:S1128	"LRemove this unused import 'org.springframework.ai.openai.OpenAiChatOptions'.(ÚÕ­ºıÿÿÿÿ8‹ÕÇ”ì2
+m
+java:S1128
+"KRemove this unused import 'org.springframework.ai.openai.OpenAiImageModel'.(ñ¨áàûÿÿÿÿ8‹ÕÇ”ì2
+j
+java:S1128"HRemove this unused import 'org.springframework.ai.openai.api.OpenAiApi'.(«†«ğşÿÿÿÿ8‹ÕÇ”ì2
+j
+java:S1128"MRemove this unused import 'org.springframework.ai.openai.api.OpenAiImageApi'.(£ÑÔÛ8ŒÕÇ”ì2
+l
+java:S1128"ORemove this unused import 'org.springframework.beans.factory.annotation.Value'.(ìø›8ŒÕÇ”ì2
+e
+java:S1128"HRemove this unused import 'org.springframework.context.annotation.Bean'.(‚î‰Ş8ŒÕÇ”ì2
