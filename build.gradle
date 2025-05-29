@@ -46,9 +46,8 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
 	// Spring AI
-	implementation platform("org.springframework.ai:spring-ai-bom:1.0.0-SNAPSHOT")
-	// - 사용하려는 ai 모듈 목록
-	implementation 'org.springframework.ai:spring-ai-openai'
+	implementation platform("org.springframework.ai:spring-ai-bom:1.0.0-M6")
+	implementation "org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M6"
 
 	// S3
 	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'

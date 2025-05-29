@@ -8,17 +8,17 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiImageModel;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.openai.api.OpenAiImageApi;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.client.RestClient;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class AiConfig {
 
     @Value("${spring.ai.openai.api-key}") String apiKey;
     @Bean
+    @Primary
     ImageModel imageModel() {
         OpenAiImageApi api = OpenAiImageApi.builder()
                 .apiKey(apiKey)
@@ -27,6 +27,7 @@ public class AiConfig {
     }
 
     @Bean
+    @Primary
     ChatModel chatModel() {
         OpenAiApi api = OpenAiApi.builder()
                 .apiKey(apiKey)
