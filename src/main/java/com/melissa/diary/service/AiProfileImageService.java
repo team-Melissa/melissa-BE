@@ -21,7 +21,6 @@ public class AiProfileImageService {
     private final ImageGenerator imageGenerator;
 
     /** 프로필 ID 기준으로 이미지 생성·S3 업로드·DB 반영을 비동기로 수행 */
-    @Async("asyncTaskExecutor")
     public void generateAndSaveProfileImage(Long aiProfileId) {
         try {
             AiProfile profile = aiProfileRepository.findById(aiProfileId)

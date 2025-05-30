@@ -9,6 +9,7 @@ import com.melissa.diary.converter.AiProfileConverter;
 import com.melissa.diary.domain.AiProfile;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.domain.enums.UsageCost;
+import com.melissa.diary.event.ProfileImageEvent;
 import com.melissa.diary.repository.AiProfileRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.web.dto.AiProfileRequestDTO;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,12 +33,16 @@ public class AiProfileServiceV2 {
     private final QuotaService              quotaService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AiProfileServiceV2(UserRepository userRepo, AiProfileRepository profileRepo, @Qualifier("profileClient") ChatClient profileClient, AiProfileImageService imageService, QuotaService quotaService) {
+    private final ApplicationEventPublisher publisher;
+
+    public AiProfileServiceV2(UserRepository userRepo, AiProfileRepository profileRepo, @Qualifier("profileClient") ChatClient profileClient, AiProfileImageService imageService, QuotaService quotaService,
+                              ApplicationEventPublisher publisher) {
         this.userRepo = userRepo;
         this.profileRepo = profileRepo;
         this.profileClient = profileClient;
         this.imageService = imageService;
         this.quotaService = quotaService;
+        this.publisher = publisher;
     }
 
     /** V2: 텍스트 프로필 즉시 리턴, 이미지 비동기 */
@@ -67,7 +73,8 @@ public class AiProfileServiceV2 {
         AiProfile saved = profileRepo.save(profile);
 
         // 4) 비동기 이미지 생성 시작
-        imageService.generateAndSaveProfileImage(saved.getId());
+        publisher.publishEvent(new ProfileImageEvent(saved.getId()));
+
 
         // 5) DTO 변환 (imageUrl == null) 즉시 리턴
         return AiProfileConverter.toResponse(saved);
