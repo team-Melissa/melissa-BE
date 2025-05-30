@@ -156,3 +156,9 @@ g
 Msrc/main/java/com/melissa/diary/web/controller/ThreadSummaryV2Controller.java,c\5\c59533f8e15b9b3300fc83c917146f1bf5785973
 o
 ?src/main/java/com/melissa/diary/service/ThreadImageService.java,9\2\928e1bf58794ed5a0f1fa2d88ed3c085c9295d1d
+y
+Isrc/main/java/com/melissa/diary/web/controller/AiProfileControllerV2.java,1\6\16c54c09bf4ec2e1eeb5250b158b7428cf0e786f
+r
+Bsrc/main/java/com/melissa/diary/service/AiProfileImageService.java,0\8\08022ae59b6f215213f1161285c5aaf4481627c6
+o
+?src/main/java/com/melissa/diary/service/AiProfileServiceV2.java,4\8\480e3b349cd3bc7dafdd43fa74bb8240aa22b526

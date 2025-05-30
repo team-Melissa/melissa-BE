@@ -28,7 +28,6 @@ public class ThreadImageService {
      * threadId 기준으로 이미지를 생성하고 imageUrl 을 저장한다.
      * 메서드가 @Async 이므로 별도 스레드에서 실행된다.
      */
-    @Async("asyncTaskExecutor")
     public void generateAndSaveImage(Long threadId) {
         try {
             Thread thread = threadRepository.findById(threadId)

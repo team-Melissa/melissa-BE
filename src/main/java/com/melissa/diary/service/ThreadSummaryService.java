@@ -11,6 +11,7 @@ import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.enums.Mood;
 import com.melissa.diary.domain.enums.Role;
 import com.melissa.diary.domain.enums.UsageCost;
+import com.melissa.diary.event.ThreadImageEvent;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UserSettingRepository;
@@ -25,6 +26,7 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -51,6 +53,8 @@ public class ThreadSummaryService {
 
     private final ThreadImageService threadImageService;
 
+    private final ApplicationEventPublisher publisher;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     public ThreadSummaryService(UserRepository userRepository,
                                 ThreadRepository threadRepository,
@@ -59,7 +63,8 @@ public class ThreadSummaryService {
                                 ChatClient summaryClient,
                                 ImageGenerator imageGenerator,
                                 QuotaService quotaService,
-                                ThreadImageService threadImageService
+                                ThreadImageService threadImageService,
+                                ApplicationEventPublisher publisher
     ) {
         this.userRepository = userRepository;
         this.threadRepository = threadRepository;
@@ -68,6 +73,7 @@ public class ThreadSummaryService {
         this.imageGenerator = imageGenerator;
         this.quotaService = quotaService;
         this.threadImageService = threadImageService;
+        this.publisher = publisher;
     }
 
     /**
@@ -353,7 +359,7 @@ public class ThreadSummaryService {
         updateThreadSummary(thread.getId(), llmResp, null);
 
         // 이미지 처리 비동기 시작
-        threadImageService.generateAndSaveImage(thread.getId());
+        publisher.publishEvent(new ThreadImageEvent(thread.getId()));
 
         // 7) 즉시 응답
         return dto;
