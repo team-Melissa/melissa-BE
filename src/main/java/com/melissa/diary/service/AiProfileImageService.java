@@ -19,19 +19,23 @@ public class AiProfileImageService {
 
     private final AiProfileRepository aiProfileRepository;
     private final ImageGenerator imageGenerator;
+    private static final String DEFAULT_IMG =
+            "https://melissa-s3.s3.ap-northeast-2.amazonaws.com/default.png";
 
     /** 프로필 ID 기준으로 이미지 생성·S3 업로드·DB 반영을 비동기로 수행 */
     public void generateAndSaveProfileImage(Long aiProfileId) {
+        AiProfile profile = aiProfileRepository.findById(aiProfileId).orElse(null);
+        if (profile == null) {
+            log.error("[Async-ProfileImage] id={} not found", aiProfileId);
+            return;
+        }
+
         try {
-            AiProfile profile = aiProfileRepository.findById(aiProfileId)
-                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
-
-            String prompt = buildPromptProfileImage(profile);
-            String url    = imageGenerator.genProfileImage(prompt);
-
-            updateImageUrl(profile, url);
+            String url = imageGenerator.genProfileImage(buildPromptProfileImage(profile));
+            updateImageUrl(profile, url);                         // 정상 저장
         } catch (Exception e) {
             log.error("[Async-ProfileImage] 생성 실패 id={}", aiProfileId, e);
+            updateImageUrl(profile, DEFAULT_IMG);                 // 실패 시 기본 이미지
         }
     }
 
