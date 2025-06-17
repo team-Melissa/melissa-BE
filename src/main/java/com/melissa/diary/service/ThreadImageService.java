@@ -23,22 +23,26 @@ public class ThreadImageService {
 
     private final ThreadRepository threadRepository;
     private final ImageGenerator    imageGenerator;
+    private static final String DEFAULT_IMG =
+            "https://melissa-s3.s3.ap-northeast-2.amazonaws.com/default.png";
 
     /**
      * threadId 기준으로 이미지를 생성하고 imageUrl 을 저장한다.
      * 메서드가 @Async 이므로 별도 스레드에서 실행된다.
      */
     public void generateAndSaveImage(Long threadId) {
+        Thread t = threadRepository.findById(threadId).orElse(null);
+        if (t == null) {
+            log.error("[Async-Image] threadId={} not found", threadId);
+            return;
+        }
+
         try {
-            Thread thread = threadRepository.findById(threadId)
-                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
-
-            String prompt = buildImagePrompt(thread);
-            String url    = imageGenerator.genProfileImage(prompt);
-
-            updateThreadImage(thread, url);
+            String url = imageGenerator.genProfileImage(buildImagePrompt(t));
+            updateThreadImage(t, url);                            // ✅ 정상 저장
         } catch (Exception e) {
             log.error("[Async-Image] threadId={} 처리 실패", threadId, e);
+            updateThreadImage(t, DEFAULT_IMG);                    // ✅ 실패 시 기본 이미지
         }
     }
 

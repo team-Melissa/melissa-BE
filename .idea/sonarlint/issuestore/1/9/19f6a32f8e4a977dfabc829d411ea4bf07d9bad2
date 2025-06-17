@@ -1,15 +1,17 @@
 
 X
-java:S1141¡"5Extract this nested try block into a separate method.(¡»¢üùÿÿÿÿ8õëá¿í2
+java:S1141§"5Extract this nested try block into a separate method.(¡»¢üùÿÿÿÿ8Îˆ Ïò2
 ƒ
-java:S1488É"`Immediately return this expression instead of assigning it to the temporary variable "response".(ò¥µ¹þÿÿÿÿ8õëá¿í2
+java:S1488Ï"`Immediately return this expression instead of assigning it to the temporary variable "response".(ò¥µ¹þÿÿÿÿ8Ïˆ Ïò2
+ƒ
+java:S2229ç"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(Åù×Àúÿÿÿÿ8üˆ Ïò2
 ~
-java:S2229½"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8ªìá¿í2
-ƒ
-java:S2229á"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(Åù×Àúÿÿÿÿ8ªìá¿í2
+java:S2229Ã"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8üˆ Ïò2
 €
-java:S2229s"c"fetchThreadSummaryData's" @Transactional requirement is incompatible with the one for this method.(žøñé8ªìá¿í2
+java:S2229y"c"fetchThreadSummaryData's" @Transactional requirement is incompatible with the one for this method.(žøñé8üˆ Ïò2
 ~
-java:S2229Œ"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8ªìá¿í2
+java:S2229’"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8üˆ Ïò2
 p
-java:S6204®"RReplace this usage of 'Stream.collect(Collectors.toList())' with 'Stream.toList()'(ª™¨¹8¿ìá¿í2
+java:S6204´"RReplace this usage of 'Stream.collect(Collectors.toList())' with 'Stream.toList()'(ª™¨¹8‘‰ Ïò2
+S
+java:S10686"6Remove this unused "threadImageService" private field.(£²‚ë8 ‰ Ïò2
