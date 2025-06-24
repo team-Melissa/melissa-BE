@@ -7,9 +7,9 @@ spring:
       api-key: ${OPENAI_API_KEY}
       image:
         options:
-          model: gpt-4o
-          size: 512x512
-          style: natural
+          model: dall-e-3
+          size: 1024x1024
+          style: vivid
           quality: standard
           response_format: b64_json
   datasource:
