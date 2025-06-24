@@ -19,7 +19,7 @@ import java.security.Principal;
 @Tag(name = "AiProfileAPI-V2", description = "AI 프로필 생성 – 텍스트 즉시 · 이미지 비동기")
 @RequestMapping("/api/v2/ai-profiles")
 @RequiredArgsConstructor
-public class AiProfileControllerV2 {
+public class AiProfileV2Controller {
 
     private final @Qualifier("aiProfileV2") AiProfileServiceV2 profileService;
 

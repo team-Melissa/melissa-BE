@@ -3,14 +3,14 @@ X
 java:S1141§"5Extract this nested try block into a separate method.(¡»¢üùÿÿÿÿ8Îˆ Ïò2
 ƒ
 java:S1488Ï"`Immediately return this expression instead of assigning it to the temporary variable "response".(ò¥µ¹þÿÿÿÿ8Ïˆ Ïò2
-~
-java:S2229Ã"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8üˆ Ïò2
-ƒ
-java:S2229ç"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(Åù×Àúÿÿÿÿ8üˆ Ïò2
 €
 java:S2229y"c"fetchThreadSummaryData's" @Transactional requirement is incompatible with the one for this method.(žøñé8üˆ Ïò2
 ~
 java:S2229’"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8üˆ Ïò2
+~
+java:S2229Ã"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(õ¾Å¼8üˆ Ïò2
+ƒ
+java:S2229ç"`"updateThreadSummary's" @Transactional requirement is incompatible with the one for this method.(Åù×Àúÿÿÿÿ8üˆ Ïò2
 p
 java:S6204´"RReplace this usage of 'Stream.collect(Collectors.toList())' with 'Stream.toList()'(ª™¨¹8‘‰ Ïò2
 S
