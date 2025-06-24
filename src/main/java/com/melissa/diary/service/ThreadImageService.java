@@ -23,6 +23,7 @@ public class ThreadImageService {
 
     private final ThreadRepository threadRepository;
     private final ImageGenerator    imageGenerator;
+    private final ThreadImagePromptRefinerService refiner;
     private static final String DEFAULT_IMG =
             "https://melissa-s3.s3.ap-northeast-2.amazonaws.com/default.png";
 
@@ -37,12 +38,15 @@ public class ThreadImageService {
             return;
         }
 
+        String rawPrompt   = buildImagePrompt(t);          // 1차(raw)
+        String finalPrompt = refiner.refine(rawPrompt);    // 2차(LLM)
+
         try {
-            String url = imageGenerator.genProfileImage(buildImagePrompt(t));
-            updateThreadImage(t, url);                            // ✅ 정상 저장
+            String url = imageGenerator.genProfileImage(finalPrompt);
+            updateThreadImage(t, url);                            // 정상 저장
         } catch (Exception e) {
             log.error("[Async-Image] threadId={} 처리 실패", threadId, e);
-            updateThreadImage(t, DEFAULT_IMG);                    // ✅ 실패 시 기본 이미지
+            updateThreadImage(t, DEFAULT_IMG);                    // 실패 시 기본 이미지
         }
     }
 
@@ -57,7 +61,7 @@ public class ThreadImageService {
         String mood = t.getMood() == null ? Mood.HAPPY.name() : t.getMood().name();
         String tag1 = t.getHashtag1() == null ? "" : t.getHashtag1();
         String tag2 = t.getHashtag2() == null ? "" : t.getHashtag2();
-        return String.format("%s, %s, %s %s 지브리·디즈니 느낌 수채화 일러스트",
+        return String.format("%s, %s, %s %s 수채화 일러스트",
                 mood,
                 t.getSummaryTitle() == null ? "Untitled" : t.getSummaryTitle(),
                 tag1, tag2);
