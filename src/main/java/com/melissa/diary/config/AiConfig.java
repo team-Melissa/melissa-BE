@@ -123,4 +123,43 @@ public class AiConfig {
                 .defaultSystem(system)
                 .build();
     }
+
+    @Bean(name = "profilePromptRefinerClient")
+    ChatClient profilePromptRefinerClient() {
+        OpenAiApi api = OpenAiApi.builder().apiKey(apiKey).build();
+        OpenAiChatOptions opts = OpenAiChatOptions.builder()
+                .model(OpenAiApi.ChatModel.GPT_4_O)
+                .temperature(0.35)
+                .maxTokens(120)
+                .build();
+
+        String sys = """
+        당신은 ‘캐릭터 일러스트 프롬프트화’ 전문 엔지니어이다.
+        - 입력된 간단한 캐릭터 키워드를 바탕으로 특징을 추출하여 외형 특징, 표정·감정, 스타일, 분위기 등을 이미지 ai 모델이 이해하기 쉽도록 프롬프팅화 해라.
+        - 출력 값을 바로 이미지 모델의 입력을 집어넣을 것이기에 잡설하지말고 따옴표·마크다운 없이 반환하라.
+        """;
+        return ChatClient.builder(
+                        OpenAiChatModel.builder().openAiApi(api).defaultOptions(opts).build())
+                .defaultSystem(sys).build();
+    }
+
+    @Bean(name = "diaryPromptRefinerClient")
+    ChatClient diaryPromptRefinerClient() {
+        OpenAiApi api = OpenAiApi.builder().apiKey(apiKey).build();
+        OpenAiChatOptions opts = OpenAiChatOptions.builder()
+                .model(OpenAiApi.ChatModel.GPT_4_O)
+                .temperature(0.45)
+                .maxTokens(180)
+                .build();
+
+        String sys = """
+        당신은 ‘그림일기 삽화 프롬프트화’ 전문가이다.
+        - 입력 문장을 시간, 장소, 행동, 감정이 또렷한 장면 묘사로 표현하고, 이미지 ai 모델이 이해하기 쉽도록 프롬프팅화 해라.
+        - 여러 사람에 대해서 자신의 경험처럼 받아들이도록, 최대한 사람 그림은 넣지않도록 프롬프팅해(자신 얼굴이 아니면 어색하니까)
+        - 출력 값을 바로 이미지 모델의 입력을 집어넣을 것이기에 잡설하지말고 따옴표·마크다운 없이 반환하라.
+        """;
+        return ChatClient.builder(
+                        OpenAiChatModel.builder().openAiApi(api).defaultOptions(opts).build())
+                .defaultSystem(sys).build();
+    }
 }

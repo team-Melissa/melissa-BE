@@ -19,6 +19,7 @@ public class AiProfileImageService {
 
     private final AiProfileRepository aiProfileRepository;
     private final ImageGenerator imageGenerator;
+    private final AiProfilePromptRefinerService    refiner;
     private static final String DEFAULT_IMG =
             "https://melissa-s3.s3.ap-northeast-2.amazonaws.com/default.png";
 
@@ -30,8 +31,11 @@ public class AiProfileImageService {
             return;
         }
 
+        String rawPrompt   = buildPromptProfileImage(profile);     // 1차(raw)
+        String finalPrompt = refiner.refine(rawPrompt);            // 2차(LLM)
+
         try {
-            String url = imageGenerator.genProfileImage(buildPromptProfileImage(profile));
+            String url = imageGenerator.genProfileImage(finalPrompt);
             updateImageUrl(profile, url);                         // 정상 저장
         } catch (Exception e) {
             log.error("[Async-ProfileImage] 생성 실패 id={}", aiProfileId, e);
