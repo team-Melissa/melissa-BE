@@ -325,46 +325,6 @@ public class ThreadSummaryService {
         );
     }
 
-    // ────────────────────────────────────────────────────────────
-    // V2: 요약 즉시, 이미지는 @Async 로 처리
-    // ────────────────────────────────────────────────────────────
-    @Transactional
-    public ThreadSummaryResponseDTO.dailySummaryResponseDTO generateImmediateSummaryV2(
-            Long userId, int year, int month, int day) {
-
-        // 권한·쿼터 체크
-        var user = userRepository.findById(userId)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
-        quotaService.checkAndConsume(user, UsageCost.SUMMARY);
-
-        // Thread + 채팅 로그 조회
-        ThreadSummaryData data = fetchThreadSummaryData(userId, year, month, day);
-        if (data == null) throw new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND);
-
-        Thread thread = data.getThread();
-        List<DailyChatLog> logs = data.getLogs().stream()
-                .filter(l -> Role.USER.equals(l.getRole()))
-                .collect(Collectors.toList());
-        if (logs.size() <= 2) throw new ErrorHandler(ErrorStatus.CHAT_NOT_FOUND);
-
-        // LLM 호출 → 요약 JSON
-        String llmResp = callLLMForSummary(
-                buildSummaryPrompt(buildChatLogsPrompt(logs)));
-
-        // 요약 JSON 기반 DTO 작성 (imageUrl=null 상태)
-        ThreadSummaryResponseDTO.dailySummaryResponseDTO dto =
-                buildDtoFromLlm(thread, llmResp);
-
-        // thread 저장 (imageUrl=null)
-        updateThreadSummary(thread.getId(), llmResp, null);
-
-        // 이미지 처리 비동기 시작
-        publisher.publishEvent(new ThreadImageEvent(thread.getId()));
-
-        // 7) 즉시 응답
-        return dto;
-    }
-
     /* 요약 JSON → DTO (imageS3 는 null) */
     private ThreadSummaryResponseDTO.dailySummaryResponseDTO buildDtoFromLlm(Thread t, String resp){
         Thread temp = new Thread();          // 임시 객체

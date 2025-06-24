@@ -2,6 +2,7 @@ package com.melissa.diary.web.controller;
 
 import com.melissa.diary.apiPayload.ApiResponse;
 import com.melissa.diary.service.ThreadSummaryService;
+import com.melissa.diary.service.ThreadSummaryServiceV2;
 import com.melissa.diary.web.dto.ThreadSummaryResponseDTO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ import java.security.Principal;
 @Tag(name = "ThreadSummaryAPI-V2", description = "일일요약 수동생성 API V2(이미지 로직 비동기 전환)")
 public class ThreadSummaryV2Controller {
 
-    private final ThreadSummaryService threadSummaryService;
+    private final ThreadSummaryServiceV2 threadSummaryServiceV2;
 
     @PostMapping
     public ApiResponse<ThreadSummaryResponseDTO.dailySummaryResponseDTO> createSummaryV2(
@@ -27,7 +28,7 @@ public class ThreadSummaryV2Controller {
             @RequestParam(name = "day") int day) {
 
         Long userId = Long.parseLong(principal.getName());
-        var dto = threadSummaryService.generateImmediateSummaryV2(userId, year, month, day);
+        var dto = threadSummaryServiceV2.generateImmediateSummaryV2(userId, year, month, day);
         return ApiResponse.onSuccess(dto);
     }
 }
