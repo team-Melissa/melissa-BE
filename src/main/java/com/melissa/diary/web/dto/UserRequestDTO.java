@@ -36,15 +36,6 @@ public class UserRequestDTO {
         @NotBlank
         private String idToken;
     }
-    
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class RefreshRequestDTO {
-        @NotBlank
-        private String refreshToken;
-    }
 
 }

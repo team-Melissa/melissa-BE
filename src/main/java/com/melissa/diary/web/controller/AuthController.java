@@ -1,6 +1,8 @@
 package com.melissa.diary.web.controller;
 
 import com.melissa.diary.apiPayload.ApiResponse;
+import com.melissa.diary.apiPayload.code.status.ErrorStatus;
+import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.converter.UserConverter;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.service.UserService;
@@ -76,24 +78,27 @@ public class AuthController {
         return ApiResponse.onSuccess(result);
     }
 
-
-    // Refresh Token 재발급
     // Refresh Token 재발급
     @PostMapping("/refresh")
-    @Operation(description = "Refresh토큰을 입력해, AccessToken 재생성합니다.")
+    @Operation(description = "Authorization 헤더에 Refresh토큰을 입력해, AccessToken 재생성합니다.")
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> refreshToken(
-            @RequestBody @Valid UserRequestDTO.RefreshRequestDTO request
+            HttpServletRequest request
     ) {
-        // [1] refreshToken으로 사용자 조회 & 검증
-        User user = userService.refreshAccessToken(request.getRefreshToken());
+        // [1] Authorization 헤더에서 refreshToken 추출
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new ErrorHandler(ErrorStatus.INVALID_TOKEN);
+        }
+        String refreshToken = authHeader.substring(7);
 
-        // [2] 새로운 Token 생성
+        // [2] refreshToken으로 사용자 조회 & 검증
+        User user = userService.refreshAccessToken(refreshToken);
+
+        // [3] 새로운 Token 생성
         String newAccessToken = userService.createAccessToken(user);
         String newRefreshToken = userService.createRefreshToken(user);
 
-
-
-        // [3] 결과 DTO 생성
+        // [4] 결과 DTO 생성
         UserResponseDTO.OAuthLoginResultDTO result =
                 UserResponseDTO.OAuthLoginResultDTO.builder()
                         .userId(user.getId())
