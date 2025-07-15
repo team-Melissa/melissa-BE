@@ -160,9 +160,9 @@ r
 Bsrc/main/java/com/melissa/diary/service/AiProfileImageService.java,0\8\08022ae59b6f215213f1161285c5aaf4481627c6
 o
 ?src/main/java/com/melissa/diary/service/AiProfileServiceV2.java,4\8\480e3b349cd3bc7dafdd43fa74bb8240aa22b526
-y
-Isrc/main/java/com/melissa/diary/web/controller/AiProfileControllerV2.java,1\6\16c54c09bf4ec2e1eeb5250b158b7428cf0e786f
 |
 Lsrc/main/java/com/melissa/diary/service/ThreadImagePromptRefinerService.java,a\8\a81b333ca4f436f25a0ffce7ae2909ed6627005c
 z
 Jsrc/main/java/com/melissa/diary/service/AiProfilePromptRefinerService.java,2\4\24df4e47a3f828ed72b322265672ee4840fb1576
+s
+Csrc/main/java/com/melissa/diary/service/ThreadSummaryServiceV2.java,4\d\4dc924f0683afa00c784d0636a1b7b00ae67b92e
