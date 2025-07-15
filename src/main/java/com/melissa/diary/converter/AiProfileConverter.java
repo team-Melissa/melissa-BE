@@ -19,6 +19,7 @@ public class AiProfileConverter {
                 .hashTag2(aiProfile.getHashTag2())
                 .imageUrl(aiProfile.getImageS3())
                 .createdAt(aiProfile.getCreatedAt())
+                .isDefault(false)
                 .build();
     }
 
