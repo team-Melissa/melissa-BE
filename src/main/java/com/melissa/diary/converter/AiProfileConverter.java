@@ -1,6 +1,7 @@
 package com.melissa.diary.converter;
 
 import com.melissa.diary.domain.AiProfile;
+import com.melissa.diary.domain.DefaultAiProfile;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.web.dto.AiProfileRequestDTO;
 import com.melissa.diary.web.dto.AiProfileResponseDTO;
@@ -8,6 +9,21 @@ import com.melissa.diary.web.dto.AiProfileResponseDTO;
 public class AiProfileConverter {
 
     // Entity -> Response DTO
+    public static AiProfileResponseDTO.AiProfileResponse toResponse(DefaultAiProfile defaultAiProfile) {
+        return AiProfileResponseDTO.AiProfileResponse.builder()
+                .aiProfileId(defaultAiProfile.getId())
+                .profileName(defaultAiProfile.getProfileName())
+                .feature1(defaultAiProfile.getFeature1())
+                .feature2(defaultAiProfile.getFeature2())
+                .feature3(defaultAiProfile.getFeature3())
+                .hashTag1(defaultAiProfile.getHashTag1())
+                .hashTag2(defaultAiProfile.getHashTag2())
+                .imageUrl(defaultAiProfile.getImageS3())
+                .createdAt(defaultAiProfile.getCreatedAt())
+                .isDefault(true)
+                .build();
+    }
+
     public static AiProfileResponseDTO.AiProfileResponse toResponse(AiProfile aiProfile){
         return AiProfileResponseDTO.AiProfileResponse.builder()
                 .aiProfileId(aiProfile.getId())
