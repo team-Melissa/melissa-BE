@@ -31,6 +31,7 @@ public class AiProfileResponseDTO {
 
         private LocalDateTime createdAt;
 
+        private boolean isDefault;
         }
     @Getter
     @Builder
