@@ -26,26 +26,37 @@ public class DefaultAiProfileService {
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public List<AiProfileResponseDTO.AiProfileResponse> getDefaultProfileList() {
-        List<DefaultAiProfile> list = defaultAiProfileRepository.findAll();
-        return list.stream()
-                .map(AiProfileConverter::toResponse)
+    public List<AiProfileResponseDTO.AiProfileResponse> getDefaultProfileList(Long userId) {
+        List<UserDefaultAiProfileMapping> mappings = mappingRepository.findActiveMappingsWithProfileByUserId(userId);
+        return mappings.stream()
+                .map(m -> AiProfileConverter.toResponse(m.getDefaultAiProfile()))
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public AiProfileResponseDTO.AiProfileResponse getDefaultProfileOrThrow(Long id) {
-        DefaultAiProfile profile = defaultAiProfileRepository.findById(id)
+    public AiProfileResponseDTO.AiProfileResponse getDefaultProfileOrThrow(Long userId, Long defaultProfileId) {
+        DefaultAiProfile profile = mappingRepository.findActiveProfile(userId, defaultProfileId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
         return AiProfileConverter.toResponse(profile);
     }
 
     @Transactional
     public void deleteUserDefaultProfileOrThrow(Long userId, Long defaultProfileId) {
-        UserDefaultAiProfileMapping mapping = mappingRepository.findByUserIdAndDefaultAiProfileId(userId, defaultProfileId)
+        UserDefaultAiProfileMapping mapping = mappingRepository.findActiveMappingsWithProfileByUserId(userId).stream()
+                .filter(m -> m.getDefaultAiProfile().getId().equals(defaultProfileId))
+                .findFirst()
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
-        mapping.setActive(false);
-        mappingRepository.save(mapping);
+        mapping.setActive(false); // Dirty Checking으로 update
+    }
+
+    @Transactional
+    public void restoreDefaultProfileOrThrow(Long userId){
+        List<UserDefaultAiProfileMapping> mappings = mappingRepository.findByUserId(userId);
+        for (UserDefaultAiProfileMapping mapping : mappings){
+            if (!mapping.isActive()){
+                mapping.setActive(true); // Dirty Checking으로 update
+            }
+        }
     }
 
     /**
@@ -56,16 +67,13 @@ public class DefaultAiProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
         var allProfiles = defaultAiProfileRepository.findAll();
-        var userMappings = mappingRepository.findAll().stream()
-                .filter(m -> m.getUser().getId().equals(userId))
-                .map(m -> m.getDefaultAiProfile().getId())
-                .collect(java.util.stream.Collectors.toSet());
         for (DefaultAiProfile profile : allProfiles) {
-            if (!userMappings.contains(profile.getId())) {
-                UserDefaultAiProfileMapping mapping = new UserDefaultAiProfileMapping();
-                mapping.setUser(user);
-                mapping.setDefaultAiProfile(profile);
-                mapping.setActive(true);
+            if (!mappingRepository.existsByUserIdAndDefaultAiProfileId(userId, profile.getId())) {
+                UserDefaultAiProfileMapping mapping = UserDefaultAiProfileMapping.builder()
+                        .user(user)
+                        .defaultAiProfile(profile)
+                        .active(true)
+                        .build();
                 mappingRepository.save(mapping);
             }
         }

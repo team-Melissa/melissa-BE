@@ -24,24 +24,32 @@ public class DefaultAiProfileController {
     public ApiResponse<List<AiProfileResponseDTO.AiProfileResponse>> getDefaultProfileList(Principal principal) {
         Long userId = Long.parseLong(principal.getName());
         defaultAiProfileService.syncUserDefaultProfileMappings(userId);
-        List<AiProfileResponseDTO.AiProfileResponse> list = defaultAiProfileService.getDefaultProfileList();
+        List<AiProfileResponseDTO.AiProfileResponse> list = defaultAiProfileService.getDefaultProfileList(userId);
         return ApiResponse.onSuccess(list);
     }
 
     @Operation(description = "기본 제공 AI 프로필 단건을 조회합니다.")
     @GetMapping("/{defaultProfileId}")
-    public ApiResponse<AiProfileResponseDTO.AiProfileResponse> getDefaultProfile(Principal principal, @PathVariable Long defaultProfileId) {
+    public ApiResponse<AiProfileResponseDTO.AiProfileResponse> getDefaultProfile(Principal principal, @PathVariable(name = "defaultProfileId") Long defaultProfileId) {
         Long userId = Long.parseLong(principal.getName());
         defaultAiProfileService.syncUserDefaultProfileMappings(userId);
-        AiProfileResponseDTO.AiProfileResponse response = defaultAiProfileService.getDefaultProfileOrThrow(defaultProfileId);
+        AiProfileResponseDTO.AiProfileResponse response = defaultAiProfileService.getDefaultProfileOrThrow(userId, defaultProfileId);
         return ApiResponse.onSuccess(response);
     }
 
     @Operation(description = "사용자별 기본 제공 AI 프로필을 비활성화(삭제)합니다.")
     @DeleteMapping("/{defaultProfileId}")
-    public ApiResponse<Void> deleteUserDefaultProfile(Principal principal, @PathVariable Long defaultProfileId) {
+    public ApiResponse<Void> deleteUserDefaultProfile(Principal principal, @PathVariable(name = "defaultProfileId") Long defaultProfileId) {
         Long userId = Long.parseLong(principal.getName());
         defaultAiProfileService.deleteUserDefaultProfileOrThrow(userId, defaultProfileId);
+        return ApiResponse.onSuccess(null);
+    }
+
+    @Operation(description = "사용자의 기본 제공 AI 프로필 상태를 복원합니다.")
+    @PatchMapping("/restore")
+    public ApiResponse<Void> restoreUserDefaultProfiles(Principal principal) {
+        Long userId = Long.parseLong(principal.getName());
+        defaultAiProfileService.restoreDefaultProfileOrThrow(userId);
         return ApiResponse.onSuccess(null);
     }
 } 
