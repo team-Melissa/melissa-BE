@@ -89,4 +89,12 @@ public class AiProfileController {
         return ApiResponse.onSuccess(null);
     }
 
+    @Operation(description = "사용자의 기본 제공 AI 프로필을 모두 복원합니다.")
+    @PatchMapping("/restore")
+    public ApiResponse<Void> restoreDefaults(Principal principal) {
+        Long userId = Long.parseLong(principal.getName());
+        aiProfileService.restoreUserDefaultProfiles(userId);
+        return ApiResponse.onSuccess(null);
+    }
+
 }

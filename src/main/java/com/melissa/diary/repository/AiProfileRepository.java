@@ -20,5 +20,8 @@ public interface AiProfileRepository extends JpaRepository<AiProfile, Long> {
 
     boolean existsByUserId(Long userId);
     boolean existsByUserIdAndDefaultIdAndActiveIsTrue(Long userId, Long defaultId);
+
+    // 사용자 소유의 기본 제공 프로필 (active 여부 무관)
+    List<AiProfile> findByUserIdAndDefaultIdIsNotNull(Long userId);
     void deleteAllByUserId(Long userId);
 }

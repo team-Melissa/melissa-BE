@@ -348,4 +348,17 @@ public class AiProfileService {
             }
         }
     }
+
+    /**
+     * 사용자의 기본 제공 프로필(soft deleted)을 모두 복원한다.
+     */
+    @Transactional
+    public void restoreUserDefaultProfiles(Long userId) {
+        List<AiProfile> defaults = aiProfileRepository.findByUserIdAndDefaultIdIsNotNull(userId);
+        for (AiProfile p : defaults) {
+            if (!p.isActive()) {
+                p.setActive(true); // dirty checking
+            }
+        }
+    }
 }
