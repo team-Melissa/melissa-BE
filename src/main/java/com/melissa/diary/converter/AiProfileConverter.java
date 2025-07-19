@@ -35,7 +35,7 @@ public class AiProfileConverter {
                 .hashTag2(aiProfile.getHashTag2())
                 .imageUrl(aiProfile.getImageS3())
                 .createdAt(aiProfile.getCreatedAt())
-                .isDefault(false)
+                .isDefault(aiProfile.getDefaultId() != null) // default_id가 null이 아니면 기본 제공 프로필
                 .build();
     }
 

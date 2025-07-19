@@ -68,6 +68,10 @@ public class AiProfile {
     @JoinColumn(name = "user_id")
     private User user;
 
+    // 기본 제공 프로필 ID (null이면 사용자 생성, not null이면 기본 제공)
+    @Column(name = "default_id")
+    private Long defaultId;
+
     // DB 컬럼에 not null + 기본값 true
     @Column(nullable = false)
     @Builder.Default
