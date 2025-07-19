@@ -172,8 +172,9 @@ public class ThreadService {
             throw new ErrorHandler(ErrorStatus.PROFILE_FORBIDDEN);
         }
 
-        // Thread의 AI 프로필을 변경
+        // Thread의 AI 프로필을 변경 및 최근 사용 시각 업데이트
         thread.setAiProfile(aiProfile);
+        aiProfile.setLastUsedAt(java.time.LocalDateTime.now());
         threadRepository.save(thread);
     }
 
@@ -290,6 +291,9 @@ public class ThreadService {
 
         // AI 프로필 및 채팅 내역 가져오기
         AiProfile aiProfile = thread.getAiProfile();
+        // 최근 사용 시각 업데이트
+        aiProfile.setLastUsedAt(java.time.LocalDateTime.now());
+        aiProfileRepository.save(aiProfile);
         List<DailyChatLog> chatHistory = thread.getDailyChatLogs();
 
         // 사용자 메시지 저장

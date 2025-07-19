@@ -148,7 +148,7 @@ public class AiProfileService {
         // 정상적인 유저인지 보호
         User user = getUser(userId);
 
-        List<AiProfile> aiProfileList = aiProfileRepository.findByUserIdAndActiveIsTrue(userId);
+        List<AiProfile> aiProfileList = aiProfileRepository.findActiveProfilesOrderByLastUsed(userId);
 
         return aiProfileList.stream().map(AiProfileConverter::toResponse).toList();
     }
@@ -295,18 +295,9 @@ public class AiProfileService {
 
     public AiProfileResponseDTO.AiProfileResponse getRecentAiProfileId(Long userId) {
         // 유저마다의 최근 스레드를 찾기
-        Optional<Thread> optionalThread = threadRepository.findFirstByUserIdOrderByYearDescMonthDescDayDesc(userId);
-
-        if (optionalThread.isPresent()) {
-            // 최근 스레드에서 ai 프로필 id를 리턴
-            return AiProfileConverter.toResponse(optionalThread.get().getAiProfile());
-        } else {
-            // 대체제인 유저의 최근 AiProfile을 createdAt 기준으로 찾음
-            AiProfile aiProfile = aiProfileRepository.findFirstByUserIdAndActiveIsTrueOrderByCreatedAtDesc(userId)
-                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
-
-            return AiProfileConverter.toResponse(aiProfile);
-        }
+        List<AiProfile> ordered = aiProfileRepository.findActiveProfilesOrderByLastUsed(userId);
+        if (ordered.isEmpty()) throw new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND);
+        return AiProfileConverter.toResponse(ordered.get(0));
     }
 
     /**

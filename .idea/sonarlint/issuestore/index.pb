@@ -166,3 +166,5 @@ z
 Jsrc/main/java/com/melissa/diary/service/AiProfilePromptRefinerService.java,2\4\24df4e47a3f828ed72b322265672ee4840fb1576
 s
 Csrc/main/java/com/melissa/diary/service/ThreadSummaryServiceV2.java,4\d\4dc924f0683afa00c784d0636a1b7b00ae67b92e
+w
+Gsrc/main/java/com/melissa/diary/domain/UserDefaultAiProfileMapping.java,7\a\7a0764a24107a10b44e9eeb00452635e198059ff

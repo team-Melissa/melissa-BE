@@ -64,6 +64,10 @@ public class AiProfile {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    // 최근 사용 시각 (null = 미사용)
+    @Column(name = "last_used_at")
+    private LocalDateTime lastUsedAt;
+
     // 소유 사용자
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
