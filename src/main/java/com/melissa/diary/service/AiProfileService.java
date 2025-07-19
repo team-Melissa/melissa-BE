@@ -8,11 +8,13 @@ import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.aws.s3.AmazonS3Manager;
 import com.melissa.diary.converter.AiProfileConverter;
 import com.melissa.diary.domain.AiProfile;
+import com.melissa.diary.domain.DefaultAiProfile;
 import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.domain.Uuid;
 import com.melissa.diary.domain.enums.UsageCost;
 import com.melissa.diary.repository.AiProfileRepository;
+import com.melissa.diary.repository.DefaultAiProfileRepository;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UuidRepository;
@@ -42,18 +44,20 @@ public class AiProfileService {
     private final UserRepository userRepository;
     private final ChatClient chatClient;
     private final ImageGenerator imageGenerator;
+    private final DefaultAiProfileRepository defaultAiProfileRepository;
 
     private final QuotaService quotaService;
     // Jackson : json 맵핑 도와주는 객체
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public AiProfileService(AiProfileRepository aiProfileRepository, ThreadRepository threadRepository,UserRepository userRepository, @Qualifier("profileClient") ChatClient chatClient, ImageGenerator imageGenerator, QuotaService quotaService) {
+    public AiProfileService(AiProfileRepository aiProfileRepository, ThreadRepository threadRepository,UserRepository userRepository, @Qualifier("profileClient") ChatClient chatClient, ImageGenerator imageGenerator, QuotaService quotaService, DefaultAiProfileRepository defaultAiProfileRepository) {
         this.aiProfileRepository = aiProfileRepository;
         this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.chatClient = chatClient;
         this.imageGenerator = imageGenerator;
         this.quotaService = quotaService;
+        this.defaultAiProfileRepository = defaultAiProfileRepository;
     }
 
     @Transactional
@@ -302,6 +306,46 @@ public class AiProfileService {
                     .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
 
             return AiProfileConverter.toResponse(aiProfile);
+        }
+    }
+
+    /**
+     * 사용자의 기본 제공 프로필을 AiProfile 테이블에 동기화합니다.
+     */
+    @Transactional
+    public void syncUserDefaultProfiles(Long userId) {
+        User user = getUser(userId);
+        
+        // 모든 기본 제공 프로필 조회
+        List<DefaultAiProfile> allDefaultProfiles = defaultAiProfileRepository.findAll();
+        
+        for (DefaultAiProfile defaultProfile : allDefaultProfiles) {
+            // 사용자가 해당 기본 프로필을 이미 가지고 있는지 확인
+            if (!aiProfileRepository.existsByUserIdAndDefaultIdAndActiveIsTrue(userId, defaultProfile.getId())) {
+                // AiProfile에 기본 제공 프로필 추가
+                AiProfile newProfile = AiProfile.builder()
+                        .profileName(defaultProfile.getProfileName())
+                        .firstChat(defaultProfile.getFirstChat())
+                        .promptText(defaultProfile.getPromptText())
+                        .imageS3(defaultProfile.getImageS3())
+                        .hashTag1(defaultProfile.getHashTag1())
+                        .hashTag2(defaultProfile.getHashTag2())
+                        .feature1(defaultProfile.getFeature1())
+                        .feature2(defaultProfile.getFeature2())
+                        .feature3(defaultProfile.getFeature3())
+                        .q1(defaultProfile.getQ1())
+                        .q2(defaultProfile.getQ2())
+                        .q3(defaultProfile.getQ3())
+                        .q4(defaultProfile.getQ4())
+                        .q5(defaultProfile.getQ5())
+                        .q6(defaultProfile.getQ6())
+                        .user(user)
+                        .defaultId(defaultProfile.getId()) // 기본 제공 프로필 ID 연결
+                        .active(true)
+                        .build();
+                
+                aiProfileRepository.save(newProfile);
+            }
         }
     }
 }

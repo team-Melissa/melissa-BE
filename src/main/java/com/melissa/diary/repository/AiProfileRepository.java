@@ -19,5 +19,6 @@ public interface AiProfileRepository extends JpaRepository<AiProfile, Long> {
     Optional<AiProfile> findFirstByUserIdAndActiveIsTrueOrderByCreatedAtDesc(Long userId);
 
     boolean existsByUserId(Long userId);
+    boolean existsByUserIdAndDefaultIdAndActiveIsTrue(Long userId, Long defaultId);
     void deleteAllByUserId(Long userId);
 }

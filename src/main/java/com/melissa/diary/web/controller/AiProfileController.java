@@ -73,6 +73,8 @@ public class AiProfileController {
     public ApiResponse<List<AiProfileResponseDTO.AiProfileResponse>> getAiProfileList(Principal principal) {
 
         Long userId = Long.parseLong(principal.getName());
+        // 기본 제공 프로필 동기화
+        aiProfileService.syncUserDefaultProfiles(userId);
         List<AiProfileResponseDTO.AiProfileResponse> list = aiProfileService.getAiProfileList(userId);
         return ApiResponse.onSuccess(list);
     }
