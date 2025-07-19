@@ -321,7 +321,7 @@ public class AiProfileService {
         
         for (DefaultAiProfile defaultProfile : allDefaultProfiles) {
             // 사용자가 해당 기본 프로필을 이미 가지고 있는지 확인
-            if (!aiProfileRepository.existsByUserIdAndDefaultIdAndActiveIsTrue(userId, defaultProfile.getId())) {
+            if (!aiProfileRepository.existsByUserIdAndDefaultId(userId, defaultProfile.getId())) {
                 // AiProfile에 기본 제공 프로필 추가
                 AiProfile newProfile = AiProfile.builder()
                         .profileName(defaultProfile.getProfileName())
@@ -344,7 +344,11 @@ public class AiProfileService {
                         .active(true)
                         .build();
                 
-                aiProfileRepository.save(newProfile);
+                try {
+                    aiProfileRepository.save(newProfile);
+                } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                    // 다른 트랜잭션이 동시에 삽입했을 수 있으므로 무시
+                }
             }
         }
     }
