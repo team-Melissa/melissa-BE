@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "ai_profile", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "default_id"}))
 @Getter
 @Setter
 @Builder
@@ -63,10 +64,18 @@ public class AiProfile {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    // 최근 사용 시각 (null = 미사용)
+    @Column(name = "last_used_at")
+    private LocalDateTime lastUsedAt;
+
     // 소유 사용자
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
+
+    // 기본 제공 프로필 ID (null이면 사용자 생성, not null이면 기본 제공)
+    @Column(name = "default_id")
+    private Long defaultId;
 
     // DB 컬럼에 not null + 기본값 true
     @Column(nullable = false)

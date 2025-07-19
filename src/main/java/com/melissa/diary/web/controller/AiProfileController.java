@@ -73,6 +73,8 @@ public class AiProfileController {
     public ApiResponse<List<AiProfileResponseDTO.AiProfileResponse>> getAiProfileList(Principal principal) {
 
         Long userId = Long.parseLong(principal.getName());
+        // 기본 제공 프로필 동기화
+        aiProfileService.syncUserDefaultProfiles(userId);
         List<AiProfileResponseDTO.AiProfileResponse> list = aiProfileService.getAiProfileList(userId);
         return ApiResponse.onSuccess(list);
     }
@@ -84,6 +86,14 @@ public class AiProfileController {
 
         Long userId = Long.parseLong(principal.getName());
         aiProfileService.deleteAiProfile(userId, aiProfileId);
+        return ApiResponse.onSuccess(null);
+    }
+
+    @Operation(description = "사용자의 기본 제공 AI 프로필을 모두 복원합니다.")
+    @PatchMapping("/restore")
+    public ApiResponse<Void> restoreDefaults(Principal principal) {
+        Long userId = Long.parseLong(principal.getName());
+        aiProfileService.restoreUserDefaultProfiles(userId);
         return ApiResponse.onSuccess(null);
     }
 
