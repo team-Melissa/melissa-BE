@@ -167,6 +167,11 @@ public class ThreadSummaryService {
             throw new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND);
         }
         Thread thread = summaryData.getThread();
+        // 1분 이내 중복 요청 방지 (최초 생성 직후 요약은 허용)
+        if (thread.getUpdatedAt() != null && !thread.getUpdatedAt().isEqual(thread.getCreatedAt()) &&
+            thread.getUpdatedAt().isAfter(java.time.LocalDateTime.now().minusMinutes(1))) {
+            throw new ErrorHandler(ErrorStatus.THREAD_TOO_MANY_REQUESTS);
+        }
         
         // 채팅 로그 불러오기
         List<DailyChatLog> logs = summaryData.getLogs();
