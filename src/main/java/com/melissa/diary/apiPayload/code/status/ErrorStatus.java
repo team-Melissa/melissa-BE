@@ -39,9 +39,6 @@ public enum ErrorStatus implements BaseErrorCode {
     THREAD_LATEST_NOT_FOUND(HttpStatus.NOT_FOUND, "THREAD4002", "최근 스레드를 찾을 수 없습니다."),
     THREAD_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "THREAD4003", "요약 요청이 너무 자주 발생했습니다. 1분 후 다시 시도해주세요."),
 
-    // Thread Summary
-    THREADSUMMARY4001(HttpStatus.TOO_MANY_REQUESTS, "THREADSUMMARY4001", "요약 요청이 너무 자주 발생했습니다. 1분 후 다시 시도해주세요."),
-
     // CHAT
     CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT4001", "해당 날짜의 채팅로그를 찾을 수 없습니다."),
 
