@@ -71,6 +71,12 @@ public class ThreadSummaryServiceV2 {
         if (data == null) throw new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND);
 
         Thread thread = data.getThread();
+        // 1분 이내 중복 요청 무조건 차단 (lastSummaryRequestAt 기준)
+        if (thread.getLastSummaryRequestAt() != null &&
+            thread.getLastSummaryRequestAt().isAfter(java.time.LocalDateTime.now().minusMinutes(1))) {
+            throw new ErrorHandler(ErrorStatus.THREAD_TOO_MANY_REQUESTS);
+        }
+        thread.setLastSummaryRequestAt(java.time.LocalDateTime.now());
         List<DailyChatLog> logs = data.getLogs().stream()
                 .filter(l -> Role.USER.equals(l.getRole()))
                 .collect(Collectors.toList());

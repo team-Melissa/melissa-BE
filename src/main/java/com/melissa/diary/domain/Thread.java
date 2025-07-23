@@ -80,6 +80,9 @@ public class Thread extends BaseEntity {
     @Column(nullable = true)
     private LocalDateTime summaryCreatedAt;
 
+    @Column(nullable = true)
+    private LocalDateTime lastSummaryRequestAt;
+
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL)
     private List<DailyChatLog> dailyChatLogs = new ArrayList<>();
 

@@ -37,6 +37,7 @@ public enum ErrorStatus implements BaseErrorCode {
     CALENDAR_PROCESSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CALENDAR5001", "캘린더 데이터를 처리하는 중 오류가 발생했습니다."),
     THREAD_ALREADY_ENROLL(HttpStatus.BAD_REQUEST, "THREAD4001", "해당 날짜의 스레드가 이미 존재합니다."),
     THREAD_LATEST_NOT_FOUND(HttpStatus.NOT_FOUND, "THREAD4002", "최근 스레드를 찾을 수 없습니다."),
+    THREAD_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "THREAD4003", "요약 요청이 너무 자주 발생했습니다. 1분 후 다시 시도해주세요."),
 
     // CHAT
     CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT4001", "해당 날짜의 채팅로그를 찾을 수 없습니다."),
