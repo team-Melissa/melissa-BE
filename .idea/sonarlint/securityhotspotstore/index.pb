@@ -166,5 +166,15 @@ Jsrc/main/java/com/melissa/diary/service/AiProfilePromptRefinerService.java,2\4
 Lsrc/main/java/com/melissa/diary/service/ThreadImagePromptRefinerService.java,a\8\a81b333ca4f436f25a0ffce7ae2909ed6627005c
 s
 Csrc/main/java/com/melissa/diary/service/ThreadSummaryServiceV2.java,4\d\4dc924f0683afa00c784d0636a1b7b00ae67b92e
-w
-Gsrc/main/java/com/melissa/diary/domain/UserDefaultAiProfileMapping.java,7\a\7a0764a24107a10b44e9eeb00452635e198059ff
+k
+;src/main/java/com/melissa/diary/aws/s3/AmazonS3Manager.java,9\c\9c7e23a1a771827ff81b940c7033b24fa6b11847
+f
+6src/main/java/com/melissa/diary/domain/UserMemory.java,5\f\5f36e971562aa9a8d9c8f7f18d6654daa1310653
+r
+Bsrc/main/java/com/melissa/diary/converter/UserMemoryConverter.java,b\b\bb32b4f0a9c68b03edbc2bcd45d6399c21b0a5d1
+t
+Dsrc/main/java/com/melissa/diary/repository/UserMemoryRepository.java,e\5\e5c5c7584ae46befcd46abd28939c5973692e70f
+t
+Dsrc/main/java/com/melissa/diary/scheduler/MemoryUpdateScheduler.java,2\f\2fcfbacd3d9547ff9b9ea32459c2c7142999b130
+n
+>src/main/java/com/melissa/diary/service/UserMemoryService.java,a\b\abc78e97e8ba1e0e682882c15d7e92fc81dd3a96

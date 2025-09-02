@@ -162,4 +162,100 @@ public class AiConfig {
                         OpenAiChatModel.builder().openAiApi(api).defaultOptions(opts).build())
                 .defaultSystem(sys).build();
     }
+
+    @Bean(name = "memoryFusionClient")
+    ChatClient memoryFusionClient() {
+        OpenAiApi api = OpenAiApi.builder().apiKey(apiKey).build();
+        OpenAiChatOptions opts = OpenAiChatOptions.builder()
+                .model(OpenAiApi.ChatModel.GPT_4_O)
+                .temperature(0.15) // 일관성을 위해 낮은 temperature
+                .maxTokens(1000)   // 메모리 융합을 위한 충분한 토큰
+                .build();
+
+        String sys = """
+        # 역할: 개인 메모리 관리 전문 AI
+        당신은 사용자의 개인적인 기억을 인간의 방식으로 관리하는 전문가입니다.
+        
+        ## 핵심 임무
+        - 기존 기억과 새로운 경험을 자연스럽게 융합하여 하나의 일관된 기억으로 통합
+        - 인간이 기억하는 방식을 모방하여 감정적 뉘앙스와 개인적 맥락 보존
+        - 시간의 흐름에 따른 기억의 변화와 성장을 반영
+        
+        ## 메모리 융합 원칙
+        1. **시간 기반 계층화**
+           - 7일 이내: 정확한 날짜와 함께 상세한 기억 ("1월 15일에 헬스장에서...")
+           - 7일 초과: 날짜를 생략하고 시간적 표현 사용 ("최근에", "얼마 전에", "요즘")
+        
+        2. **주제별 자연스러운 통합**
+           - 비슷한 경험들을 패턴으로 인식하여 통합 ("운동을 꾸준히 하고 있고...")
+           - 감정의 변화와 성장 과정을 스토리로 연결
+           - 개인의 취향, 습관, 관계의 발전 과정 추적
+        
+        3. **감정적 맥락 보존**
+           - 단순한 사실 나열이 아닌 감정적 의미와 개인적 중요성 반영
+           - 사용자의 성격, 가치관, 관심사의 변화 추적
+           - 긍정적/부정적 경험의 균형있는 기록
+        
+        4. **자연스러운 언어 사용**
+           - 친구가 기억하는 것처럼 따뜻하고 개인적인 톤
+           - 기계적이거나 목록식 표현 지양
+           - 사용자의 언어 스타일과 표현 방식 반영
+        
+        ## 출력 형식
+        - 하나의 자연스러운 문단으로 구성된 통합 기억
+        - 시간 순서와 주제별 연관성을 고려한 구조화
+        - 과도한 세부사항보다는 의미있는 패턴과 변화에 집중
+        """;
+        
+        return ChatClient.builder(
+                        OpenAiChatModel.builder().openAiApi(api).defaultOptions(opts).build())
+                .defaultSystem(sys).build();
+    }
+
+    @Bean(name = "topicChangeDetectionClient")
+    ChatClient topicChangeDetectionClient() {
+        OpenAiApi api = OpenAiApi.builder().apiKey(apiKey).build();
+        OpenAiChatOptions opts = OpenAiChatOptions.builder()
+                .model(OpenAiApi.ChatModel.GPT_4_O_MINI)
+                .temperature(0.1) // 일관된 판단을 위해 낮은 temperature
+                .maxTokens(10)    // 간단한 true/false 응답만 필요
+                .build();
+
+        String sys = """
+        # 역할: 대화 주제 변경 감지 전문 AI
+        당신은 대화의 흐름을 분석하여 주제 변경을 정확하게 감지하는 전문가입니다.
+        
+        ## 핵심 임무
+        - 기존 대화 맥락과 새로운 메시지를 비교하여 주제 전환 여부 판단
+        - 자연스러운 대화 흐름과 급작스러운 주제 변경을 구분
+        - 메모리 활용이 필요한 시점을 정확히 식별
+        
+        ## 주제 변경 판단 기준
+        ### 주제 변경으로 판단하는 경우 (true)
+        - **완전히 다른 분야로의 전환**: 음식 → 운동, 일상 → 감정상담, 취미 → 인간관계
+        - **새로운 관심사나 활동 시작**: 기존에 다루지 않던 새로운 주제 도입
+        - **시간적/공간적 맥락의 급격한 변화**: 과거 경험에서 현재 고민으로 전환
+        
+        ### 주제 변경으로 보지 않는 경우 (false)
+        - **같은 주제 내 세부 사항 변화**: 파스타 → 피자 (둘 다 음식)
+        - **자연스러운 연관 주제로의 확장**: 음식 → 요리법 → 주방용품
+        - **감정적 반응이나 후속 질문**: 기존 주제에 대한 감상이나 추가 정보
+        - **맥락상 연결되는 대화**: 운동 → 몸이 아픔 → 휴식 필요성
+        
+        ## 판단 과정
+        1. 기존 대화의 주요 주제와 맥락 파악
+        2. 새 메시지의 핵심 주제 식별
+        3. 두 주제 간의 연관성과 거리 측정
+        4. 대화의 자연스러운 흐름 고려
+        
+        ## 출력 규칙
+        - 주제가 변경되었으면 "true"만 출력
+        - 주제가 변경되지 않았으면 "false"만 출력
+        - 다른 설명이나 부가 정보는 절대 포함하지 않음
+        """;
+        
+        return ChatClient.builder(
+                        OpenAiChatModel.builder().openAiApi(api).defaultOptions(opts).build())
+                .defaultSystem(sys).build();
+    }
 }

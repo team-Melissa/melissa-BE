@@ -31,4 +31,14 @@ public interface ThreadRepository extends JpaRepository<Thread,Long> {
      */
     Optional<Thread> findFirstByUserIdOrderByYearDescMonthDescDayDesc(Long userId);
 
+    /**
+     * 특정 날짜의 요약 내용이 있는 모든 Thread 조회 (메모리 업데이트용)
+     */
+    @Query("SELECT t FROM Thread t LEFT JOIN FETCH t.user " +
+            "WHERE t.year = :year AND t.month = :month AND t.day = :day " +
+            "AND t.summaryContent IS NOT NULL AND t.summaryContent != ''")
+    List<Thread> findByYearAndMonthAndDayAndSummaryContentIsNotNull(@Param("year") int year,
+                                                                   @Param("month") int month,
+                                                                   @Param("day") int day);
+
 }
