@@ -53,10 +53,8 @@ public class ThreadService {
     private final QuotaService quotaService;
 
     private final JailbreakDetector jailbreakDetector;
-    
-    private final UserMemoryService userMemoryService;
 
-    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService, JailbreakDetector jailbreakDetector, UserMemoryService userMemoryService) {
+    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService, JailbreakDetector jailbreakDetector) {
         this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.aiProfileRepository = aiProfileRepository;
@@ -64,7 +62,6 @@ public class ThreadService {
         this.chatClient = chatClient;
         this.quotaService = quotaService;
         this.jailbreakDetector = jailbreakDetector;
-        this.userMemoryService = userMemoryService;
     }
 
     @Transactional
@@ -202,7 +199,7 @@ public class ThreadService {
                                                         int day, String userMessage) {
 
         ThreadData td   = getThreadData(userId, year, month, day, userMessage);
-        String prompt   = buildAiChatPrompt(userMessage, td.getChatHistory(), td.getAiProfile(), userId);
+        String prompt   = buildAiChatPrompt(userMessage, td.getChatHistory(), td.getAiProfile());
         StringBuilder b = new StringBuilder();
 
         /* 탈옥 시도 검사 */
@@ -312,26 +309,12 @@ public class ThreadService {
         return new ThreadData(thread, aiProfile, chatHistory);
     }
 
-    // 기존 채팅 기록과 AI 프로필을 이용해 프롬프트 생성 (메모리 기반)
-    private String buildAiChatPrompt(String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile, Long userId) {
+    // 기존 채팅 기록과 AI 프로필을 이용해 프롬프트 생성
+    private String buildAiChatPrompt(String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
         StringBuilder prompt = new StringBuilder();
 
         prompt.append("너는 아래와 같은 성격을 지녔어. 새 사용자의 입력을 이 성격을 기반으로 생성해야해 : \n");
         prompt.append(aiProfile.getPromptText());
-
-        // 주제 변경 감지 및 메모리 포함 여부 결정
-        String previousMessage = getLastUserMessage(chatHistory);
-        boolean shouldIncludeMemory = shouldIncludeUserMemory(userId, previousMessage, userMessage);
-        
-        if (shouldIncludeMemory) {
-            String userMemory = getUserMemoryContent(userId);
-            if (userMemory != null && !userMemory.trim().isEmpty()) {
-                prompt.append("\n\n=== 사용자에 대해 알고 있는 기억 ===\n");
-                prompt.append(userMemory);
-                prompt.append("\n=== 기억 끝 ===\n\n");
-                prompt.append("위 기억을 참고하여 자연스럽게 대화하되, 모든 답변에 기억을 언급할 필요는 없어. 적절할 때만 활용해.");
-            }
-        }
 
         // * 시스템 메시지에 위 프로필 정보들을 모두 적었음. 이제는 채팅내역을 기반으로 다음 대화내용을 알려달라고 하면됨.
         prompt.append("""
@@ -368,54 +351,13 @@ public class ThreadService {
         return prompt.toString();
     }
     
-    /**
-     * 채팅 기록에서 마지막 사용자 메시지 추출
-     */
-    private String getLastUserMessage(List<DailyChatLog> chatHistory) {
-        if (chatHistory == null || chatHistory.isEmpty()) {
-            return null;
-        }
-        
-        // 시간 순으로 정렬하여 마지막 사용자 메시지 찾기
-        return chatHistory.stream()
-                .filter(log -> Role.USER.equals(log.getRole()))
-                .sorted(Comparator.comparing(DailyChatLog::getCreatedAt).reversed())
-                .findFirst()
-                .map(DailyChatLog::getContent)
-                .orElse(null);
-    }
-    
-    /**
-     * 메모리 포함 여부 결정
-     */
-    private boolean shouldIncludeUserMemory(Long userId, String previousMessage, String currentMessage) {
-        // 메모리가 없으면 포함하지 않음
-        if (!userMemoryService.hasMemoryContent(userId)) {
-            return false;
-        }
-        
-        // 주제 변경이 감지되면 메모리 포함
-        return userMemoryService.detectTopicChange(previousMessage, currentMessage);
-    }
-    
-    /**
-     * 사용자 메모리 내용 조회
-     */
-    private String getUserMemoryContent(Long userId) {
-        try {
-            var userMemory = userMemoryService.getUserMemoryReadOnly(userId);
-            return userMemory != null ? userMemory.getMemoryContent() : null;
-        } catch (Exception e) {
-            log.error("[ThreadService] 사용자 메모리 조회 중 오류 발생. userId={}", userId, e);
-            return null;
-        }
-    }
+
 
     //해당 날짜(Thread)의 채팅메시지 조회
     @Transactional(readOnly = true)
     public ThreadResponseDTO.ChatListResponse getThreadMessages(Long userId, int year, int month, int day) {
         // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
-        userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
 
         // Thread 가져오기
         Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
