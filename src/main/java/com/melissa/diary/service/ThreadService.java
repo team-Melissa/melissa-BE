@@ -14,22 +14,22 @@ import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.security.JailbreakDetector;
 import com.melissa.diary.web.dto.ThreadResponseDTO;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
+
+
+
+
+
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.MediaType;
+
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
+
 import org.springframework.transaction.annotation.Transactional;
 import com.melissa.diary.domain.Thread;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -123,7 +123,7 @@ public class ThreadService {
     @Transactional
     public ThreadResponseDTO.ThreadResponse deleteTread(Long userId, int year, int month, int day){
         // 정상적인 유저인지 보호
-        User user = getUser(userId);
+        getUser(userId);
 
         // 해당 스레드가 존재하는지 조회
         Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
@@ -152,7 +152,7 @@ public class ThreadService {
     @Transactional
     public void updateThreadAiProfile(Long userId, Long aiProfileId, int year, int month, int day) {
         // 정상적인 유저인지 보호
-        User user = getUser(userId);
+        getUser(userId);
 
         // 스레드가져오기
         Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
@@ -350,6 +350,8 @@ public class ThreadService {
 
         return prompt.toString();
     }
+    
+
 
     //해당 날짜(Thread)의 채팅메시지 조회
     @Transactional(readOnly = true)
