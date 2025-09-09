@@ -1,10 +1,9 @@
 package com.melissa.diary.domain;
 
 import com.melissa.diary.converter.EncryptionAttributeConverter;
+import com.melissa.diary.domain.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,7 +13,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserMemory {
+public class UserMemory extends BaseEntity {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,14 +27,6 @@ public class UserMemory {
     @Convert(converter = EncryptionAttributeConverter.class)
     private String memoryContent;
     
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-    
-    @LastModifiedDate
-    @Column(name = "last_updated_at")
-    private LocalDateTime lastUpdatedAt;
-    
     @Version
     @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
     @Builder.Default
@@ -44,6 +35,6 @@ public class UserMemory {
     // 메모리 업데이트를 위한 편의 메서드
     public void updateMemoryContent(String newContent) {
         this.memoryContent = newContent;
-        this.lastUpdatedAt = LocalDateTime.now();
+        // BaseEntity의 updatedAt이 자동으로 설정됨
     }
 }

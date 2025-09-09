@@ -21,7 +21,7 @@ public class UserMemoryConverter {
         
         return UserMemoryResponseDTO.MemoryResponse.builder()
                 .memoryContent(hasMemory ? userMemory.getMemoryContent() : "")
-                .lastUpdatedAt(userMemory.getLastUpdatedAt())
+                .lastUpdatedAt(userMemory.getUpdatedAt())
                 .hasMemory(hasMemory)
                 .build();
     }
