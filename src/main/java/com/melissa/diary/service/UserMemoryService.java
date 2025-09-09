@@ -169,7 +169,7 @@ public class UserMemoryService {
                    - 7일 이내 정보: recent_7days 섹션에 정확한 날짜(YYYY.MM.DD)와 함께 상세 기록
                    - 7일 초과 정보: 패턴이나 선호도로 요약하여 해당 카테고리의 일반 정보로 통합
                 3. **감정 정보 보존**: 사용자가 느낀 감정은 반드시 기록 (긍정적 경험의 감정 특히 중요)
-                4. **카테고리별 분류**: FOOD, EXERCISE, EXPERIENCES, SOCIAL 등 적절한 카테고리에 분류
+                4. **카테고리별 분류**: FOOD, EXERCISE, EXPERIENCES, SOCIAL 등 적절한 카테고리에 분류, 적절한 카테고리가 없으면 생성 후 작성
                 
                 ## USER_DATABASE 템플릿 구조
                 ```
