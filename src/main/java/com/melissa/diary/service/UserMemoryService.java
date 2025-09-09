@@ -236,7 +236,84 @@ public class UserMemoryService {
                 위 템플릿 구조를 엄격히 따라 기존 메모리와 새로운 정보를 융합한 완전한 USER_DATABASE를 작성해주세요.
                 기존 메모리가 없다면 새로운 정보로 첫 데이터베이스를 생성해주세요.
                 """, currentDate,
-                currentMemory.isEmpty() ? "USER_DATABASE\n\n[CORE_PROFILE]\npersonality_type: 미분석\nbehavioral_style: 미분석\n\n(빈 데이터베이스)" : currentMemory, 
+                currentMemory.isEmpty() ?
+                """
+                USER_DATABASE
+                
+                [CORE_PROFILE]
+                personality_type: 미분석
+                behavioral_style: 미분석
+                
+                [FOOD]
+                preferences: []
+                dislikes: []
+                general_patterns: []
+                recent_7days: []
+                
+                [EXERCISE]
+                pattern: []
+                goals: []
+                general_history: []
+                recent_7days: []
+                
+                [EXPERIENCES]
+                interests: []
+                memorable_events: []
+                recent_7days: []
+                
+                [SOCIAL]
+                relationships: []
+                social_history: []
+                recent_7days: []
+                
+                [WORK]
+                occupation: []
+                work_style: []
+                general_patterns: []
+                recent_7days: []
+                
+                [STUDY]
+                subjects: []
+                learning_style: []
+                general_progress: []
+                recent_7days: []
+                
+                [TRAVEL]
+                favorite_places: []
+                travel_style: []
+                memorable_trips: []
+                recent_7days: []
+                
+                [HEALTH]
+                health_concerns: []
+                wellness_habits: []
+                general_patterns: []
+                recent_7days: []
+                
+                [HOBBIES]
+                current_hobbies: []
+                skill_level: []
+                general_activities: []
+                recent_7days: []
+                
+                [SHOPPING]
+                preferences: []
+                shopping_style: []
+                general_patterns: []
+                recent_7days: []
+                
+                [WEATHER_MOOD]
+                weather_preferences: []
+                seasonal_patterns: []
+                general_observations: []
+                recent_7days: []
+                
+                [EMOTIONAL_STATE]
+                positive_triggers: []
+                stress_factors: []
+                emotional_patterns: []
+                recent_mood_pattern: []
+                """ : currentMemory, 
                 newDiaryInfo);
     }
     
