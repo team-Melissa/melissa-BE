@@ -157,38 +157,73 @@ public class UserMemoryService {
      */
     private String buildMemoryFusionPrompt(String currentMemory, String newDiaryInfo, String currentDate) {
         return String.format("""
-                # 역할: 개인 메모리 관리 전문가
-                당신은 사용자의 개인적인 기억을 인간의 방식으로 관리하는 전문가입니다.
+                # 역할: 개인 메모리 데이터베이스 관리자
+                당신은 사용자의 개인 정보를 구조화된 데이터베이스 형태로 관리하는 전문가입니다.
                 
                 ## 임무
-                기존 기억과 새로운 경험을 자연스럽게 융합하여 하나의 일관된 기억으로 통합해주세요.
+                기존 메모리 데이터베이스와 새로운 일기 정보를 융합하여 구조화된 USER_DATABASE를 업데이트해주세요.
                 
                 ## 메모리 융합 규칙
-                1. **시간 기반 기억**:
-                   - 7일 이내 사건: "%s 기준으로 7일 이내면 정확한 날짜 포함" (예: "1월 15일에 헬스장에서...")
-                   - 7일 초과 사건: "날짜 생략하고 시간적 표현 사용" (예: "최근에", "얼마 전에", "요즘")
+                1. **구조화된 템플릿 사용**: 반드시 아래 USER_DATABASE 템플릿 구조를 따라 작성
+                2. **7일 기준 휘발성**:
+                   - 7일 이내 정보: recent_7days 섹션에 정확한 날짜(YYYY.MM.DD)와 함께 상세 기록
+                   - 7일 초과 정보: 패턴이나 선호도로 요약하여 해당 카테고리의 일반 정보로 통합
+                3. **감정 정보 보존**: 사용자가 느낀 감정은 반드시 기록 (긍정적 경험의 감정 특히 중요)
+                4. **카테고리별 분류**: FOOD, EXERCISE, EXPERIENCES, SOCIAL 등 적절한 카테고리에 분류
                 
-                2. **자연스러운 통합**:
-                   - 비슷한 경험들을 패턴으로 인식하여 통합
-                   - 감정의 변화와 성장 과정을 스토리로 연결
-                   - 친구가 기억하는 것처럼 따뜻하고 개인적인 톤 사용
+                ## USER_DATABASE 템플릿 구조
+                ```
+                USER_DATABASE
                 
-                3. **주제별 분류**: 운동, 식사, 감정, 인간관계, 취미 등으로 자연스럽게 분류
+                [CORE_PROFILE]
+                personality_type: [성격 특성]
+                behavioral_style: [행동 패턴, 생활 스타일]
+                
+                [FOOD]
+                preferences: [선호 음식들]
+                dislikes: [기피 음식들]
+                recent_7days:
+                - YYYY.MM.DD: [음식 관련 경험] (감정: [기분])
+                
+                [EXERCISE]
+                pattern: [운동 패턴, 스타일]
+                goals: [운동 목표]
+                recent_7days:
+                - YYYY.MM.DD: [운동 경험] (감정: [기분])
+                
+                [EXPERIENCES]
+                interests: [관심사, 취미]
+                recent_7days:
+                - YYYY.MM.DD: [체험 내용]
+                  context: [상세 내용]
+                  emotion: [느낀 감정, 좋았던 점]
+                  future_intent: [향후 계획이나 의향]
+                
+                [SOCIAL]
+                relationships: [인간관계 패턴]
+                recent_7days:
+                - YYYY.MM.DD: [만남, 소통 경험] (감정: [기분])
+                
+                [EMOTIONAL_STATE]
+                positive_triggers: [긍정적 감정을 주는 요소들]
+                stress_factors: [스트레스 요인들]
+                recent_mood_pattern: [최근 감정 패턴]
+                ```
                 
                 ---
                 
-                현재 날짜: %s
+                현재 날짜: %s (7일 기준점)
                 
-                ## 현재 기억:
+                ## 현재 메모리 데이터베이스:
                 %s
                 
                 ## 새로운 일기 정보:
                 %s
                 
-                위 규칙에 따라 기존 기억과 새로운 일기 정보를 융합하여 업데이트된 통합 기억을 작성해주세요.
-                기억이 없다면 새로운 정보로 첫 기억을 만들어주세요.
-                """, currentDate, currentDate,
-                currentMemory.isEmpty() ? "(아직 기억이 없음)" : currentMemory, 
+                위 템플릿 구조를 엄격히 따라 기존 메모리와 새로운 정보를 융합한 완전한 USER_DATABASE를 작성해주세요.
+                기존 메모리가 없다면 새로운 정보로 첫 데이터베이스를 생성해주세요.
+                """, currentDate,
+                currentMemory.isEmpty() ? "USER_DATABASE\n\n[CORE_PROFILE]\npersonality_type: 미분석\nbehavioral_style: 미분석\n\n(빈 데이터베이스)" : currentMemory, 
                 newDiaryInfo);
     }
     
