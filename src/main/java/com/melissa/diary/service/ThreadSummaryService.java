@@ -86,15 +86,22 @@ public class ThreadSummaryService {
         LocalTime currentTime = LocalTime.now();
         List<User> users = userRepository.findAll();
         for (User user : users) {
-            UserSetting userSetting = userSettingRepository.findByUserId(user.getId())
-                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.SETTING_NOT_FOUND));
-            LocalTime userSummaryTime = userSetting.getSleepTime().toLocalTime();
-            if (currentTime.getHour() == userSummaryTime.getHour()) {
-                try {
-                    generateDailySummaryForUserScheduled(user.getId());
-                } catch (Exception e) {
-                    log.error("[ThreadSummary] 요약 생성 실패. userId=" + user.getId(), e);
+            try {
+                UserSetting userSetting = userSettingRepository.findByUserId(user.getId())
+                        .orElse(null);
+                
+                if (userSetting == null) {
+                    log.warn("[ThreadSummary] 사용자 설정이 없어 스킵. userId={}", user.getId());
+                    continue;
                 }
+                
+                LocalTime userSummaryTime = userSetting.getSleepTime().toLocalTime();
+                if (currentTime.getHour() == userSummaryTime.getHour()) {
+                    generateDailySummaryForUserScheduled(user.getId());
+                }
+            } catch (Exception e) {
+                log.error("[ThreadSummary] 사용자별 처리 실패. userId={}", user.getId(), e);
+                // 다음 사용자 계속 처리
             }
         }
     }
