@@ -35,6 +35,6 @@ public interface UserMemoryRepository extends JpaRepository<UserMemory, Long> {
     /**
      * 특정 기간 이후 업데이트된 메모리 개수 조회
      */
-    @Query("SELECT COUNT(um) FROM UserMemory um WHERE um.lastUpdatedAt >= :since")
+    @Query("SELECT COUNT(um) FROM UserMemory um WHERE um.updatedAt >= :since")
     long countRecentlyUpdatedMemories(@Param("since") java.time.LocalDateTime since);
 }
