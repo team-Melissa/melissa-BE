@@ -167,7 +167,12 @@ public class UserMemoryService {
                 1. **구조화된 템플릿 사용**: 반드시 아래 USER_DATABASE 템플릿 구조를 따라 작성
                 2. **7일 기준 휘발성**:
                    - 7일 이내 정보: recent_7days 섹션에 정확한 날짜(YYYY.MM.DD)와 함께 상세 기록
-                   - 7일 초과 정보: 패턴이나 선호도로 요약하여 해당 카테고리의 일반 정보로 통합
+                   - 7일 초과 정보: 날짜를 제거하고 패턴/습관으로 함축하여 각 카테고리의 일반 정보 섹션에 통합
+                     * FOOD → general_patterns에 식사 습관으로 요약
+                     * EXERCISE → general_history에 운동 성과로 요약  
+                     * EXPERIENCES → memorable_events에 중요 체험으로 요약
+                     * SOCIAL → social_history에 관계 발전으로 요약
+                     * EMOTIONAL_STATE → emotional_patterns에 감정 변화로 요약
                 3. **감정 정보 보존**: 사용자가 느낀 감정은 반드시 기록 (긍정적 경험의 감정 특히 중요)
                 4. **카테고리별 분류**: FOOD, EXERCISE, EXPERIENCES, SOCIAL 등 적절한 카테고리에 분류, 적절한 카테고리가 없으면 생성 후 작성
                 
@@ -182,17 +187,20 @@ public class UserMemoryService {
                 [FOOD]
                 preferences: [선호 음식들]
                 dislikes: [기피 음식들]
+                general_patterns: [7일 초과 휘발된 식사 패턴, 습관 정보]
                 recent_7days:
                 - YYYY.MM.DD: [음식 관련 경험] (감정: [기분])
                 
                 [EXERCISE]
                 pattern: [운동 패턴, 스타일]
                 goals: [운동 목표]
+                general_history: [7일 초과 휘발된 운동 기록, 성과 정보]
                 recent_7days:
                 - YYYY.MM.DD: [운동 경험] (감정: [기분])
                 
                 [EXPERIENCES]
                 interests: [관심사, 취미]
+                memorable_events: [7일 초과 휘발된 중요 체험들, 장소 방문 기록]
                 recent_7days:
                 - YYYY.MM.DD: [체험 내용]
                   context: [상세 내용]
@@ -201,13 +209,18 @@ public class UserMemoryService {
                 
                 [SOCIAL]
                 relationships: [인간관계 패턴]
+                social_history: [7일 초과 휘발된 만남, 관계 발전 과정]
                 recent_7days:
                 - YYYY.MM.DD: [만남, 소통 경험] (감정: [기분])
                 
                 [EMOTIONAL_STATE]
                 positive_triggers: [긍정적 감정을 주는 요소들]
                 stress_factors: [스트레스 요인들]
+                emotional_patterns: [7일 초과 휘발된 감정 변화, 성장 과정]
                 recent_mood_pattern: [최근 감정 패턴]
+                
+                [기타 적절한 카테고리]
+                (필요시 WORK, HEALTH, TRAVEL 등 추가 카테고리 생성 가능)
                 ```
                 
                 ---
