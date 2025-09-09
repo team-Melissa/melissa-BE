@@ -174,7 +174,11 @@ public class UserMemoryService {
                      * SOCIAL → social_history에 관계 발전으로 요약
                      * EMOTIONAL_STATE → emotional_patterns에 감정 변화로 요약
                 3. **감정 정보 보존**: 사용자가 느낀 감정은 반드시 기록 (긍정적 경험의 감정 특히 중요)
-                4. **카테고리별 분류**: FOOD, EXERCISE, EXPERIENCES, SOCIAL 등 적절한 카테고리에 분류, 적절한 카테고리가 없으면 생성 후 작성
+                4. **사실 기반 작성**: 일기에 명시된 사실만 기록, 추론이나 가정은 절대 금지
+                   - future_intent: 일기에 명시된 미래 계획만 기록, 추론하지 말고 없으면 비워둠
+                   - context: 실제 일어난 일만 기록, 상상이나 추측 내용 제외
+                   - 모든 필드는 일기 원문에 근거해야 함
+                5. **카테고리별 분류**: FOOD, EXERCISE, EXPERIENCES, SOCIAL 등 적절한 카테고리에 분류, 적절한 카테고리가 없으면 생성 후 작성
                 
                 ## USER_DATABASE 템플릿 구조
                 ```
