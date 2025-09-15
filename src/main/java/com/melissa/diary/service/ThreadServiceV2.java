@@ -10,6 +10,7 @@ import com.melissa.diary.repository.AiProfileRepository;
 import com.melissa.diary.repository.DailyChatLogRepository;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.security.JailbreakDetector;
+import com.melissa.diary.web.dto.ThreadResponseDTO;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -63,6 +64,76 @@ public class ThreadServiceV2 {
         return quotaMono.thenMany(
                 buildAiStreamV2(userId, year, month, day, content)
         );
+    }
+
+    // 웹 테스트용 Non-SSE 메모리 기반 채팅 (동기 방식)
+    @Transactional
+    public ThreadResponseDTO.ChatResponse messageToAiTest(Long userId,
+                                                         int year, int month, int day,
+                                                         String content) {
+        // 쿼터 차감
+        quotaService.checkAndConsume(userId, UsageCost.CHAT);
+
+        // 스레드 데이터 가져오기 (사용자 메시지 저장 포함)
+        ThreadData td = getThreadData(userId, year, month, day, content);
+        
+        // 탈옥 시도 검사
+        if (jailbreakDetector.isJailbreakAttempt(content)) {
+            String rejectMsg = "죄송합니다. 해당 요청은 처리할 수 없습니다.";
+            DailyChatLog aiChat = saveAiMessage(rejectMsg, td);
+            
+            return ThreadResponseDTO.ChatResponse.builder()
+                    .chatId(aiChat.getId())
+                    .role("AI")
+                    .content(rejectMsg)
+                    .createAt(LocalDateTime.now())
+                    .aiProfileName(td.getAiProfile().getName())
+                    .aiProfileImageS3(td.getAiProfile().getImageS3())
+                    .build();
+        }
+        
+        // AI 채팅 프롬프트 생성 (메모리 포함)
+        String prompt = buildAiChatPromptV2(content, td.getChatHistory(), td.getAiProfile(), userId);
+
+        try {
+            // AI 응답 생성 (동기 방식)
+            String aiResponse = chatClient.prompt(prompt)
+                    .system(sp -> sp.param("system", td.getAiProfile().getPromptText())
+                            .param("q1", td.getAiProfile().getQ1())
+                            .param("q2", td.getAiProfile().getQ2())
+                            .param("q3", td.getAiProfile().getQ3())
+                            .param("q4", td.getAiProfile().getQ4())
+                            .param("q5", td.getAiProfile().getQ5())
+                            .param("q6", td.getAiProfile().getQ6()))
+                    .call()
+                    .content();
+
+            // AI 응답 저장
+            DailyChatLog aiChat = saveAiMessage(aiResponse, td);
+
+            return ThreadResponseDTO.ChatResponse.builder()
+                    .chatId(aiChat.getId())
+                    .role("AI")
+                    .content(aiResponse)
+                    .createAt(LocalDateTime.now())
+                    .aiProfileName(td.getAiProfile().getName())
+                    .aiProfileImageS3(td.getAiProfile().getImageS3())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("[ThreadServiceV2] 웹 테스트 채팅 중 오류 발생. userId={}", userId, e);
+            String errorMsg = "채팅 처리 중 오류가 발생했습니다: " + e.getMessage();
+            DailyChatLog aiChat = saveAiMessage(errorMsg, td);
+            
+            return ThreadResponseDTO.ChatResponse.builder()
+                    .chatId(aiChat.getId())
+                    .role("AI")
+                    .content(errorMsg)
+                    .createAt(LocalDateTime.now())
+                    .aiProfileName(td.getAiProfile().getName())
+                    .aiProfileImageS3(td.getAiProfile().getImageS3())
+                    .build();
+        }
     }
 
     /* ---------- V2: 메모리 기반 플럭스 부분 ---------- */
@@ -125,7 +196,7 @@ public class ThreadServiceV2 {
         return Flux.concat(aiFlux, finish);
     }
 
-    private void saveAiMessage(String answer, ThreadData threadData) {
+    private DailyChatLog saveAiMessage(String answer, ThreadData threadData) {
         // "null" 문자열을 제거
         String cleanAnswer = answer.replace("null", "").trim();
 
@@ -137,7 +208,7 @@ public class ThreadServiceV2 {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        dailyChatLogRepository.save(aiChat);
+        return dailyChatLogRepository.save(aiChat);
     }
 
     @Transactional
