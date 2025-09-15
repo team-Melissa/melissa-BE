@@ -1,7 +1,9 @@
 package com.melissa.diary.web.controller;
 
+import com.melissa.diary.apiPayload.ApiResponse;
 import com.melissa.diary.service.ThreadServiceV2;
 import com.melissa.diary.web.dto.ThreadRequestDTO;
+import com.melissa.diary.web.dto.ThreadResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,21 @@ public class ThreadControllerV2 {
     ) {
         Long userId = Long.parseLong(principal.getName());
         return threadServiceV2.messageToAi(userId, request.getYear(), request.getMonth(), request.getDay(), request.getContent());
+    }
+
+    // 웹 테스트용 Non-SSE 메모리 기반 채팅 API
+    @PostMapping("/message-test")
+    @Operation(summary = "웹 테스트용 메모리 기반 채팅", 
+               description = "정성적 평가를 위한 웹 테스트용 API입니다. SSE 없이 일반 HTTP 응답으로 메모리 기반 AI 채팅을 제공합니다.")
+    public ApiResponse<ThreadResponseDTO.ChatResponse> messageToAiTest(
+            @RequestBody ThreadRequestDTO.AiChatRequest request,
+            Principal principal
+    ) {
+        Long userId = Long.parseLong(principal.getName());
+        ThreadResponseDTO.ChatResponse response = threadServiceV2.messageToAiTest(
+                userId, request.getYear(), request.getMonth(), request.getDay(), request.getContent()
+        );
+        return ApiResponse.onSuccess(response);
     }
 }
 
