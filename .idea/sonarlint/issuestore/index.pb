@@ -184,3 +184,5 @@ v
 Fsrc/main/java/com/melissa/diary/web/controller/ThreadControllerV2.java,d\9\d9c31b5584376a8613b5cbcb4bcff5d933715904
 l
 <src/main/java/com/melissa/diary/service/ThreadServiceV2.java,f\7\f73d4995dd60ee1b26ea65e2a2fceca1151e9f4f
+f
+6src/main/java/com/melissa/diary/config/CorsConfig.java,c\4\c441537d2cfdd5242dcd7814d3988462c9ec3c07
