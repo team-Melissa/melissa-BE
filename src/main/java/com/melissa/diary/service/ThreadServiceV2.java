@@ -87,7 +87,7 @@ public class ThreadServiceV2 {
                     .role("AI")
                     .content(rejectMsg)
                     .createAt(LocalDateTime.now())
-                    .aiProfileName(td.getAiProfile().getName())
+                    .aiProfileName(td.getAiProfile().getProfileName())
                     .aiProfileImageS3(td.getAiProfile().getImageS3())
                     .build();
         }
@@ -116,7 +116,7 @@ public class ThreadServiceV2 {
                     .role("AI")
                     .content(aiResponse)
                     .createAt(LocalDateTime.now())
-                    .aiProfileName(td.getAiProfile().getName())
+                    .aiProfileName(td.getAiProfile().getProfileName())
                     .aiProfileImageS3(td.getAiProfile().getImageS3())
                     .build();
 
@@ -130,7 +130,7 @@ public class ThreadServiceV2 {
                     .role("AI")
                     .content(errorMsg)
                     .createAt(LocalDateTime.now())
-                    .aiProfileName(td.getAiProfile().getName())
+                    .aiProfileName(td.getAiProfile().getProfileName())
                     .aiProfileImageS3(td.getAiProfile().getImageS3())
                     .build();
         }
