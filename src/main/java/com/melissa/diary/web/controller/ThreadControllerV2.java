@@ -58,10 +58,13 @@ public class ThreadControllerV2 {
     @PostMapping("/manual")
     public ApiResponse<ThreadSummaryResponseDTO.dailySummaryResponseDTO> createManualThread(
             Principal principal,
+            @RequestParam(name = "year") int year,
+            @RequestParam(name = "month") int month,
+            @RequestParam(name = "day") int day,
             @Valid @RequestBody ManualDiaryRequestDTO.ManualDiaryCreateRequest request) {
 
         Long userId = Long.parseLong(principal.getName());
-        var response = manualDiaryService.createManualDiary(userId, request);
+        var response = manualDiaryService.createManualDiary(userId, year, month, day, request);
         return ApiResponse.onSuccess(response);
     }
 

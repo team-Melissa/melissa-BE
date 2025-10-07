@@ -37,10 +37,10 @@ public class ManualDiaryService {
      */
     @Transactional
     public ThreadSummaryResponseDTO.dailySummaryResponseDTO createManualDiary(
-            Long userId, ManualDiaryRequestDTO.ManualDiaryCreateRequest request) {
+            Long userId, int year, int month, int day, ManualDiaryRequestDTO.ManualDiaryCreateRequest request) {
 
         // 날짜 유효성 검증
-        if (!isValidDate(request.getYear(), request.getMonth(), request.getDay())) {
+        if (!isValidDate(year, month, day)) {
             throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_DATE);
         }
 
@@ -49,18 +49,15 @@ public class ManualDiaryService {
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
         quotaService.checkAndConsume(user, UsageCost.SUMMARY);
 
-        // AI 프로필 검증
-        AiProfile aiProfile = aiProfileRepository.findById(request.getAiProfileId())
+        // 사용자의 최근 사용한 AI 프로필 가져오기 (기본값)
+        AiProfile aiProfile = aiProfileRepository.findActiveProfilesOrderByLastUsed(userId)
+                .stream()
+                .findFirst()
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.AI_PROFILE_NOT_FOUND));
-
-        // AI 프로필 소유자 검증
-        if (!aiProfile.getUser().getId().equals(userId)) {
-            throw new ErrorHandler(ErrorStatus.AI_PROFILE_FORBIDDEN);
-        }
 
         // 해당 날짜에 이미 Thread가 존재하는지 확인하고, 있다면 덮어쓰기
         Thread existingThread = threadRepository.findByUserIdAndYearAndMonthAndDay(
-                userId, request.getYear(), request.getMonth(), request.getDay()).orElse(null);
+                userId, year, month, day).orElse(null);
         
         if (existingThread != null) {
             // 기존 Thread가 있으면 내용을 덮어쓰기
@@ -71,9 +68,9 @@ public class ManualDiaryService {
         Thread thread = Thread.builder()
                 .user(user)
                 .aiProfile(aiProfile)
-                .year(request.getYear())
-                .month(request.getMonth())
-                .day(request.getDay())
+                .year(year)
+                .month(month)
+                .day(day)
                 .summaryTitle(request.getTitle())
                 .mood(request.getMood())
                 .summaryContent(request.getContent())
