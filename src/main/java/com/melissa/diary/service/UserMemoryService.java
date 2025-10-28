@@ -99,7 +99,7 @@ public class UserMemoryService {
     }
     
     /**
-     * Thread 정보를 일기 정보로 변환
+     * Thread 정보를 일기 정보로 변환 (사용자 발언만 추출)
      */
     private String buildDiaryInfo(Thread thread) {
         LocalDate diaryDate = LocalDate.of(thread.getYear(), thread.getMonth(), thread.getDay());
@@ -108,12 +108,20 @@ public class UserMemoryService {
         StringBuilder diaryInfo = new StringBuilder();
         diaryInfo.append(String.format("[%s] ", formattedDate));
         
-        if (thread.getSummaryTitle() != null) {
-            diaryInfo.append(thread.getSummaryTitle()).append(" - ");
-        }
+        // 채팅 로그에서 전체 대화 내역 추출 (맥락 보존)
+        String fullConversation = extractFullConversation(thread);
         
-        if (thread.getSummaryContent() != null) {
-            diaryInfo.append(thread.getSummaryContent());
+        if (fullConversation != null && !fullConversation.trim().isEmpty()) {
+            diaryInfo.append("대화 내역:\n").append(fullConversation);
+        } else {
+            // 채팅 로그가 없는 경우 (수동 작성 일기) 기존 방식 사용
+            if (thread.getSummaryTitle() != null) {
+                diaryInfo.append(thread.getSummaryTitle()).append(" - ");
+            }
+            
+            if (thread.getSummaryContent() != null) {
+                diaryInfo.append(thread.getSummaryContent());
+            }
         }
         
         if (thread.getMood() != null) {
@@ -128,6 +136,25 @@ public class UserMemoryService {
         
         return diaryInfo.toString();
     }
+    
+    /**
+     * 채팅 로그에서 전체 대화 내역 추출 (AI 질문과 사용자 답변의 맥락 보존)
+     */
+    private String extractFullConversation(Thread thread) {
+        if (thread.getDailyChatLogs() == null || thread.getDailyChatLogs().isEmpty()) {
+            return null;
+        }
+        
+        return thread.getDailyChatLogs().stream()
+                .sorted((log1, log2) -> log1.getCreatedAt().compareTo(log2.getCreatedAt())) // 시간순 정렬
+                .map(log -> {
+                    String role = log.getRole() == com.melissa.diary.domain.enums.Role.USER ? "[사용자]" : "[AI]";
+                    return role + " " + log.getContent();
+                })
+                .filter(content -> content != null && !content.trim().isEmpty())
+                .collect(java.util.stream.Collectors.joining("\n"));
+    }
+    
     
     /**
      * LLM을 통해 기존 메모리와 새 일기 정보를 융합
@@ -174,11 +201,20 @@ public class UserMemoryService {
                      * SOCIAL → social_history에 관계 발전으로 요약
                      * EMOTIONAL_STATE → emotional_patterns에 감정 변화로 요약
                 3. **감정 정보 보존**: 사용자가 느낀 감정은 반드시 기록 (긍정적 경험의 감정 특히 중요)
-                4. **사실 기반 작성**: 일기에 명시된 사실만 기록, 추론이나 가정은 절대 금지
-                   - future_intent: 일기에 명시된 미래 계획만 기록, 추론하지 말고 없으면 비워둠
-                   - context: 실제 일어난 일만 기록, 상상이나 추측 내용 제외
-                   - 모든 필드는 일기 원문에 근거해야 함
-                5. **카테고리별 분류**: FOOD, EXERCISE, EXPERIENCES, SOCIAL 등 적절한 카테고리에 분류, 적절한 카테고리가 없으면 생성 후 작성
+                4. **대화 맥락 기반 분석**: AI 질문과 사용자 답변을 함께 고려하여 정확한 정보 추출
+                   - AI 질문: "피자 좋아해?" + 사용자 답변: "좋아" → preferences에 "피자를 좋아함" 기록
+                   - AI 질문: "운동 자주 해?" + 사용자 답변: "매일 산책해" → pattern에 "매일 산책을 함" 기록
+                   - 사용자가 직접 경험하고 말한 내용만 기록, AI 추측이나 제안은 제외
+                   - 사용자 답변이 긍정적일 때만 선호도로 기록 (부정적 답변은 dislikes나 제외)
+                5. **사실 검증 원칙**: 
+                   - future_intent: 사용자가 명시한 미래 계획만 기록 ("내일 ~할 예정", "다음에 ~하고 싶어" 등)
+                   - context: 사용자가 실제 경험한 일만 기록, 가정이나 상상 제외
+                   - 모든 필드는 사용자 발언 원문에 근거해야 함
+                6. **동사형 문장 저장**: 키워드가 아닌 완전한 문장으로 저장
+                   - ❌ 나쁜 예: [아쿠아리움, 해양 생물]
+                   - ✅ 좋은 예: ["아쿠아리움에 가는 것을 좋아함", "해양 생물에 관심이 있음"]
+                   - preferences, interests, patterns 등 모든 필드를 동사형 문장으로 작성
+                7. **카테고리별 분류**: FOOD, EXERCISE, EXPERIENCES, SOCIAL 등 적절한 카테고리에 분류, 적절한 카테고리가 없으면 생성 후 작성
                 
                 ## USER_DATABASE 템플릿 구조
                 ```
@@ -189,22 +225,22 @@ public class UserMemoryService {
                 behavioral_style: [행동 패턴, 생활 스타일]
                 
                 [FOOD]
-                preferences: [선호 음식들]
-                dislikes: [기피 음식들]
-                general_patterns: [7일 초과 휘발된 식사 패턴, 습관 정보]
+                preferences: ["선호 음식을 동사형 문장으로 기록 (예: 페페로니 피자를 좋아함)"]
+                dislikes: ["기피 음식을 동사형 문장으로 기록 (예: 매운 음식을 싫어함)"]
+                general_patterns: ["7일 초과 휘발된 식사 패턴을 동사형 문장으로 기록 (예: 주로 저녁에 외식을 함)"]
                 recent_7days:
                 - YYYY.MM.DD: [음식 관련 경험] (감정: [기분])
                 
                 [EXERCISE]
-                pattern: [운동 패턴, 스타일]
-                goals: [운동 목표]
-                general_history: [7일 초과 휘발된 운동 기록, 성과 정보]
+                pattern: ["운동 패턴을 동사형 문장으로 기록 (예: 주로 밤에 산책을 함)"]
+                goals: ["운동 목표를 동사형 문장으로 기록 (예: 매일 1만보 걷기를 목표로 함)"]
+                general_history: ["7일 초과 휘발된 운동 기록을 동사형 문장으로 기록 (예: 꾸준히 산책 운동을 해왔음)"]
                 recent_7days:
                 - YYYY.MM.DD: [운동 경험] (감정: [기분])
                 
                 [EXPERIENCES]
-                interests: [관심사, 취미]
-                memorable_events: [7일 초과 휘발된 중요 체험들, 장소 방문 기록]
+                interests: ["관심사를 동사형 문장으로 기록 (예: 아쿠아리움 방문을 즐거워함, 해양 생물에 관심이 있음)"]
+                memorable_events: ["7일 초과 휘발된 중요 체험을 동사형 문장으로 기록 (예: 춘천에서 가족과 시간을 보내는 것을 좋아함)"]
                 recent_7days:
                 - YYYY.MM.DD: [체험 내용]
                   context: [상세 내용]
@@ -218,9 +254,9 @@ public class UserMemoryService {
                 - YYYY.MM.DD: [만남, 소통 경험] (감정: [기분])
                 
                 [EMOTIONAL_STATE]
-                positive_triggers: [긍정적 감정을 주는 요소들]
-                stress_factors: [스트레스 요인들]
-                emotional_patterns: [7일 초과 휘발된 감정 변화, 성장 과정]
+                positive_triggers: ["긍정적 감정을 주는 요소를 동사형 문장으로 기록 (예: 가족과의 시간을 통해 행복감을 느낌)"]
+                stress_factors: ["스트레스 요인을 동사형 문장으로 기록 (예: 기차 멀미로 인해 피로감을 느낌)"]
+                emotional_patterns: ["7일 초과 휘발된 감정 변화를 동사형 문장으로 기록 (예: 음악을 통해 위로를 받는 경향이 있음)"]
                 recent_mood_pattern: [최근 감정 패턴]
                 
                 [기타 적절한 카테고리]
@@ -234,8 +270,18 @@ public class UserMemoryService {
                 ## 현재 메모리 데이터베이스:
                 %s
                 
-                ## 새로운 일기 정보:
+                ## 새로운 대화 정보:
                 %s
+                
+                **중요 분석 지침:**
+                1. [AI] 태그가 붙은 내용은 AI의 질문이나 제안이므로 사실로 기록하지 말 것
+                2. [사용자] 태그가 붙은 내용만 사용자의 실제 경험/선호도로 기록
+                3. AI 질문 + 사용자 답변의 조합으로 맥락을 파악하여 정확한 정보 추출
+                4. 예시:
+                   - [AI] "피자 좋아해?" [사용자] "응, 좋아해" → preferences: "피자를 좋아함"
+                   - [AI] "운동 해봤어?" [사용자] "매일 산책해" → pattern: "매일 산책을 함"
+                   - [AI] "아쿠아리움 가볼까?" [사용자] "좋아!" → 단순 동의이므로 기록하지 않음
+                   - [사용자] "아쿠아리움 갔다 왔어" → interests: "아쿠아리움 방문을 좋아함"
                 
                 위 템플릿 구조를 엄격히 따라 기존 메모리와 새로운 정보를 융합한 완전한 USER_DATABASE를 작성해주세요.
                 기존 메모리가 없다면 새로운 정보로 첫 데이터베이스를 생성해주세요.
