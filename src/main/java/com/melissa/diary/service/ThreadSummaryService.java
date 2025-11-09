@@ -136,6 +136,19 @@ public class ThreadSummaryService {
             log.warn("[ThreadSummary] 채팅 로그가 없어 요약 불필요. userId={}, {}-{}-{}", userId, year, month, day);
             return;
         }
+        
+        // 사용자 메시지만 필터링
+        List<DailyChatLog> userLogs = logs.stream()
+                .filter(s -> Role.USER.equals(s.getRole()))
+                .collect(Collectors.toList());
+        
+        // 사용자 메시지 최소 개수 체크 (3개 이상)
+        if (userLogs.size() <= 2) {
+            log.warn("[ThreadSummary] 사용자 메시지가 부족하여 요약 생략. userId={}, {}-{}-{}, userMessageCount={}", 
+                    userId, year, month, day, userLogs.size());
+            return;
+        }
+        
         // 이미 요약 내용이 존재하면 스케줄러에서는 실행하지 않도록 수정!!
         if (thread.getSummaryContent() != null && !thread.getSummaryContent().trim().isEmpty()) {
             log.info("[ThreadSummary] 요약 내용이 이미 존재하여 스케줄러 생략. userId={}, {}-{}-{}", userId, year, month, day);
