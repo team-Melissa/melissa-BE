@@ -45,6 +45,9 @@ public enum ErrorStatus implements BaseErrorCode {
 
     // CHAT
     CHAT_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT4001", "해당 날짜의 채팅로그를 찾을 수 없습니다."),
+    CHAT_LOG_NOT_FOUND(HttpStatus.NOT_FOUND, "CHAT4002", "해당 채팅 메시지를 찾을 수 없습니다."),
+    CHAT_LOG_FORBIDDEN(HttpStatus.FORBIDDEN, "CHAT4003", "해당 채팅 메시지에 접근할 권한이 없습니다."),
+    CHAT_LOG_AI_MESSAGE(HttpStatus.BAD_REQUEST, "CHAT4004", "AI 메시지는 수정/삭제할 수 없습니다."),
 
     // Quota
     QUOTA_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "QUOTA4001", "일일 사용량을 초과하였습니다."),
