@@ -61,18 +61,29 @@ public class User {
     }
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<UserSetting> userSettingList = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<Donation> donationList = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<Thread> threadList = new ArrayList<>();
 
+    // v1.3.0: Deprecated - 임시 유지 (Service 완성 후 제거)
+    @Deprecated
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<AiProfile> aiProfileList = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
+    private List<Diary> diaryList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<ExpoPushToken> expoPushTokenList = new ArrayList<>();
 
     // 연관관계 편의 메소드
@@ -91,9 +102,15 @@ public class User {
         thread.setUser(this);
     }
 
+    @Deprecated
     public void addAiProfile(AiProfile aiProfile) {
         aiProfileList.add(aiProfile);
         aiProfile.setUser(this);
+    }
+
+    public void addDiary(Diary diary) {
+        diaryList.add(diary);
+        diary.setUser(this);
     }
 
     public void addExpoPushToken(ExpoPushToken expoPushToken) {

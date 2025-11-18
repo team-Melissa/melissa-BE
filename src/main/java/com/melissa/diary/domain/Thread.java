@@ -13,6 +13,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * v1.3.0: 캐릭터별 대화 Thread 관리
+ * - UniqueConstraint: (user_id, ai_profile_id, year, month, day)
+ * - 1일 1캐릭터 1Thread (최대 5개)
+ * - 일기 관련 컬럼 제거 (Diary 테이블로 분리)
+ */
 @Entity
 @Getter
 @Setter
@@ -22,7 +28,7 @@ import java.util.List;
 @Table(
         name = "thread",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_id", "year", "month", "day"}) // 유저별 날짜 유니크 조건 추가
+                @UniqueConstraint(columnNames = {"user_id", "ai_profile_id", "year", "month", "day"})
         }
 )
 public class Thread extends BaseEntity {
@@ -55,41 +61,60 @@ public class Thread extends BaseEntity {
     @JoinColumn(name = "ai_profile_id", nullable = false)
     private AiProfile aiProfile;
 
-    // 아래부턴 요약필요라서 null 가능
+    // ========== v1.3.0: Deprecated 필드 (임시 유지, DiaryService 완성 후 제거) ==========
+    @Deprecated
     @Column(nullable = true, columnDefinition = "TEXT")
     @Convert(converter = com.melissa.diary.converter.EncryptionAttributeConverter.class)
     private String summaryTitle;
 
+    @Deprecated
     @Enumerated(EnumType.STRING)
     @Column(length = 40)
     private Mood mood;
 
+    @Deprecated
     @Column(nullable = true, columnDefinition = "TEXT")
     @Convert(converter = com.melissa.diary.converter.EncryptionAttributeConverter.class)
     private String summaryContent;
 
+    @Deprecated
     @Column(nullable = true, length = 30)
     private String hashtag1;
 
+    @Deprecated
     @Column(nullable = true, length = 30)
     private String hashtag2;
 
+    @Deprecated
     @Column(nullable = true)
     private String imageUrl;
 
+    @Deprecated
     @Column(nullable = true)
     private LocalDateTime summaryCreatedAt;
 
+    @Deprecated
     @Column(nullable = true)
     private LocalDateTime lastSummaryRequestAt;
+    // ========== Deprecated 필드 끝 ==========
 
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<DailyChatLog> dailyChatLogs = new ArrayList<>();
+
+    @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL)
+    @Builder.Default
+    private List<Diary> diaries = new ArrayList<>();
 
     // 연관관계 편의 메소드
     public void addDailyChatLog(DailyChatLog dailyChatLog) {
         dailyChatLogs.add(dailyChatLog);
         dailyChatLog.setThread(this);
+    }
+
+    public void addDiary(Diary diary) {
+        diaries.add(diary);
+        diary.setThread(this);
     }
 
 }
