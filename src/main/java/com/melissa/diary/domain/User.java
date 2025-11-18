@@ -72,6 +72,9 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<AiProfile> aiProfileList = new ArrayList<>();
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<ExpoPushToken> expoPushTokenList = new ArrayList<>();
+
     // 연관관계 편의 메소드
     public void addUserSetting(UserSetting userSetting) {
         userSettingList.add(userSetting);
@@ -91,6 +94,11 @@ public class User {
     public void addAiProfile(AiProfile aiProfile) {
         aiProfileList.add(aiProfile);
         aiProfile.setUser(this);
+    }
+
+    public void addExpoPushToken(ExpoPushToken expoPushToken) {
+        expoPushTokenList.add(expoPushToken);
+        expoPushToken.setUser(this);
     }
 
 }
