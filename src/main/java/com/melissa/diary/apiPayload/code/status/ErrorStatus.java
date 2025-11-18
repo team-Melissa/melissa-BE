@@ -60,7 +60,12 @@ public enum ErrorStatus implements BaseErrorCode {
     TOKEN_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH4004", "토큰이 일치하지 않습니다."),
     TOKEN_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH5001", "토큰 생성에 실패했습니다."),
     TOKEN_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "AUTH4005", "토큰 검증에 실패했습니다."),
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH4006", "해당 유저가 존재하지 않습니다.");
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH4006", "해당 유저가 존재하지 않습니다."),
+
+    // Expo Push Token
+    EXPO_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "EXPO4001", "해당 Expo Push Token을 찾을 수 없습니다."),
+    EXPO_TOKEN_ALREADY_EXISTS(HttpStatus.CONFLICT, "EXPO4002", "이미 등록된 Expo Push Token입니다."),
+    EXPO_TOKEN_INVALID_FORMAT(HttpStatus.BAD_REQUEST, "EXPO4003", "유효하지 않은 Expo Push Token 형식입니다.");
 
 
 
