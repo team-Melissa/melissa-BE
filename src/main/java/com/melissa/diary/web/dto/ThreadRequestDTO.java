@@ -11,6 +11,7 @@ public class ThreadRequestDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class AiChatRequest {
+        private Long aiProfileId;
         private String content;
         private int year;
         private int month;

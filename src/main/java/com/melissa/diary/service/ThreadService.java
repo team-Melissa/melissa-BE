@@ -66,19 +66,16 @@ public class ThreadService {
 
     @Transactional
     public ThreadResponseDTO.ThreadResponse createThread(Long userId, Long aiProfileId, int year, int month, int day) {
-        // 유저와 AI 프로필 검증
-        // 정상적인 유저인지 보호
-        User user = getUser(userId);
+        // User 검증
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
 
+        // AI 프로필 검증
         AiProfile aiProfile = aiProfileRepository.findById(aiProfileId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
 
-        if (!aiProfile.getUser().getId().equals(userId)) {
-            throw new ErrorHandler(ErrorStatus.PROFILE_FORBIDDEN);
-        }
-
-        // 해당 날짜에 이미 존재하는 스레드를 조회하거나, 없으면 생성
-        Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
+        // 해당 날짜와 AI 프로필에 이미 존재하는 스레드를 조회하거나, 없으면 생성
+        Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(userId, aiProfileId, year, month, day)
                 .orElseGet(() -> createNewThread(user, aiProfile, year, month, day));
 
         // 스레드 객체를 DTO로 변환하여 반환
@@ -121,12 +118,12 @@ public class ThreadService {
     }
 
     @Transactional
-    public ThreadResponseDTO.ThreadResponse deleteTread(Long userId, int year, int month, int day){
+    public ThreadResponseDTO.ThreadResponse deleteTread(Long userId, Long aiProfileId, int year, int month, int day){
         // 정상적인 유저인지 보호
         getUser(userId);
 
         // 해당 스레드가 존재하는지 조회
-        Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
+        Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(userId, aiProfileId, year, month, day)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
 
         // 해당 스레드가 유저의 것이 아니라면 숨겨짐 에러
@@ -148,38 +145,8 @@ public class ThreadService {
     }
 
 
-     // Thread에 AI 프로필 업데이트 -> 이후 채팅 생성시 변경된 프로필로 생성
-    @Transactional
-    public void updateThreadAiProfile(Long userId, Long aiProfileId, int year, int month, int day) {
-        // 정상적인 유저인지 보호
-        getUser(userId);
-
-        // 스레드가져오기
-        Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
-
-        // 스레드가 유저의 것인지
-        if (!thread.getUser().getId().equals(userId)) {
-            throw new ErrorHandler(ErrorStatus.CALENDAR_FORBIDDEN);
-        }
-
-        // 변경할 AiProfile (기존에 생성되어 있어야함)
-        AiProfile aiProfile = aiProfileRepository.findById(aiProfileId)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
-
-        // 변경할 AiProfiel이 유저의 것이어야 함.
-        if (!aiProfile.getUser().getId().equals(userId)) {
-            throw new ErrorHandler(ErrorStatus.PROFILE_FORBIDDEN);
-        }
-
-        // Thread의 AI 프로필을 변경 및 최근 사용 시각 업데이트
-        thread.setAiProfile(aiProfile);
-        aiProfile.setLastUsedAt(java.time.LocalDateTime.now());
-        threadRepository.save(thread);
-    }
-
     // 실시간 스트리밍
-    public Flux<ServerSentEvent<String>> messageToAi(Long userId,
+    public Flux<ServerSentEvent<String>> messageToAi(Long userId, Long aiProfileId,
                                                      int year, int month, int day,
                                                      String userMessage) {
 
@@ -190,15 +157,15 @@ public class ThreadService {
 
         /* quotaMono 종료 → AI 스트림 실행 (Flux) */
         return quotaMono.thenMany(
-                buildAiStream(userId, year, month, day, userMessage)
+                buildAiStream(userId, aiProfileId, year, month, day, userMessage)
         );
     }
 
     /* ---------- 기존 플럭스 부분만 메서드로 분리 ---------- */
-    private Flux<ServerSentEvent<String>> buildAiStream(Long userId, int year, int month,
+    private Flux<ServerSentEvent<String>> buildAiStream(Long userId, Long aiProfileId, int year, int month,
                                                         int day, String userMessage) {
 
-        ThreadData td   = getThreadData(userId, year, month, day, userMessage);
+        ThreadData td   = getThreadData(userId, aiProfileId, year, month, day, userMessage);
         String prompt   = buildAiChatPrompt(userMessage, td.getChatHistory(), td.getAiProfile());
         StringBuilder b = new StringBuilder();
 
@@ -279,9 +246,9 @@ public class ThreadService {
 
 
     @Transactional
-    public ThreadData getThreadData(Long userId, int year, int month, int day, String userMessage) {
+    public ThreadData getThreadData(Long userId, Long aiProfileId, int year, int month, int day, String userMessage) {
         // 스레드 조회
-        com.melissa.diary.domain.Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
+        com.melissa.diary.domain.Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(userId, aiProfileId, year, month, day)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
 
         // 스레드 소유자 체크
@@ -291,9 +258,6 @@ public class ThreadService {
 
         // AI 프로필 및 채팅 내역 가져오기
         AiProfile aiProfile = thread.getAiProfile();
-        // 최근 사용 시각 업데이트
-        aiProfile.setLastUsedAt(java.time.LocalDateTime.now());
-        aiProfileRepository.save(aiProfile);
         List<DailyChatLog> chatHistory = thread.getDailyChatLogs();
 
         // 사용자 메시지 저장
@@ -355,12 +319,12 @@ public class ThreadService {
 
     //해당 날짜(Thread)의 채팅메시지 조회
     @Transactional(readOnly = true)
-    public ThreadResponseDTO.ChatListResponse getThreadMessages(Long userId, int year, int month, int day) {
+    public ThreadResponseDTO.ChatListResponse getThreadMessages(Long userId, Long aiProfileId, int year, int month, int day) {
         // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
-        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+        userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
 
         // Thread 가져오기
-        Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
+        Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(userId, aiProfileId, year, month, day)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
 
         // Thread가 유저의 것인지 체크

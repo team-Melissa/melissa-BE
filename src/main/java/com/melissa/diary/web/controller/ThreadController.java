@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
-import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -44,6 +43,7 @@ public class ThreadController {
     @Operation(description = "해당 날짜의 스레드를 삭제합니다.")
     @DeleteMapping
     public ApiResponse<ThreadResponseDTO.ThreadResponse> deleteThread(
+            @RequestParam(name = "aiProfileId") Long aiProfileId,
             @RequestParam(name = "year") int year,
             @RequestParam(name = "month") int month,
             @RequestParam(name = "day") int day,
@@ -51,23 +51,9 @@ public class ThreadController {
 
         Long userId = Long.parseLong(principal.getName());
 
-        ThreadResponseDTO.ThreadResponse response = threadService.deleteTread(userId, year, month, day);
+        ThreadResponseDTO.ThreadResponse response = threadService.deleteTread(userId, aiProfileId, year, month, day);
 
         return ApiResponse.onSuccess(response);
-    }
-
-    // 해당 날짜(Thread)의 AiProfile을 변경합니다. 이후 채팅을 생성할 때는 해당 스레드의 AiProfile을 불러와 작성합니다.@Operation(description = "Thread의 AiProfile을 변경합니다. 이후 채팅을 생성할 때 해당 프로필을 불러와 작성합니다.")
-    @PatchMapping("/ai-profile")
-    public ApiResponse<String> updateAiProfile(
-            @RequestParam(name = "aiProfileId") Long aiProfileId,
-            @RequestParam(name = "year") int year,
-            @RequestParam(name = "month") int month,
-            @RequestParam(name = "day") int day,
-            Principal principal
-    ){
-        Long userId = Long.parseLong(principal.getName());
-        threadService.updateThreadAiProfile(userId, aiProfileId, year, month, day);
-        return ApiResponse.onSuccess("AI Profile 업데이트가 완료되었습니다.");
     }
 
     // 🔹 SSE 기반 AI 응답 스트리밍 API
@@ -78,20 +64,21 @@ public class ThreadController {
             Principal principal) {
         Long userId = Long.parseLong(principal.getName());
 
-        return threadService.messageToAi(userId, request.getYear(), request.getMonth(), request.getDay(), request.getContent());
+        return threadService.messageToAi(userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay(), request.getContent());
     }
 
     // 해당 날짜(Thread)의 채팅메시지 조회
     @Operation(description = "해당 날짜(Thread)의 채팅 메시지 조회")
     @GetMapping
     public ApiResponse<ThreadResponseDTO.ChatListResponse> getMessages(
+            @RequestParam(name = "aiProfileId") Long aiProfileId,
             @RequestParam(name = "year") int year,
             @RequestParam(name = "month") int month,
             @RequestParam(name = "day") int day,
             Principal principal
     ){
         Long userId = Long.parseLong(principal.getName());
-        ThreadResponseDTO.ChatListResponse response = threadService.getThreadMessages(userId, year, month, day);
+        ThreadResponseDTO.ChatListResponse response = threadService.getThreadMessages(userId, aiProfileId, year, month, day);
         return ApiResponse.onSuccess(response);
     }
 }
