@@ -51,6 +51,7 @@ public class User {
 
     @Version
     @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    @Builder.Default
     private Long version = 0L;
 
     // 마이그레이션용, Initialize를 통해 기존 사용자도 처리위해 추가

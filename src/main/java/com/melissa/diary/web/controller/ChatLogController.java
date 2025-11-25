@@ -22,7 +22,7 @@ public class ChatLogController {
 
     private final ChatLogService chatLogService;
 
-    @Operation(summary = "채팅 메시지 삭제", description = "사용자가 작성한 채팅 메시지를 삭제합니다. AI 메시지는 삭제할 수 없습니다.")
+    @Operation(summary = "채팅 메시지 삭제", description = "[v1.3.0] 사용자 또는 AI가 작성한 채팅 메시지를 삭제합니다.")
     @DeleteMapping("/{chatLogId}")
     public ApiResponse<ChatLogResponseDTO.ChatLogDeleteResponse> deleteChatLog(
             @PathVariable Long chatLogId,
