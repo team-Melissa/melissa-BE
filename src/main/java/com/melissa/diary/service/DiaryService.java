@@ -1,12 +1,16 @@
 package com.melissa.diary.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.domain.AiProfile;
+import com.melissa.diary.domain.DailyChatLog;
 import com.melissa.diary.domain.Diary;
 import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.domain.enums.Mood;
+import com.melissa.diary.domain.enums.Role;
 import com.melissa.diary.domain.enums.UsageCost;
 import com.melissa.diary.event.DiaryImageEvent;
 import com.melissa.diary.repository.AiProfileRepository;
@@ -15,18 +19,22 @@ import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.web.dto.DiaryRequestDTO;
 import com.melissa.diary.web.dto.DiaryResponseDTO;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * [v1.3.0] Diary 기반 일기 관리 서비스
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class DiaryService {
     
     private final DiaryRepository diaryRepository;
@@ -35,6 +43,24 @@ public class DiaryService {
     private final AiProfileRepository aiProfileRepository;
     private final QuotaService quotaService;
     private final ApplicationEventPublisher publisher;
+    private final ChatClient summaryClient;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    
+    public DiaryService(DiaryRepository diaryRepository, 
+                       UserRepository userRepository,
+                       ThreadRepository threadRepository,
+                       AiProfileRepository aiProfileRepository,
+                       QuotaService quotaService,
+                       ApplicationEventPublisher publisher,
+                       @Qualifier("summaryClient") ChatClient summaryClient) {
+        this.diaryRepository = diaryRepository;
+        this.userRepository = userRepository;
+        this.threadRepository = threadRepository;
+        this.aiProfileRepository = aiProfileRepository;
+        this.quotaService = quotaService;
+        this.publisher = publisher;
+        this.summaryClient = summaryClient;
+    }
     
     /**
      * 수동 일기 작성
@@ -84,6 +110,11 @@ public class DiaryService {
             }
         }
         
+        // LLM으로 해시태그 자동 생성
+        String hashtagPrompt = buildHashtagPrompt(request.getTitle(), request.getContent());
+        String llmHashtagResponse = summaryClient.prompt().user(hashtagPrompt).call().content();
+        HashtagData hashtagData = parseHashtagResponse(llmHashtagResponse);
+        
         // 일기 생성
         Diary diary = Diary.builder()
                 .user(user)
@@ -94,8 +125,8 @@ public class DiaryService {
                 .title(request.getTitle())
                 .content(request.getContent())
                 .mood(mood)
-                .hashtag1(request.getHashtag1())
-                .hashtag2(request.getHashtag2())
+                .hashtag1(hashtagData.getHashTag1())  // LLM 생성
+                .hashtag2(hashtagData.getHashTag2())  // LLM 생성
                 .imageUrl(null)  // 초기에는 null, 비동기로 생성
                 .version(1)
                 .isActive(true)
@@ -109,6 +140,81 @@ public class DiaryService {
         }
         
         log.info("[Diary] 수동 일기 작성 완료. userId={}, diaryId={}, year={}-{}-{}", 
+                userId, diary.getId(), request.getYear(), request.getMonth(), request.getDay());
+        
+        return buildDiaryResponse(diary);
+    }
+    
+    /**
+     * 채팅 기반 일기 생성
+     * - Thread의 채팅 로그를 LLM으로 요약
+     * - 제목, 내용, 해시태그 자동 생성
+     * - 이미지는 DALL-E로 생성 (비동기)
+     */
+    @Transactional
+    public DiaryResponseDTO.DiaryResponse createChatDiary(Long userId, 
+                                                         DiaryRequestDTO.ChatDiaryCreateRequest request) {
+        // 유저 검증 및 쿼터 체크
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+        quotaService.checkAndConsume(user, UsageCost.SUMMARY);
+        
+        // Thread 조회 (채팅 로그가 있어야 함)
+        Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(
+                userId, request.getAiProfileId(), 
+                request.getYear(), request.getMonth(), request.getDay())
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
+        
+        // 채팅 로그 조회 (USER role만)
+        List<DailyChatLog> chatLogs = thread.getDailyChatLogs().stream()
+                .filter(log -> Role.USER.equals(log.getRole()))
+                .collect(Collectors.toList());
+        
+        if (chatLogs.size() <= 2) {
+            throw new ErrorHandler(ErrorStatus.CHAT_NOT_FOUND);
+        }
+        
+        // 하루 최대 3개 제한 확인
+        int diaryCount = diaryRepository.countByUserIdAndYearAndMonthAndDayAndIsActive(
+                userId, request.getYear(), request.getMonth(), request.getDay(), true);
+        
+        if (diaryCount >= 3) {
+            throw new ErrorHandler(ErrorStatus.DIARY_MAX_COUNT_EXCEEDED);
+        }
+        
+        // LLM으로 채팅 로그 요약
+        String chatLogsPrompt = buildChatLogsPrompt(thread.getDailyChatLogs());
+        String summaryPrompt = buildSummaryPrompt(chatLogsPrompt);
+        String llmResponse = summaryClient.prompt().user(summaryPrompt).call().content();
+        
+        // JSON 파싱
+        DiaryData diaryData = parseLLMResponse(llmResponse);
+        
+        // 일기 생성
+        Diary diary = Diary.builder()
+                .user(user)
+                .thread(thread)
+                .year(request.getYear())
+                .month(request.getMonth())
+                .day(request.getDay())
+                .title(diaryData.getTitle())
+                .content(diaryData.getStory())
+                .mood(diaryData.getMood())
+                .hashtag1(diaryData.getHashTag1())
+                .hashtag2(diaryData.getHashTag2())
+                .imageUrl(null)  // 초기에는 null, 비동기로 생성
+                .version(1)
+                .isActive(true)
+                .build();
+        
+        diary = diaryRepository.save(diary);
+        
+        // 이미지 생성 요청 (비동기)
+        if (Boolean.TRUE.equals(request.getGenerateImage())) {
+            publisher.publishEvent(new DiaryImageEvent(diary.getId()));
+        }
+        
+        log.info("[Diary] 채팅 기반 일기 생성 완료. userId={}, diaryId={}, year={}-{}-{}", 
                 userId, diary.getId(), request.getYear(), request.getMonth(), request.getDay());
         
         return buildDiaryResponse(diary);
@@ -279,6 +385,158 @@ public class DiaryService {
         }
         
         return true;
+    }
+    
+    /**
+     * 채팅 로그를 프롬프트용 문자열로 변환
+     */
+    private String buildChatLogsPrompt(List<DailyChatLog> logs) {
+        return logs.stream()
+                .map(log -> {
+                    if (log.getRole() == Role.USER) {
+                        return "[User] " + log.getContent();
+                    } else {
+                        return "[Assistant] " + log.getContent();
+                    }
+                })
+                .collect(Collectors.joining("\n"));
+    }
+    
+    /**
+     * LLM 요약 프롬프트 생성
+     */
+    private String buildSummaryPrompt(String chatLogs) {
+        return """
+                오늘의 채팅 로그입니다: %s
+
+                위 대화를 오늘의 채팅로그를 기반으로 일기 형식으로 요약해 주세요.
+                - mood(HAPPY, SAD, TIRED, ANGRY, RELAX 중 하나)
+                - title(30자 이하, 유쾌하고 흥미로운 표현, 이모티콘 미사용)
+                - story(300자 이하, 일기 형식)
+                - hashTag1, hashTag2(주제 연관 해시태그)
+                                
+                아래 JSON 형식으로 꼭 답변해주세요:
+                                
+                {
+                  "mood": "...",
+                  "title": "...",
+                  "story": "...",
+                  "hashTag1": "...",
+                  "hashTag2": "..."
+                }
+                """.formatted(chatLogs);
+    }
+    
+    /**
+     * LLM 응답(JSON) 파싱
+     */
+    private DiaryData parseLLMResponse(String llmResponse) {
+        try {
+            int startIndex = llmResponse.indexOf("{");
+            int endIndex = llmResponse.lastIndexOf("}");
+            if (startIndex == -1 || endIndex == -1) {
+                throw new ErrorHandler(ErrorStatus.CALENDAR_PROCESSING_FAILED);
+            }
+            
+            String jsonContent = llmResponse.substring(startIndex, endIndex + 1);
+            JsonNode node = objectMapper.readTree(jsonContent);
+            
+            String title = node.has("title") ? node.get("title").asText() : null;
+            String moodStr = node.has("mood") ? node.get("mood").asText() : null;
+            String story = node.has("story") ? node.get("story").asText() : null;
+            String hashTag1 = node.has("hashTag1") ? node.get("hashTag1").asText() : null;
+            String hashTag2 = node.has("hashTag2") ? node.get("hashTag2").asText() : null;
+            
+            // Mood enum 변환 (기본값 HAPPY)
+            Mood mood = Mood.HAPPY;
+            if (moodStr != null) {
+                try {
+                    mood = Mood.valueOf(moodStr.toUpperCase().trim());
+                } catch (IllegalArgumentException e) {
+                    log.warn("[Diary] 유효하지 않은 mood 값: {}, 기본값 HAPPY 사용", moodStr);
+                    mood = Mood.HAPPY;
+                }
+            }
+            
+            return new DiaryData(title, story, mood, hashTag1, hashTag2);
+            
+        } catch (IOException e) {
+            log.error("[Diary] LLM 응답 파싱 실패", e);
+            throw new ErrorHandler(ErrorStatus.CALENDAR_PROCESSING_FAILED);
+        }
+    }
+    
+    /**
+     * 해시태그 생성 프롬프트 (Manual 일기용)
+     */
+    private String buildHashtagPrompt(String title, String content) {
+        StringBuilder prompt = new StringBuilder();
+        
+        if (title != null && !title.isBlank()) {
+            prompt.append("제목: ").append(title).append("\n");
+        }
+        prompt.append("내용: ").append(content).append("\n\n");
+        
+        return prompt.append("""
+                위 일기 내용을 바탕으로 주제와 연관된 해시태그 2개를 생성해주세요.
+                - 각 해시태그는 30자 이하
+                - # 기호는 포함하지 마세요
+                
+                아래 JSON 형식으로 꼭 답변해주세요:
+                {
+                  "hashTag1": "...",
+                  "hashTag2": "..."
+                }
+                """).toString();
+    }
+    
+    /**
+     * 해시태그 LLM 응답 파싱
+     */
+    private HashtagData parseHashtagResponse(String llmResponse) {
+        try {
+            int startIndex = llmResponse.indexOf("{");
+            int endIndex = llmResponse.lastIndexOf("}");
+            if (startIndex == -1 || endIndex == -1) {
+                log.warn("[Diary] 해시태그 파싱 실패, 기본값 사용");
+                return new HashtagData("일상", "기록");
+            }
+            
+            String jsonContent = llmResponse.substring(startIndex, endIndex + 1);
+            JsonNode node = objectMapper.readTree(jsonContent);
+            
+            String hashTag1 = node.has("hashTag1") ? node.get("hashTag1").asText() : "일상";
+            String hashTag2 = node.has("hashTag2") ? node.get("hashTag2").asText() : "기록";
+            
+            return new HashtagData(hashTag1, hashTag2);
+            
+        } catch (IOException e) {
+            log.warn("[Diary] 해시태그 파싱 실패, 기본값 사용. error={}", e.getMessage());
+            return new HashtagData("일상", "기록");
+        }
+    }
+    
+    /**
+     * LLM 응답 파싱 결과를 담는 내부 클래스 (Chat 일기용)
+     */
+    @lombok.Getter
+    @lombok.AllArgsConstructor
+    private static class DiaryData {
+        private final String title;
+        private final String story;
+        private final Mood mood;
+        private final String hashTag1;
+        private final String hashTag2;
+    }
+    
+    /**
+     * 해시태그 파싱 결과를 담는 내부 클래스 (Manual 일기용)
+     */
+    @lombok.Getter
+    @lombok.AllArgsConstructor
+    private static class HashtagData {
+        private final String hashTag1;
+        private final String hashTag2;
     }
 }
 

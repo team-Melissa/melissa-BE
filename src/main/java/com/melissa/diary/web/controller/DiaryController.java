@@ -25,6 +25,19 @@ public class DiaryController {
     
     private final DiaryService diaryService;
     
+    @Operation(summary = "채팅 기반 일기 생성", 
+               description = "[v1.3.0] Thread의 채팅 로그를 LLM으로 요약하여 일기를 자동 생성합니다. 제목, 내용, 해시태그가 자동 생성됩니다.")
+    @PostMapping("/from-chat")
+    public ApiResponse<DiaryResponseDTO.DiaryResponse> createChatDiary(
+            @Valid @RequestBody DiaryRequestDTO.ChatDiaryCreateRequest request,
+            Principal principal) {
+        
+        Long userId = Long.parseLong(principal.getName());
+        DiaryResponseDTO.DiaryResponse response = diaryService.createChatDiary(userId, request);
+        
+        return ApiResponse.onSuccess(response);
+    }
+    
     @Operation(summary = "수동 일기 작성", 
                description = "[v1.3.0] 사용자가 직접 작성한 일기를 저장합니다. 이미지는 DALL-E로 자동 생성됩니다.")
     @PostMapping("/manual")
