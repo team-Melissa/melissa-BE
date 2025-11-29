@@ -20,6 +20,12 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
             Long userId, int year, int month, boolean isActive);
     
     /**
+     * 특정 날짜의 모든 사용자의 활성화된 일기 조회 (스케줄러용)
+     */
+    List<Diary> findAllByYearAndMonthAndDayAndIsActiveOrderByCreatedAtDesc(
+            int year, int month, int day, boolean isActive);
+    
+    /**
      * 하루 최대 3개 제약 확인용
      */
     int countByUserIdAndYearAndMonthAndDayAndIsActive(
