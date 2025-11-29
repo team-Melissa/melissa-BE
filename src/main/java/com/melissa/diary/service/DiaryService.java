@@ -44,6 +44,7 @@ public class DiaryService {
     private final QuotaService quotaService;
     private final ApplicationEventPublisher publisher;
     private final ChatClient summaryClient;
+    private final ChatClient hashtagClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     public DiaryService(DiaryRepository diaryRepository, 
@@ -52,7 +53,8 @@ public class DiaryService {
                        AiProfileRepository aiProfileRepository,
                        QuotaService quotaService,
                        ApplicationEventPublisher publisher,
-                       @Qualifier("summaryClient") ChatClient summaryClient) {
+                       @Qualifier("summaryClient") ChatClient summaryClient,
+                       @Qualifier("hashtagClient") ChatClient hashtagClient) {
         this.diaryRepository = diaryRepository;
         this.userRepository = userRepository;
         this.threadRepository = threadRepository;
@@ -60,6 +62,7 @@ public class DiaryService {
         this.quotaService = quotaService;
         this.publisher = publisher;
         this.summaryClient = summaryClient;
+        this.hashtagClient = hashtagClient;
     }
     
     /**
@@ -112,7 +115,7 @@ public class DiaryService {
         
         // LLM으로 해시태그 자동 생성
         String hashtagPrompt = buildHashtagPrompt(request.getTitle(), request.getContent());
-        String llmHashtagResponse = summaryClient.prompt().user(hashtagPrompt).call().content();
+        String llmHashtagResponse = hashtagClient.prompt().user(hashtagPrompt).call().content();
         HashtagData hashtagData = parseHashtagResponse(llmHashtagResponse);
         
         // 일기 생성
@@ -403,27 +406,16 @@ public class DiaryService {
     }
     
     /**
-     * LLM 요약 프롬프트 생성
+     * LLM 요약 프롬프트 생성 (user 프롬프트)
+     * 시스템 프롬프트는 AiConfig의 summaryClient에 정의됨
      */
     private String buildSummaryPrompt(String chatLogs) {
         return """
-                오늘의 채팅 로그입니다: %s
-
-                위 대화를 오늘의 채팅로그를 기반으로 일기 형식으로 요약해 주세요.
-                - mood(HAPPY, SAD, TIRED, ANGRY, RELAX 중 하나)
-                - title(30자 이하, 유쾌하고 흥미로운 표현, 이모티콘 미사용)
-                - story(300자 이하, 일기 형식)
-                - hashTag1, hashTag2(주제 연관 해시태그)
-                                
-                아래 JSON 형식으로 꼭 답변해주세요:
-                                
-                {
-                  "mood": "...",
-                  "title": "...",
-                  "story": "...",
-                  "hashTag1": "...",
-                  "hashTag2": "..."
-                }
+                오늘의 채팅 로그입니다:
+                
+                %s
+                
+                위 대화를 일기 형식으로 요약해주세요.
                 """.formatted(chatLogs);
     }
     
@@ -468,6 +460,7 @@ public class DiaryService {
     
     /**
      * 해시태그 생성 프롬프트 (Manual 일기용)
+     * 시스템 프롬프트는 AiConfig의 hashtagClient에 정의됨
      */
     private String buildHashtagPrompt(String title, String content) {
         StringBuilder prompt = new StringBuilder();
@@ -475,19 +468,9 @@ public class DiaryService {
         if (title != null && !title.isBlank()) {
             prompt.append("제목: ").append(title).append("\n");
         }
-        prompt.append("내용: ").append(content).append("\n\n");
+        prompt.append("내용: ").append(content);
         
-        return prompt.append("""
-                위 일기 내용을 바탕으로 주제와 연관된 해시태그 2개를 생성해주세요.
-                - 각 해시태그는 30자 이하
-                - # 기호는 포함하지 마세요
-                
-                아래 JSON 형식으로 꼭 답변해주세요:
-                {
-                  "hashTag1": "...",
-                  "hashTag2": "..."
-                }
-                """).toString();
+        return prompt.toString();
     }
     
     /**
