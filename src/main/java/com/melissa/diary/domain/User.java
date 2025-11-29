@@ -73,12 +73,6 @@ public class User {
     @Builder.Default
     private List<Thread> threadList = new ArrayList<>();
 
-    // v1.3.0: Deprecated - 임시 유지 (Service 완성 후 제거)
-    @Deprecated
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<AiProfile> aiProfileList = new ArrayList<>();
-
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @Builder.Default
     private List<Diary> diaryList = new ArrayList<>();
@@ -101,12 +95,6 @@ public class User {
     public void addThread(Thread thread) {
         threadList.add(thread);
         thread.setUser(this);
-    }
-
-    @Deprecated
-    public void addAiProfile(AiProfile aiProfile) {
-        aiProfileList.add(aiProfile);
-        aiProfile.setUser(this);
     }
 
     public void addDiary(Diary diary) {

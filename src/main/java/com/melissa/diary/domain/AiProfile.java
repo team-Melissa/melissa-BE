@@ -7,9 +7,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 /**
- * v1.3.0: 서버 제공 웰메이드 캐릭터 5종 마스터 데이터
- * User 연관관계 제거, 서버 관리 캐릭터로 변경
- * (Deprecated 필드는 임시로 유지 - Service 완성 후 제거 예정)
+ * v1.3.0: AI 프로필 (사용자별 캐릭터 관리)
+ * - 서버 기본 제공 프로필 + 사용자 커스텀 프로필 지원
+ * - defaultId가 null이 아니면 기본 제공 프로필
  */
 @Entity
 @Table(name = "ai_profile", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "default_id"}))
@@ -69,24 +69,18 @@ public class AiProfile {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    // ========== v1.3.0: Deprecated 필드 (임시 유지, Service 완성 후 제거) ==========
-    @Deprecated
-    @Column(name = "last_used_at")
-    private LocalDateTime lastUsedAt;
-
-    @Deprecated
+    // v1.3.0: 사용자별 프로필 관리 (권한 검증용)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Deprecated
+    // 서버 기본 제공 프로필 판별용 (null이 아니면 기본 프로필)
     @Column(name = "default_id")
     private Long defaultId;
 
-    @Deprecated
+    // Soft delete용
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
-    // ========== Deprecated 필드 끝 ==========
 
 }
