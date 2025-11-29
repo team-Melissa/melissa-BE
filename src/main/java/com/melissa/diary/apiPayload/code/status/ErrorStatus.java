@@ -65,7 +65,13 @@ public enum ErrorStatus implements BaseErrorCode {
     // Expo Push Token
     EXPO_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "EXPO4001", "해당 Expo Push Token을 찾을 수 없습니다."),
     EXPO_TOKEN_ALREADY_EXISTS(HttpStatus.CONFLICT, "EXPO4002", "이미 등록된 Expo Push Token입니다."),
-    EXPO_TOKEN_INVALID_FORMAT(HttpStatus.BAD_REQUEST, "EXPO4003", "유효하지 않은 Expo Push Token 형식입니다.");
+    EXPO_TOKEN_INVALID_FORMAT(HttpStatus.BAD_REQUEST, "EXPO4003", "유효하지 않은 Expo Push Token 형식입니다."),
+
+    // Diary (v1.3.0)
+    DIARY_NOT_FOUND(HttpStatus.NOT_FOUND, "DIARY4001", "해당 일기를 찾을 수 없습니다."),
+    DIARY_FORBIDDEN(HttpStatus.FORBIDDEN, "DIARY4002", "해당 일기에 접근할 권한이 없습니다."),
+    DIARY_ALREADY_DELETED(HttpStatus.BAD_REQUEST, "DIARY4003", "이미 삭제된 일기입니다."),
+    DIARY_MAX_COUNT_EXCEEDED(HttpStatus.BAD_REQUEST, "DIARY4004", "하루 최대 3개까지만 일기를 작성할 수 있습니다.");
 
 
 
