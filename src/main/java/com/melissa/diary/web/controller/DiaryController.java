@@ -2,9 +2,11 @@ package com.melissa.diary.web.controller;
 
 import com.melissa.diary.apiPayload.ApiResponse;
 import com.melissa.diary.service.DiaryService;
+import com.melissa.diary.web.dto.DiaryRequestDTO;
 import com.melissa.diary.web.dto.DiaryResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +24,19 @@ import java.security.Principal;
 public class DiaryController {
     
     private final DiaryService diaryService;
+    
+    @Operation(summary = "일기 수정", description = "[v1.3.0] 일기를 수정합니다. null이 아닌 필드만 업데이트됩니다.")
+    @PutMapping("/{diaryId}")
+    public ApiResponse<DiaryResponseDTO.DiaryResponse> updateDiary(
+            @PathVariable Long diaryId,
+            @Valid @RequestBody DiaryRequestDTO.DiaryUpdateRequest request,
+            Principal principal) {
+        
+        Long userId = Long.parseLong(principal.getName());
+        DiaryResponseDTO.DiaryResponse response = diaryService.updateDiary(userId, diaryId, request);
+        
+        return ApiResponse.onSuccess(response);
+    }
     
     @Operation(summary = "일기 삭제", description = "[v1.3.0] 일기를 삭제합니다. (소프트 삭제)")
     @DeleteMapping("/{diaryId}")
