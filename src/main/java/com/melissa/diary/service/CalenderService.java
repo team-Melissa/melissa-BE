@@ -2,88 +2,154 @@ package com.melissa.diary.service;
 
 import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
-import com.melissa.diary.converter.ThreadConverter;
-import com.melissa.diary.domain.Thread;
+import com.melissa.diary.converter.DiaryConverter;
+import com.melissa.diary.domain.Diary;
 import com.melissa.diary.domain.User;
-import com.melissa.diary.repository.ThreadRepository;
+import com.melissa.diary.repository.DiaryRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.web.dto.CalenderResponseDTO;
-import com.melissa.diary.domain.Thread;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * [v1.3.0] Diary 기반 달력 서비스
+ * - 하루에 여러 일기 지원 (최대 3개)
+ * - 날짜별 그룹화 및 정렬
+ */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CalenderService {
 
-    private final ThreadRepository threadRepository;
+    private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
 
+    /**
+     * 특정 날짜의 일기 상세 조회 (최대 3개)
+     */
     @Transactional(readOnly = true)
-    public CalenderResponseDTO.dailySummaryResponseDTO getDailySummary(Long userId, int year, int month, int day) {
-        // 실제 등록된 유저인지 보호
-        User user = getUser(userId);
+    public CalenderResponseDTO.DailySummaryResponseDTO getDailySummary(Long userId, int year, int month, int day) {
+        // 유저 검증
+        getUser(userId);
 
         if (!isValidDate(year, month, day)) {
             throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_DATE);
         }
 
-        Thread thread = threadRepository.findByUserIdAndYearAndMonthAndDay(userId, year, month, day)
-                .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
+        // 해당 날짜의 활성화된 일기 조회 (최대 3개)
+        List<Diary> diaries = diaryRepository.findAllByUserIdAndYearAndMonthAndDayAndIsActiveOrderByCreatedAtDesc(
+                userId, year, month, day, true);
 
-        if (!thread.getUser().getId().equals(userId)) {
-            throw new ErrorHandler(ErrorStatus.CALENDAR_FORBIDDEN);
-        }
+        // 일기가 없어도 빈 배열로 반환 (에러 발생하지 않음)
+        List<CalenderResponseDTO.DiaryDetailDTO> diaryDetails = diaries.stream()
+                .limit(3) // 최대 3개로 제한
+                .map(DiaryConverter::toDiaryDetailDTO)
+                .collect(Collectors.toList());
 
-        return ThreadConverter.toDailySummaryResponseDTO(thread);
+        return CalenderResponseDTO.DailySummaryResponseDTO.builder()
+                .year(year)
+                .month(month)
+                .day(day)
+                .diaries(diaryDetails)
+                .build();
     }
 
+    /**
+     * 월간 미리보기 조회 (날짜별 그룹화)
+     */
     @Transactional(readOnly = true)
-    public List<CalenderResponseDTO.dailyResponseDTO> getMonthlySummary(Long userId, int year, int month) {
-
-        // 실제 등록된 유저인지 보호
-        User user = getUser(userId);
+    public List<CalenderResponseDTO.DailyPreviewResponseDTO> getMonthlySummary(Long userId, int year, int month) {
+        // 유저 검증
+        getUser(userId);
 
         if (!isValidMonth(year, month)) {
             throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_DATE);
         }
 
-        List<Thread> threads = threadRepository.findByUserIdAndYearAndMonth(userId, year, month);
+        // 해당 월의 모든 활성화된 일기 조회
+        List<Diary> diaries = diaryRepository.findAllByUserIdAndYearAndMonthAndIsActiveOrderByDayAscCreatedAtDesc(
+                userId, year, month, true);
 
-        if (threads.isEmpty()) {
-            throw new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND);
-        }
+        // 날짜별로 그룹화 (day를 키로 사용)
+        Map<Integer, List<Diary>> diariesByDay = diaries.stream()
+                .collect(Collectors.groupingBy(
+                        Diary::getDay,
+                        LinkedHashMap::new, // 순서 유지
+                        Collectors.toList()
+                ));
 
-        return threads.stream()
-                .map(ThreadConverter::toDailyResponseDTO)
+        // 각 날짜별로 DailyPreviewResponseDTO 생성
+        return diariesByDay.entrySet().stream()
+                .map(entry -> {
+                    int day = entry.getKey();
+                    List<Diary> dayDiaries = entry.getValue();
+                    
+                    // 최대 3개로 제한하고 DiaryPreviewDTO로 변환
+                    List<CalenderResponseDTO.DiaryPreviewDTO> previews = dayDiaries.stream()
+                            .limit(3)
+                            .map(DiaryConverter::toDiaryPreviewDTO)
+                            .collect(Collectors.toList());
+
+                    return CalenderResponseDTO.DailyPreviewResponseDTO.builder()
+                            .year(year)
+                            .month(month)
+                            .day(day)
+                            .diaries(previews)
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 월간 전체 조회 (날짜별 상세 정보 포함)
+     */
     @Transactional(readOnly = true)
-    public List<CalenderResponseDTO.dailySummaryResponseDTO> getMonthlyView(Long userId, int year, int month) {
-
-        // 실제 등록된 유저인지 보호
-        User user = getUser(userId);
+    public List<CalenderResponseDTO.DailySummaryResponseDTO> getMonthlyView(Long userId, int year, int month) {
+        // 유저 검증
+        getUser(userId);
 
         if (!isValidMonth(year, month)) {
             throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_DATE);
         }
 
-        List<Thread> threads = threadRepository.findByUserIdAndYearAndMonth(userId, year, month);
+        // 해당 월의 모든 활성화된 일기 조회
+        List<Diary> diaries = diaryRepository.findAllByUserIdAndYearAndMonthAndIsActiveOrderByDayAscCreatedAtDesc(
+                userId, year, month, true);
 
-        if (threads.isEmpty()) {
-            throw new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND);
-        }
+        // 날짜별로 그룹화
+        Map<Integer, List<Diary>> diariesByDay = diaries.stream()
+                .collect(Collectors.groupingBy(
+                        Diary::getDay,
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
 
-        return threads.stream()
-                .map(ThreadConverter::toDailySummaryResponseDTO)
+        // 각 날짜별로 DailySummaryResponseDTO 생성
+        return diariesByDay.entrySet().stream()
+                .map(entry -> {
+                    int day = entry.getKey();
+                    List<Diary> dayDiaries = entry.getValue();
+                    
+                    // 최대 3개로 제한하고 DiaryDetailDTO로 변환
+                    List<CalenderResponseDTO.DiaryDetailDTO> details = dayDiaries.stream()
+                            .limit(3)
+                            .map(DiaryConverter::toDiaryDetailDTO)
+                            .collect(Collectors.toList());
+
+                    return CalenderResponseDTO.DailySummaryResponseDTO.builder()
+                            .year(year)
+                            .month(month)
+                            .day(day)
+                            .diaries(details)
+                            .build();
+                })
                 .collect(Collectors.toList());
     }
-
 
     private boolean isValidDate(int year, int month, int day) {
         if (month < 1 || month > 12) return false;
@@ -102,10 +168,11 @@ public class CalenderService {
 
         return true;
     }
+
     @Transactional(readOnly = true)
     public User getUser(Long userId) {
-        // db에 해당 유저 없으면 에러던지기(탈퇴 보호)
-        return userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
     }
 
     private boolean isValidMonth(int year, int month) {
