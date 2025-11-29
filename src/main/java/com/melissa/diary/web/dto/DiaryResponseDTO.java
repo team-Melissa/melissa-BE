@@ -39,7 +39,7 @@ public class DiaryResponseDTO {
         private String mood;
         private String hashtag1;
         private String hashtag2;
-        private String imageUrl;
+        private String imageUrl;  // 초기에는 null, 비동기로 생성됨
         private int version;
         private LocalDateTime createdAt;
     }
