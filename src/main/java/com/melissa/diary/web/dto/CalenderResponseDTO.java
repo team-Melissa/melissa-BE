@@ -72,37 +72,4 @@ public class CalenderResponseDTO {
         private int day;
         private List<DiaryPreviewDTO> diaries;
     }
-    
-    // ============== [Deprecated] 기존 DTO (Thread 기반) ==============
-    
-    @Deprecated
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class dailySummaryResponseDTO {
-        private int year;
-        private int month;
-        private int day;
-        private String summaryTitle;
-        private String summaryMood;
-        private String summaryContent;
-        private String hashTag1;
-        private String hashTag2;
-        private String imageS3;
-    }
-
-    @Deprecated
-    @Getter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class dailyResponseDTO{
-        private int year;
-        private int month;
-        private int day;
-        private String hashTag1;
-        private String hashTag2;
-        private String imageS3;
-    }
 }
