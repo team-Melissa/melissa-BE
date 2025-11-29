@@ -18,7 +18,7 @@ public class DiaryImageListener {
     
     private final DiaryImageService diaryImageService;
     
-    @Async
+    @Async("asyncTaskExecutor")
     @EventListener
     public void handleDiaryImageEvent(DiaryImageEvent event) {
         log.info("[DiaryImageListener] 이미지 생성 시작. diaryId={}", event.getDiaryId());
