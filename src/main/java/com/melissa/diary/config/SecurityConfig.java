@@ -12,6 +12,8 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -39,10 +41,9 @@ public class SecurityConfig {
                     )
 
                     .authorizeHttpRequests((authorizeRequests) ->
-                            authorizeRequests
-                                    .requestMatchers("/health","/api/v1/auth/**",
+                            authorizeRequests.requestMatchers("/health","/api/v1/auth/**",
                                             "/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/test/**").permitAll()
-                                    .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+
                                     .anyRequest().authenticated()
                     )
                     .exceptionHandling((exceptionConfig) ->
@@ -75,4 +76,15 @@ public class SecurityConfig {
                 writer.flush();
 
             };
+
+    /**
+     * Spring Security의 기본 InMemoryUserDetailsManager 자동 생성을 비활성화
+     * JWT 기반 인증만 사용하므로 UserDetailsService는 필요하지 않음
+     */
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> {
+            throw new UsernameNotFoundException("JWT 인증만 사용합니다. UserDetailsService는 비활성화되어 있습니다.");
+        };
+    }
 }
