@@ -377,26 +377,32 @@ public class ThreadService {
         prompt.append("너는 아래와 같은 성격을 지녔어. 새 사용자의 입력을 이 성격을 기반으로 생성해야해 : \n");
         prompt.append(aiProfile.getPromptText());
 
-        // * 시스템 메시지에 위 프로필 정보들을 모두 적었음. 이제는 채팅내역을 기반으로 다음 대화내용을 알려달라고 하면됨.
         prompt.append("""
-                기존의 대화 기록을 줄게. 너는 너의 성격을 기반으로 사용자 입력에 알맞는 적절한 다음 답변을 생성해줘.
+                
+                ## 답변 가이드라인
+                1. 너의 성격을 기반으로 사용자 입력에 자연스럽게 답변해줘.
+                2. 과도하게 흥분하거나 들뜬 톤 대신 친근하고 편안한 대화를 유지해줘.
+                3. 이모지는 답변당 최대 1개만 사용하고, 없어도 괜찮아.
                 """);
 
-        if (aiProfile.getQ2().contains("짧")){ // 답변 길이에 더 강력한 rule 프롬프트에 추가 적용
+        if (aiProfile.getQ2().contains("짧")){ 
             prompt.append("""
-                답변은 한글 문자 수 기준, 공백 포함 최대 40자로 작성해줘.
+                4. 답변 길이: UTF-8 기준 100-150바이트 이내 (한글 약 30-50자, 공백 포함)
+                5. 짧고 간결하게, 핵심만 전달해줘.
                 """);
         } else {
             prompt.append("""
-                    답변은 한글 문자 수 기준, 공백 포함 최대 150자로 작성해줘.
-                    """);
+                4. 답변 길이: UTF-8 기준 300-500바이트 이내 (한글 약 100-170자, 공백 포함)
+                5. 자연스럽게 대화하되, 너무 길지 않게 적당히 끊어줘.
+                """);
         }
 
         // 기존 채팅 내역 추가
         if (!chatHistory.isEmpty()) {
-            prompt.append("대화 기록:\n");
+            prompt.append("\n## 오늘의 대화 기록\n");
             for (DailyChatLog log : chatHistory) {
-                prompt.append(log.getRole().name())
+                String role = log.getRole() == com.melissa.diary.domain.enums.Role.USER ? "사용자" : "나";
+                prompt.append(role)
                         .append(": ")
                         .append(log.getContent())
                         .append("\n");
@@ -404,9 +410,9 @@ public class ThreadService {
         }
 
         // 새 사용자 입력 추가
-        prompt.append("사용자 입력: ")
+        prompt.append("\n## 새로운 사용자 메시지\n사용자: ")
                 .append(userMessage)
-                .append("\nAI: ");
+                .append("\n\n나: ");
 
         return prompt.toString();
     }
@@ -418,21 +424,23 @@ public class ThreadService {
     private String buildAiChatPromptV2(Long userId, String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
         StringBuilder prompt = new StringBuilder();
 
-        prompt.append("너는 아래와 같은 성격을 지녔어. 새 사용자의 입력을 이 성격을 기반으로 생성해야해 : \n");
-        prompt.append(aiProfile.getPromptText());
-
         prompt.append("""
-                기존의 대화 기록을 줄게. 너는 너의 성격을 기반으로 사용자 입력에 알맞는 적절한 다음 답변을 생성해줘.
+                ## 답변 가이드라인 (추가 강화)
+                1. 과도하게 흥분하거나 들뜬 톤 대신 친근하고 편안한 대화를 유지해줘.
+                2. 이모지는 답변당 최대 1-2개만 사용하고, 없어도 괜찮아.
                 """);
 
-        if (aiProfile.getQ2().contains("짧")){
+        // 답변 길이는 System Prompt의 {q2}에서 관리되지만, 바이트 기준으로 구체화
+        if (aiProfile.getQ2().contains("짧")){ 
             prompt.append("""
-                답변은 한글 문자 수 기준, 공백 포함 최대 40자로 작성해줘.
+                3. 답변 길이 기준: UTF-8 기준 100-150바이트 이내 (한글 약 30-50자, 공백 포함)
+                4. 짧고 간결하게, 핵심만 전달해줘.
                 """);
         } else {
             prompt.append("""
-                    답변은 한글 문자 수 기준, 공백 포함 최대 150자로 작성해줘.
-                    """);
+                3. 답변 길이 기준: UTF-8 기준 300-500바이트 이내 (한글 약 100-170자, 공백 포함)
+                4. 자연스럽게 대화하되, 너무 길지 않게 적당히 끊어줘.
+                """);
         }
 
         // ======== v2: UserMemory 통합 (항상 포함) ========
@@ -442,10 +450,16 @@ public class ThreadService {
             try {
                 com.melissa.diary.domain.UserMemory userMemory = userMemoryService.getUserMemoryReadOnly(userId);
                 if (userMemory != null && userMemory.getMemoryContent() != null && !userMemory.getMemoryContent().trim().isEmpty()) {
-                    prompt.append("\n\n=== 사용자에 대해 알고 있는 기억 ===\n");
+                    prompt.append("\n\n=== 사용자에 대해 알고 있는 장기 기억 ===\n");
                     prompt.append(userMemory.getMemoryContent());
                     prompt.append("\n=== 기억 끝 ===\n\n");
-                    prompt.append("위 기억을 자연스럽게 활용하되, 직접 언급하지 말고 대화 맥락에 스며들게 활용해줘.\n");
+                    prompt.append("""
+                            ## 기억 활용 가이드
+                            - 사용자가 관련 주제를 언급하면 위 기억을 자연스럽게 활용해줘.
+                            - "기억하고 있어", "저번에 말했지" 같은 직접적 언급은 피하고, 자연스럽게 녹여서 대화해.
+                            - 사용자가 물어보면 기억한 내용을 구체적으로 답변해줘.
+                            - 기억에 없는 내용은 솔직하게 모른다고 해도 괜찮아.
+                            """);
                     
                     log.info("[ThreadService] UserMemory 프롬프트 포함 완료. userId={}", userId);
                 }
@@ -457,9 +471,10 @@ public class ThreadService {
 
         // 기존 채팅 내역 추가
         if (!chatHistory.isEmpty()) {
-            prompt.append("대화 기록:\n");
+            prompt.append("\n## 오늘의 대화 기록\n");
             for (DailyChatLog log : chatHistory) {
-                prompt.append(log.getRole().name())
+                String role = log.getRole() == com.melissa.diary.domain.enums.Role.USER ? "사용자" : "나";
+                prompt.append(role)
                         .append(": ")
                         .append(log.getContent())
                         .append("\n");
@@ -467,25 +482,13 @@ public class ThreadService {
         }
 
         // 새 사용자 입력 추가
-        prompt.append("사용자 입력: ")
+        prompt.append("\n## 새로운 사용자 메시지\n사용자: ")
                 .append(userMessage)
-                .append("\nAI: ");
+                .append("\n\n나: ");
 
         return prompt.toString();
     }
     
-    /**
-     * v2 helper: 오늘의 대화 내용 요약 (주제 변경 감지용)
-     */
-    private String buildTodayConversationSummary(List<DailyChatLog> chatHistory) {
-        return chatHistory.stream()
-                .sorted(Comparator.comparing(DailyChatLog::getCreatedAt))
-                .map(log -> {
-                    String role = log.getRole() == com.melissa.diary.domain.enums.Role.USER ? "[사용자]" : "[AI]";
-                    return role + " " + log.getContent();
-                })
-                .collect(java.util.stream.Collectors.joining("\n"));
-    }
 
     //해당 날짜(Thread)의 채팅메시지 조회
     @Transactional(readOnly = true)
