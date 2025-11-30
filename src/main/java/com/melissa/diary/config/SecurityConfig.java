@@ -39,9 +39,10 @@ public class SecurityConfig {
                     )
 
                     .authorizeHttpRequests((authorizeRequests) ->
-                            authorizeRequests.requestMatchers("/health","/api/v1/auth/**",
+                            authorizeRequests
+                                    .requestMatchers("/health","/api/v1/auth/**",
                                             "/v3/api-docs/**", "/swagger-ui/**", "/swagger-resources/**", "/test/**").permitAll()
-
+                                    .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                                     .anyRequest().authenticated()
                     )
                     .exceptionHandling((exceptionConfig) ->
