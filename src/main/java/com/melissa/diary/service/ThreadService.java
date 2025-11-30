@@ -126,9 +126,9 @@ public class ThreadService {
         Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(userId, aiProfileId, year, month, day)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
 
-        // 해당 스레드가 유저의 것이 아니라면 숨겨짐 에러
+        // 해당 스레드가 유저의 것이 아니라면 권한 에러
         if(!thread.getUser().getId().equals(userId)){
-            throw new ErrorHandler(ErrorStatus.CALENDAR_FORBIDDEN);
+            throw new ErrorHandler(ErrorStatus.THREAD_FORBIDDEN);
         }
 
         ThreadResponseDTO.ThreadResponse response = ThreadResponseDTO.ThreadResponse.builder()
@@ -253,7 +253,7 @@ public class ThreadService {
 
         // 스레드 소유자 체크
         if (!thread.getUser().getId().equals(userId)) {
-            throw new ErrorHandler(ErrorStatus.CALENDAR_FORBIDDEN);
+            throw new ErrorHandler(ErrorStatus.THREAD_FORBIDDEN);
         }
 
         // AI 프로필 및 채팅 내역 가져오기
@@ -329,7 +329,7 @@ public class ThreadService {
 
         // Thread가 유저의 것인지 체크
         if (!thread.getUser().getId().equals(userId)) {
-            throw new ErrorHandler(ErrorStatus.CALENDAR_FORBIDDEN);
+            throw new ErrorHandler(ErrorStatus.THREAD_FORBIDDEN);
         }
 
         // Thread에 종속된 모든 채팅 로그

@@ -5,6 +5,7 @@ import com.melissa.diary.service.ThreadService;
 import com.melissa.diary.web.dto.ThreadRequestDTO;
 import com.melissa.diary.web.dto.ThreadResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,13 @@ public class ThreadController {
 
     private final ThreadService threadService;
 
-    @Operation(description = "해당 날짜의 채팅 스레드를 생성합니다. 기존에 존재 시, 같은 threadId 리턴")
+    @Operation(summary = "채팅 스레드 생성",
+               description = "해당 날짜의 채팅 스레드를 생성합니다. 기존에 존재 시, 같은 threadId 리턴")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "THREAD4001: 해당 날짜의 스레드가 이미 존재"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / PROFILE4002: AI 프로필을 찾을 수 없음")
+    })
     @PostMapping
     public ApiResponse<ThreadResponseDTO.ThreadResponse> createThread(
             @RequestParam(name = "aiProfileId") Long aiProfileId,
@@ -40,7 +47,13 @@ public class ThreadController {
         return ApiResponse.onSuccess(response);
     }
 
-    @Operation(description = "해당 날짜의 스레드를 삭제합니다.")
+    @Operation(summary = "채팅 스레드 삭제",
+               description = "해당 날짜의 스레드와 연결된 채팅 로그, 일기를 모두 삭제합니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "CALENDAR4002: 스레드에 접근할 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / CALENDAR4001: 스레드를 찾을 수 없음")
+    })
     @DeleteMapping
     public ApiResponse<ThreadResponseDTO.ThreadResponse> deleteThread(
             @RequestParam(name = "aiProfileId") Long aiProfileId,
@@ -56,8 +69,14 @@ public class ThreadController {
         return ApiResponse.onSuccess(response);
     }
 
-    // 🔹 SSE 기반 AI 응답 스트리밍 API
-    @Operation(description = "AI에게 채팅 메시지를 전송하고, SSE로 실시간 응답을 받습니다.")
+    @Operation(summary = "AI 채팅 메시지 전송 (SSE 스트리밍)",
+               description = "AI에게 채팅 메시지를 전송하고, SSE로 실시간 응답을 받습니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "CALENDAR4002: 스레드에 접근할 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / CALENDAR4001: 스레드를 찾을 수 없음 / PROFILE4002: AI 프로필을 찾을 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "QUOTA4001: 일일 사용량 초과")
+    })
     @PostMapping(value = "/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> messageToAi(
             @RequestBody ThreadRequestDTO.AiChatRequest request,
@@ -67,8 +86,13 @@ public class ThreadController {
         return threadService.messageToAi(userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay(), request.getContent());
     }
 
-    // 해당 날짜(Thread)의 채팅메시지 조회
-    @Operation(description = "해당 날짜(Thread)의 채팅 메시지 조회")
+    @Operation(summary = "채팅 메시지 조회",
+               description = "해당 날짜(Thread)의 채팅 메시지를 조회합니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "CALENDAR4002: 스레드에 접근할 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / CALENDAR4001: 스레드를 찾을 수 없음")
+    })
     @GetMapping
     public ApiResponse<ThreadResponseDTO.ChatListResponse> getMessages(
             @RequestParam(name = "aiProfileId") Long aiProfileId,
