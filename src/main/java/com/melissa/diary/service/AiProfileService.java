@@ -5,28 +5,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.melissa.diary.ai.ImageGenerator;
 import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
-import com.melissa.diary.aws.s3.AmazonS3Manager;
 import com.melissa.diary.converter.AiProfileConverter;
 import com.melissa.diary.domain.AiProfile;
 import com.melissa.diary.domain.DefaultAiProfile;
 import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.User;
-import com.melissa.diary.domain.Uuid;
 import com.melissa.diary.domain.enums.UsageCost;
 import com.melissa.diary.repository.AiProfileRepository;
 import com.melissa.diary.repository.DefaultAiProfileRepository;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
-import com.melissa.diary.repository.UuidRepository;
 import com.melissa.diary.web.dto.AiProfileRequestDTO;
 import com.melissa.diary.web.dto.AiProfileResponseDTO;
-import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class AiProfileService {
@@ -148,7 +138,7 @@ public class AiProfileService {
         // 정상적인 유저인지 보호
         User user = getUser(userId);
 
-        List<AiProfile> aiProfileList = aiProfileRepository.findActiveProfilesOrderByLastUsed(userId);
+        List<AiProfile> aiProfileList = aiProfileRepository.findActiveProfilesOrderById(userId);
 
         return aiProfileList.stream().map(AiProfileConverter::toResponse).toList();
     }
@@ -294,10 +284,22 @@ public class AiProfileService {
     }
 
     public AiProfileResponseDTO.AiProfileResponse getRecentAiProfileId(Long userId) {
-        // 유저마다의 최근 스레드를 찾기
-        List<AiProfile> ordered = aiProfileRepository.findActiveProfilesOrderByLastUsed(userId);
-        if (ordered.isEmpty()) throw new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND);
-        return AiProfileConverter.toResponse(ordered.get(0));
+        // 유저의 최근 Thread 찾기
+        Optional<Thread> recentThread = threadRepository.findFirstByUserIdOrderByYearDescMonthDescDayDesc(userId);
+        
+        if (recentThread.isEmpty()) {
+            // Thread가 없으면 활성화된 프로필 목록 중 첫 번째 반환 (ID 오름차순)
+            List<AiProfile> ordered = aiProfileRepository.findActiveProfilesOrderById(userId);
+            if (ordered.isEmpty()) throw new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND);
+            return AiProfileConverter.toResponse(ordered.get(0));
+        }
+        
+        // 최근 Thread의 AI 프로필 반환
+        AiProfile recentProfile = recentThread.get().getAiProfile();
+        if (!recentProfile.isActive()) {
+            throw new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND);
+        }
+        return AiProfileConverter.toResponse(recentProfile);
     }
 
     /**
