@@ -117,7 +117,46 @@ public class AiConfig {
                 - 시간 순서와 인과관계를 고려하여 자연스럽게 이야기를 구성합니다.
                 - 사용자의 감정 변화를 섬세하게 반영하여 적절한 mood를 설정합니다.
                 - 그림일기에 어울리는 제목과 내용을 작성하고, 그림을 상상할 수 있도록 상세한 묘사를 포함합니다.
-                - 주제에 맞는 해시태그를 추가하여 일기의 특징을 강조합니다.""";
+                - 주제에 맞는 해시태그를 추가하여 일기의 특징을 강조합니다.
+                
+                응답 형식:
+                반드시 아래 JSON 형식으로만 답변하세요:
+                {
+                  "mood": "HAPPY|SAD|TIRED|ANGRY|RELAX 중 하나",
+                  "title": "30자 이하, 유쾌하고 흥미로운 표현, 이모티콘 미사용",
+                  "story": "300자 이하, 일기 형식",
+                  "hashTag1": "주제 연관 해시태그 1",
+                  "hashTag2": "주제 연관 해시태그 2"
+                }""";
+
+        return ChatClient.builder(OpenAiChatModel.builder().openAiApi(api).defaultOptions(options).build())
+                .defaultSystem(system)
+                .build();
+    }
+    
+    @Bean(name = "hashtagClient")
+    ChatClient hashtagClient(){
+        OpenAiApi api = OpenAiApi.builder()
+                .apiKey(apiKey)
+                .build();
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(OpenAiApi.ChatModel.GPT_4_O_MINI)
+                .temperature(0.3)
+                .build();
+
+        String system = """
+                당신은 일기 내용을 분석하여 적절한 해시태그를 생성하는 전문가입니다.
+                - 일기의 핵심 주제와 감정을 파악합니다.
+                - 간결하고 직관적인 해시태그 2개를 생성합니다.
+                - 각 해시태그는 30자 이하로 작성합니다.
+                - # 기호는 포함하지 않습니다.
+                
+                응답 형식:
+                반드시 아래 JSON 형식으로만 답변하세요:
+                {
+                  "hashTag1": "첫 번째 해시태그",
+                  "hashTag2": "두 번째 해시태그"
+                }""";
 
         return ChatClient.builder(OpenAiChatModel.builder().openAiApi(api).defaultOptions(options).build())
                 .defaultSystem(system)

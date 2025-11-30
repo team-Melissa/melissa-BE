@@ -51,6 +51,7 @@ public class User {
 
     @Version
     @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    @Builder.Default
     private Long version = 0L;
 
     // 마이그레이션용, Initialize를 통해 기존 사용자도 처리위해 추가
@@ -61,18 +62,23 @@ public class User {
     }
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<UserSetting> userSettingList = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<Donation> donationList = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<Thread> threadList = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<AiProfile> aiProfileList = new ArrayList<>();
+    @Builder.Default
+    private List<Diary> diaryList = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<ExpoPushToken> expoPushTokenList = new ArrayList<>();
 
     // 연관관계 편의 메소드
@@ -91,9 +97,9 @@ public class User {
         thread.setUser(this);
     }
 
-    public void addAiProfile(AiProfile aiProfile) {
-        aiProfileList.add(aiProfile);
-        aiProfile.setUser(this);
+    public void addDiary(Diary diary) {
+        diaryList.add(diary);
+        diary.setUser(this);
     }
 
     public void addExpoPushToken(ExpoPushToken expoPushToken) {
