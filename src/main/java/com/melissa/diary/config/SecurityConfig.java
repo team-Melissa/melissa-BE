@@ -17,8 +17,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-
-import org.springframework.web.filter.CorsFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.PrintWriter;
 
@@ -35,6 +34,7 @@ public class SecurityConfig {
 
             http.csrf(AbstractHttpConfigurer::disable)
                     .httpBasic(AbstractHttpConfigurer::disable)
+                    .formLogin(AbstractHttpConfigurer::disable)
                     .cors(Customizer.withDefaults())
                     .sessionManagement((sessionManagement) ->
                             sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -51,9 +51,9 @@ public class SecurityConfig {
                                     .authenticationEntryPoint(unauthorizedEntryPoint)
                     ); // 401 403 관련 예외처리
             ;
-            http.addFilterAfter(
+            http.addFilterBefore(
                     jwtAuthenticationFilter,
-                    CorsFilter.class
+                    UsernamePasswordAuthenticationFilter.class
             );
             return http.build();
         } catch (Exception e) {
