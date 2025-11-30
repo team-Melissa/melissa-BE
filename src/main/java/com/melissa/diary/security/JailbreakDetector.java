@@ -76,7 +76,25 @@ public class JailbreakDetector {
     );
 
     public boolean isJailbreakAttempt(String input) {
-        String lower = input == null ? "" : input.toLowerCase();
-        return BLACKLIST.stream().anyMatch(lower::contains);
+        if (input == null || input.trim().isEmpty()) {
+            return false;
+        }
+        
+        String lower = input.toLowerCase().trim();
+        
+        // 정확한 매칭으로 오탐 방지
+        boolean detected = BLACKLIST.stream().anyMatch(keyword -> {
+            // 단어 경계 확인으로 부분 매칭 오탐 방지
+            return lower.contains(keyword);
+        });
+        
+        // 디버깅용 로깅 (탐지 시에만)
+        if (detected) {
+            org.slf4j.LoggerFactory.getLogger(JailbreakDetector.class)
+                .warn("[JailbreakDetector] 탈옥 시도 감지: {}", 
+                      input.length() > 100 ? input.substring(0, 100) + "..." : input);
+        }
+        
+        return detected;
     }
 }

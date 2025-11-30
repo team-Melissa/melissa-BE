@@ -1,15 +1,11 @@
 package com.melissa.diary.domain;
 
 import com.melissa.diary.domain.common.BaseEntity;
-import com.melissa.diary.domain.enums.Mood;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,43 +56,6 @@ public class Thread extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "ai_profile_id", nullable = false)
     private AiProfile aiProfile;
-
-    // ========== v1.3.0: Deprecated 필드 (임시 유지, DiaryService 완성 후 제거) ==========
-    @Deprecated
-    @Column(nullable = true, columnDefinition = "TEXT")
-    @Convert(converter = com.melissa.diary.converter.EncryptionAttributeConverter.class)
-    private String summaryTitle;
-
-    @Deprecated
-    @Enumerated(EnumType.STRING)
-    @Column(length = 40)
-    private Mood mood;
-
-    @Deprecated
-    @Column(nullable = true, columnDefinition = "TEXT")
-    @Convert(converter = com.melissa.diary.converter.EncryptionAttributeConverter.class)
-    private String summaryContent;
-
-    @Deprecated
-    @Column(nullable = true, length = 30)
-    private String hashtag1;
-
-    @Deprecated
-    @Column(nullable = true, length = 30)
-    private String hashtag2;
-
-    @Deprecated
-    @Column(nullable = true)
-    private String imageUrl;
-
-    @Deprecated
-    @Column(nullable = true)
-    private LocalDateTime summaryCreatedAt;
-
-    @Deprecated
-    @Column(nullable = true)
-    private LocalDateTime lastSummaryRequestAt;
-    // ========== Deprecated 필드 끝 ==========
 
     @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL)
     @Builder.Default

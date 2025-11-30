@@ -4,6 +4,7 @@ import com.melissa.diary.apiPayload.ApiResponse;
 import com.melissa.diary.service.CalenderService;
 import com.melissa.diary.web.dto.CalenderResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.List;
 
+/**
+ * [v1.3.0] Diary 기반 달력 API
+ */
 @RestController
 @Tag(name = "CalenderAPI", description = "Calender 관련 API")
 @RequestMapping("/api/v1/calender")
@@ -19,42 +23,60 @@ public class CalenderController {
 
     private final CalenderService calenderService;
 
-    @Operation(description = "특정 날짜의 요약과 사진을 상세 조회합니다.")
+    @Operation(summary = "특정 날짜 일기 조회",
+               description = "[v1.3.0] 특정 날짜의 일기를 상세 조회합니다. (최대 3개)")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "CALENDAR4003: 유효하지 않은 날짜"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음")
+    })
     @GetMapping("/day")
-    public ApiResponse<CalenderResponseDTO.dailySummaryResponseDTO> getDailySummary(
+    public ApiResponse<CalenderResponseDTO.DailySummaryResponseDTO> getDailySummary(
             @RequestParam(name = "year") int year,
             @RequestParam(name = "month") int month,
             @RequestParam(name = "day") int day,
             Principal principal) {
 
         Long userId = Long.parseLong(principal.getName());
-        CalenderResponseDTO.dailySummaryResponseDTO response = calenderService.getDailySummary(userId, year, month, day);
+        CalenderResponseDTO.DailySummaryResponseDTO response = calenderService.getDailySummary(userId, year, month, day);
 
         return ApiResponse.onSuccess(response);
     }
 
-    @Operation(description = "해당 월의 모든 날짜의 해시 태그와 이미지를 조회합니다.")
+    @Operation(summary = "월간 일기 미리보기",
+               description = "[v1.3.0] 해당 월의 모든 날짜별 일기 미리보기를 조회합니다. (날짜별 최대 3개, 해시태그 + 이미지만)")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "CALENDAR4003: 유효하지 않은 날짜"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음")
+    })
     @GetMapping("/month")
-    public ApiResponse<List<CalenderResponseDTO.dailyResponseDTO>> getCalenderPreview(
+    public ApiResponse<List<CalenderResponseDTO.DailyPreviewResponseDTO>> getCalenderPreview(
             @RequestParam(name = "year") int year,
             @RequestParam(name = "month") int month,
             Principal principal) {
 
         Long userId = Long.parseLong(principal.getName());
-        List<CalenderResponseDTO.dailyResponseDTO> response = calenderService.getMonthlySummary(userId, year, month);
+        List<CalenderResponseDTO.DailyPreviewResponseDTO> response = calenderService.getMonthlySummary(userId, year, month);
 
         return ApiResponse.onSuccess(response);
     }
 
-    @Operation(description = "해당 월의 모든 날짜의 해시 태그와 이미지, 요약내용을 조회합니다.")
+    @Operation(summary = "월간 일기 전체 조회",
+               description = "[v1.3.0] 해당 월의 모든 날짜별 일기 상세 정보를 조회합니다. (날짜별 최대 3개)")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "CALENDAR4003: 유효하지 않은 날짜"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음")
+    })
     @GetMapping("/month/summary")
-    public ApiResponse<List<CalenderResponseDTO.dailySummaryResponseDTO>> getCalenderView(
+    public ApiResponse<List<CalenderResponseDTO.DailySummaryResponseDTO>> getCalenderView(
             @RequestParam(name = "year") int year,
             @RequestParam(name = "month") int month,
             Principal principal) {
 
         Long userId = Long.parseLong(principal.getName());
-        List<CalenderResponseDTO.dailySummaryResponseDTO> response = calenderService.getMonthlyView(userId, year, month);
+        List<CalenderResponseDTO.DailySummaryResponseDTO> response = calenderService.getMonthlyView(userId, year, month);
 
         return ApiResponse.onSuccess(response);
     }

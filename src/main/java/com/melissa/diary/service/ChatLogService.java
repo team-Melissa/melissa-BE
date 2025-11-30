@@ -20,20 +20,15 @@ public class ChatLogService {
     private final DailyChatLogRepository dailyChatLogRepository;
 
     /**
-     * 채팅 메시지 삭제
-     * - 본인 메시지만 삭제 가능
-     * - AI 메시지는 삭제 불가
+     * [v1.3.0] 채팅 메시지 삭제
+     * - 본인 Thread의 메시지만 삭제 가능
+     * - 사용자/AI 메시지 모두 삭제 가능
      */
     @Transactional
     public ChatLogResponseDTO.ChatLogDeleteResponse deleteChatLog(Long userId, Long chatLogId) {
         // 채팅 로그 조회
         DailyChatLog chatLog = dailyChatLogRepository.findById(chatLogId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.CHAT_LOG_NOT_FOUND));
-
-        // AI 메시지 삭제 차단
-        if (chatLog.getRole() == Role.AI) {
-            throw new ErrorHandler(ErrorStatus.CHAT_LOG_AI_MESSAGE);
-        }
 
         // 권한 검증: 본인의 Thread에 속한 메시지인지 확인
         if (chatLog.getThread() == null || !chatLog.getThread().getUser().getId().equals(userId)) {
@@ -43,7 +38,8 @@ public class ChatLogService {
         // 삭제 실행
         dailyChatLogRepository.delete(chatLog);
         
-        log.info("[ChatLog] 채팅 메시지 삭제 완료. userId={}, chatLogId={}", userId, chatLogId);
+        log.info("[ChatLog] 채팅 메시지 삭제 완료. userId={}, chatLogId={}, role={}", 
+                userId, chatLogId, chatLog.getRole());
 
         return ChatLogResponseDTO.ChatLogDeleteResponse.builder()
                 .chatId(chatLogId)

@@ -1,0 +1,156 @@
+[1mdiff --git a/src/main/java/com/melissa/diary/config/AiConfig.java b/src/main/java/com/melissa/diary/config/AiConfig.java[m
+[1mindex 9bf9c31..15b86f5 100644[m
+[1m--- a/src/main/java/com/melissa/diary/config/AiConfig.java[m
+[1m+++ b/src/main/java/com/melissa/diary/config/AiConfig.java[m
+[36m@@ -117,7 +117,46 @@[m [mpublic class AiConfig {[m
+                 - 시간 순서와 인과관계를 고려하여 자연스럽게 이야기를 구성합니다.[m
+                 - 사용자의 감정 변화를 섬세하게 반영하여 적절한 mood를 설정합니다.[m
+                 - 그림일기에 어울리는 제목과 내용을 작성하고, 그림을 상상할 수 있도록 상세한 묘사를 포함합니다.[m
+[31m-                - 주제에 맞는 해시태그를 추가하여 일기의 특징을 강조합니다.""";[m
+[32m+[m[32m                - 주제에 맞는 해시태그를 추가하여 일기의 특징을 강조합니다.[m
+[32m+[m[41m                [m
+[32m+[m[32m                응답 형식:[m
+[32m+[m[32m                반드시 아래 JSON 형식으로만 답변하세요:[m
+[32m+[m[32m                {[m
+[32m+[m[32m                  "mood": "HAPPY|SAD|TIRED|ANGRY|RELAX 중 하나",[m
+[32m+[m[32m                  "title": "30자 이하, 유쾌하고 흥미로운 표현, 이모티콘 미사용",[m
+[32m+[m[32m                  "story": "300자 이하, 일기 형식",[m
+[32m+[m[32m                  "hashTag1": "주제 연관 해시태그 1",[m
+[32m+[m[32m                  "hashTag2": "주제 연관 해시태그 2"[m
+[32m+[m[32m                }""";[m
+[32m+[m
+[32m+[m[32m        return ChatClient.builder(OpenAiChatModel.builder().openAiApi(api).defaultOptions(options).build())[m
+[32m+[m[32m                .defaultSystem(system)[m
+[32m+[m[32m                .build();[m
+[32m+[m[32m    }[m
+[32m+[m[41m    [m
+[32m+[m[32m    @Bean(name = "hashtagClient")[m
+[32m+[m[32m    ChatClient hashtagClient(){[m
+[32m+[m[32m        OpenAiApi api = OpenAiApi.builder()[m
+[32m+[m[32m                .apiKey(apiKey)[m
+[32m+[m[32m                .build();[m
+[32m+[m[32m        OpenAiChatOptions options = OpenAiChatOptions.builder()[m
+[32m+[m[32m                .model(OpenAiApi.ChatModel.GPT_4_O_MINI)[m
+[32m+[m[32m                .temperature(0.3)[m
+[32m+[m[32m                .build();[m
+[32m+[m
+[32m+[m[32m        String system = """[m
+[32m+[m[32m                당신은 일기 내용을 분석하여 적절한 해시태그를 생성하는 전문가입니다.[m
+[32m+[m[32m                - 일기의 핵심 주제와 감정을 파악합니다.[m
+[32m+[m[32m                - 간결하고 직관적인 해시태그 2개를 생성합니다.[m
+[32m+[m[32m                - 각 해시태그는 30자 이하로 작성합니다.[m
+[32m+[m[32m                - # 기호는 포함하지 않습니다.[m
+[32m+[m[41m                [m
+[32m+[m[32m                응답 형식:[m
+[32m+[m[32m                반드시 아래 JSON 형식으로만 답변하세요:[m
+[32m+[m[32m                {[m
+[32m+[m[32m                  "hashTag1": "첫 번째 해시태그",[m
+[32m+[m[32m                  "hashTag2": "두 번째 해시태그"[m
+[32m+[m[32m                }""";[m
+ [m
+         return ChatClient.builder(OpenAiChatModel.builder().openAiApi(api).defaultOptions(options).build())[m
+                 .defaultSystem(system)[m
+[1mdiff --git a/src/main/java/com/melissa/diary/service/DiaryService.java b/src/main/java/com/melissa/diary/service/DiaryService.java[m
+[1mindex 848d335..a4e80be 100644[m
+[1m--- a/src/main/java/com/melissa/diary/service/DiaryService.java[m
+[1m+++ b/src/main/java/com/melissa/diary/service/DiaryService.java[m
+[36m@@ -44,6 +44,7 @@[m [mpublic class DiaryService {[m
+     private final QuotaService quotaService;[m
+     private final ApplicationEventPublisher publisher;[m
+     private final ChatClient summaryClient;[m
+[32m+[m[32m    private final ChatClient hashtagClient;[m
+     private final ObjectMapper objectMapper = new ObjectMapper();[m
+     [m
+     public DiaryService(DiaryRepository diaryRepository, [m
+[36m@@ -52,7 +53,8 @@[m [mpublic class DiaryService {[m
+                        AiProfileRepository aiProfileRepository,[m
+                        QuotaService quotaService,[m
+                        ApplicationEventPublisher publisher,[m
+[31m-                       @Qualifier("summaryClient") ChatClient summaryClient) {[m
+[32m+[m[32m                       @Qualifier("summaryClient") ChatClient summaryClient,[m
+[32m+[m[32m                       @Qualifier("hashtagClient") ChatClient hashtagClient) {[m
+         this.diaryRepository = diaryRepository;[m
+         this.userRepository = userRepository;[m
+         this.threadRepository = threadRepository;[m
+[36m@@ -60,6 +62,7 @@[m [mpublic class DiaryService {[m
+         this.quotaService = quotaService;[m
+         this.publisher = publisher;[m
+         this.summaryClient = summaryClient;[m
+[32m+[m[32m        this.hashtagClient = hashtagClient;[m
+     }[m
+     [m
+     /**[m
+[36m@@ -112,7 +115,7 @@[m [mpublic class DiaryService {[m
+         [m
+         // LLM으로 해시태그 자동 생성[m
+         String hashtagPrompt = buildHashtagPrompt(request.getTitle(), request.getContent());[m
+[31m-        String llmHashtagResponse = summaryClient.prompt().user(hashtagPrompt).call().content();[m
+[32m+[m[32m        String llmHashtagResponse = hashtagClient.prompt().user(hashtagPrompt).call().content();[m
+         HashtagData hashtagData = parseHashtagResponse(llmHashtagResponse);[m
+         [m
+         // 일기 생성[m
+[36m@@ -403,27 +406,16 @@[m [mpublic class DiaryService {[m
+     }[m
+     [m
+     /**[m
+[31m-     * LLM 요약 프롬프트 생성[m
+[32m+[m[32m     * LLM 요약 프롬프트 생성 (user 프롬프트)[m
+[32m+[m[32m     * 시스템 프롬프트는 AiConfig의 summaryClient에 정의됨[m
+      */[m
+     private String buildSummaryPrompt(String chatLogs) {[m
+         return """[m
+[31m-                오늘의 채팅 로그입니다: %s[m
+[31m-[m
+[31m-                위 대화를 오늘의 채팅로그를 기반으로 일기 형식으로 요약해 주세요.[m
+[31m-                - mood(HAPPY, SAD, TIRED, ANGRY, RELAX 중 하나)[m
+[31m-                - title(30자 이하, 유쾌하고 흥미로운 표현, 이모티콘 미사용)[m
+[31m-                - story(300자 이하, 일기 형식)[m
+[31m-                - hashTag1, hashTag2(주제 연관 해시태그)[m
+[31m-                                [m
+[31m-                아래 JSON 형식으로 꼭 답변해주세요:[m
+[31m-                                [m
+[31m-                {[m
+[31m-                  "mood": "...",[m
+[31m-                  "title": "...",[m
+[31m-                  "story": "...",[m
+[31m-                  "hashTag1": "...",[m
+[31m-                  "hashTag2": "..."[m
+[31m-                }[m
+[32m+[m[32m                오늘의 채팅 로그입니다:[m
+[32m+[m[41m                [m
+[32m+[m[32m                %s[m
+[32m+[m[41m                [m
+[32m+[m[32m                위 대화를 일기 형식으로 요약해주세요.[m
+                 """.formatted(chatLogs);[m
+     }[m
+     [m
+[36m@@ -468,6 +460,7 @@[m [mpublic class DiaryService {[m
+     [m
+     /**[m
+      * 해시태그 생성 프롬프트 (Manual 일기용)[m
+[32m+[m[32m     * 시스템 프롬프트는 AiConfig의 hashtagClient에 정의됨[m
+      */[m
+     private String buildHashtagPrompt(String title, String content) {[m
+         StringBuilder prompt = new StringBuilder();[m
+[36m@@ -475,19 +468,9 @@[m [mpublic class DiaryService {[m
+         if (title != null && !title.isBlank()) {[m
+             prompt.append("제목: ").append(title).append("\n");[m
+         }[m
+[31m-        prompt.append("내용: ").append(content).append("\n\n");[m
+[32m+[m[32m        prompt.append("내용: ").append(content);[m
+         [m
+[31m-        return prompt.append("""[m
+[31m-                위 일기 내용을 바탕으로 주제와 연관된 해시태그 2개를 생성해주세요.[m
+[31m-                - 각 해시태그는 30자 이하[m
+[31m-                - # 기호는 포함하지 마세요[m
+[31m-                [m
+[31m-                아래 JSON 형식으로 꼭 답변해주세요:[m
+[31m-                {[m
+[31m-                  "hashTag1": "...",[m
+[31m-                  "hashTag2": "..."[m
+[31m-                }[m
+[31m-                """).toString();[m
+[32m+[m[32m        return prompt.toString();[m
+     }[m
+     [m
+     /**[m

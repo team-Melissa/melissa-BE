@@ -1,8 +1,0 @@
-
-v	java:S120"ZRename this package name to match the regular expression '^[a-z_]+(\.[a-z_][a-z0-9_]*)*$'.(ς8—±θ2
-:
-java:S1165"Make this "code" field final.(θο™8—±θ2
-C
-java:S1948"&Make "code" transient or serializable.(θο™8—±θ2
-m
-java:S1128"QRemove this unused import 'com.melissa.diary.apiPayload.code.status.ErrorStatus'.(΅ΡΈ8νΈθ2
