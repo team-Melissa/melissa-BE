@@ -53,8 +53,11 @@ public class ThreadService {
     private final QuotaService quotaService;
 
     private final JailbreakDetector jailbreakDetector;
+    
+    // v1.3.0: UserMemory 통합 (V2 기능 적용)
+    private final UserMemoryService userMemoryService;
 
-    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService, JailbreakDetector jailbreakDetector) {
+    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService, JailbreakDetector jailbreakDetector, UserMemoryService userMemoryService) {
         this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.aiProfileRepository = aiProfileRepository;
@@ -62,6 +65,7 @@ public class ThreadService {
         this.chatClient = chatClient;
         this.quotaService = quotaService;
         this.jailbreakDetector = jailbreakDetector;
+        this.userMemoryService = userMemoryService;
     }
 
     @Transactional
@@ -171,7 +175,7 @@ public class ThreadService {
                                                         int day, String userMessage) {
 
         ThreadData td   = getThreadData(userId, aiProfileId, year, month, day, userMessage);
-        String prompt   = buildAiChatPrompt(userMessage, td.getChatHistory(), td.getAiProfile());
+        String prompt   = buildAiChatPrompt(userId, userMessage, td.getChatHistory(), td.getAiProfile());
         StringBuilder b = new StringBuilder();
 
         /* 탈옥 시도 검사 */
@@ -287,8 +291,11 @@ public class ThreadService {
         return new ThreadData(thread, aiProfile, chatHistory);
     }
 
-    // 기존 채팅 기록과 AI 프로필을 이용해 프롬프트 생성
-    private String buildAiChatPrompt(String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
+    /**
+     * v1.3.0: UserMemory 통합 프롬프트 생성 (V2 기능)
+     * 기존 채팅 기록과 AI 프로필, 그리고 사용자 장기 기억을 이용해 프롬프트 생성
+     */
+    private String buildAiChatPrompt(Long userId, String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
         StringBuilder prompt = new StringBuilder();
 
         prompt.append("너는 아래와 같은 성격을 지녔어. 새 사용자의 입력을 이 성격을 기반으로 생성해야해 : \n");
@@ -309,6 +316,35 @@ public class ThreadService {
                     """);
         }
 
+        // ======== V2 기능 복구: UserMemory 통합 ========
+        // 주제 변경 감지 및 UserMemory 포함 여부 결정
+        boolean shouldIncludeMemory = false;
+        if (!chatHistory.isEmpty()) {
+            String todayConversation = buildTodayConversationSummary(chatHistory);
+            shouldIncludeMemory = userMemoryService.detectTopicChange(todayConversation, userMessage);
+            
+            if (shouldIncludeMemory) {
+                log.debug("[ThreadService] 주제 변경 감지. UserMemory 포함. userId={}", userId);
+            }
+        }
+        
+        // UserMemory 포함
+        if (shouldIncludeMemory && userMemoryService.hasMemoryContent(userId)) {
+            try {
+                com.melissa.diary.domain.UserMemory userMemory = userMemoryService.getUserMemoryReadOnly(userId);
+                if (userMemory != null && userMemory.getMemoryContent() != null && !userMemory.getMemoryContent().trim().isEmpty()) {
+                    prompt.append("\n\n=== 사용자에 대해 알고 있는 기억 ===\n");
+                    prompt.append(userMemory.getMemoryContent());
+                    prompt.append("\n=== 기억 끝 ===\n\n");
+                    prompt.append("위 기억을 자연스럽게 활용하되, 직접 언급하지 말고 대화 맥락에 스며들게 활용해줘.\n");
+                    
+                    log.info("[ThreadService] UserMemory 프롬프트 포함 완료. userId={}", userId);
+                }
+            } catch (Exception e) {
+                log.warn("[ThreadService] UserMemory 조회 실패, 메모리 없이 진행. userId={}", userId, e);
+            }
+        }
+        // ======== V2 기능 복구 끝 ========
 
         // 기존 채팅 내역 추가
         if (!chatHistory.isEmpty()) {
@@ -327,6 +363,19 @@ public class ThreadService {
                 .append("\nAI: ");
 
         return prompt.toString();
+    }
+    
+    /**
+     * v1.3.0: 오늘의 대화 내용 요약 생성 (주제 변경 감지용)
+     */
+    private String buildTodayConversationSummary(List<DailyChatLog> chatHistory) {
+        return chatHistory.stream()
+                .sorted(Comparator.comparing(DailyChatLog::getCreatedAt))
+                .map(log -> {
+                    String role = log.getRole() == com.melissa.diary.domain.enums.Role.USER ? "[사용자]" : "[AI]";
+                    return role + " " + log.getContent();
+                })
+                .collect(java.util.stream.Collectors.joining("\n"));
     }
     
 
