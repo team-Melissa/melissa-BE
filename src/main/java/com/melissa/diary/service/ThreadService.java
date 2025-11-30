@@ -66,6 +66,11 @@ public class ThreadService {
 
     @Transactional
     public ThreadResponseDTO.ThreadResponse createThread(Long userId, Long aiProfileId, int year, int month, int day) {
+        // 날짜 유효성 검증
+        if (!isValidDate(year, month, day)) {
+            throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_DATE);
+        }
+        
         // User 검증
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
@@ -180,7 +185,11 @@ public class ThreadService {
                                     .build()
                     )
                     // 에러 메시지 전송 완료 시점에 저장
-                    .doOnComplete(() -> saveAiMessage(rejectMsg, td));
+                    .doOnComplete(() -> 
+                        Mono.fromRunnable(() -> saveAiMessage(rejectMsg, td))
+                            .subscribeOn(Schedulers.boundedElastic())
+                            .subscribe()
+                    );
 
             Flux<ServerSentEvent<String>> finishFlux = Flux.just(
                     ServerSentEvent.<String>builder()
@@ -212,7 +221,11 @@ public class ThreadService {
                     return ServerSentEvent.<String>builder()
                             .event("aiMessage").data(part).build();
                 })
-                .doOnComplete(() -> saveAiMessage(b.toString().trim(), td))
+                .doOnComplete(() -> 
+                    Mono.fromRunnable(() -> saveAiMessage(b.toString().trim(), td))
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .subscribe()
+                )
                 .onErrorResume(e -> Flux.just(ServerSentEvent.<String>builder()
                         .event("error").data("SSE 오류: " + e.getMessage()).build()));
 
@@ -229,7 +242,8 @@ public class ThreadService {
         return userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
     }
 
-    private void saveAiMessage(String answer, ThreadData threadData) {
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    public void saveAiMessage(String answer, ThreadData threadData) {
         // "null" 문자열을 제거
         String cleanAnswer = answer.replace("null", "").trim();
 
@@ -373,6 +387,27 @@ public class ThreadService {
             this.aiProfile = aiProfile;
             this.chatHistory = chatHistory;
         }
+    }
+    
+    /**
+     * 날짜 유효성 검증
+     */
+    private boolean isValidDate(int year, int month, int day) {
+        if (month < 1 || month > 12) return false;
+        if (day < 1 || day > 31) return false;
+        
+        // 2월 처리
+        if (month == 2) {
+            boolean isLeapYear = (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+            return day <= (isLeapYear ? 29 : 28);
+        }
+        
+        // 4, 6, 9, 11월은 30일까지
+        if (month == 4 || month == 6 || month == 9 || month == 11) {
+            return day <= 30;
+        }
+        
+        return true;
     }
 
 }

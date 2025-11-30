@@ -114,9 +114,15 @@ public class DiaryService {
         }
         
         // LLM으로 해시태그 자동 생성
-        String hashtagPrompt = buildHashtagPrompt(request.getTitle(), request.getContent());
-        String llmHashtagResponse = hashtagClient.prompt().user(hashtagPrompt).call().content();
-        HashtagData hashtagData = parseHashtagResponse(llmHashtagResponse);
+        HashtagData hashtagData;
+        try {
+            String hashtagPrompt = buildHashtagPrompt(request.getTitle(), request.getContent());
+            String llmHashtagResponse = hashtagClient.prompt().user(hashtagPrompt).call().content();
+            hashtagData = parseHashtagResponse(llmHashtagResponse);
+        } catch (Exception e) {
+            log.error("[Diary] LLM 해시태그 생성 실패, 기본값 사용. userId={}", userId, e);
+            hashtagData = new HashtagData("일기", "기록");  // fallback
+        }
         
         // 일기 생성
         Diary diary = Diary.builder()
@@ -186,12 +192,27 @@ public class DiaryService {
         }
         
         // LLM으로 채팅 로그 요약
-        String chatLogsPrompt = buildChatLogsPrompt(thread.getDailyChatLogs());
-        String summaryPrompt = buildSummaryPrompt(chatLogsPrompt);
-        String llmResponse = summaryClient.prompt().user(summaryPrompt).call().content();
-        
-        // JSON 파싱
-        DiaryData diaryData = parseLLMResponse(llmResponse);
+        DiaryData diaryData;
+        try {
+            String chatLogsPrompt = buildChatLogsPrompt(thread.getDailyChatLogs());
+            String summaryPrompt = buildSummaryPrompt(chatLogsPrompt);
+            String llmResponse = summaryClient.prompt().user(summaryPrompt).call().content();
+            diaryData = parseLLMResponse(llmResponse);
+        } catch (Exception e) {
+            log.error("[Diary] LLM 요약 실패, fallback 사용. userId={}, threadId={}", 
+                    userId, thread.getId(), e);
+            // Fallback: 채팅 내용을 간단히 합쳐서 일기로 생성
+            String fallbackContent = thread.getDailyChatLogs().stream()
+                    .filter(log -> Role.USER.equals(log.getRole()))
+                    .map(log -> log.getContent())
+                    .collect(Collectors.joining(" "));
+            diaryData = new DiaryData(
+                    "오늘의 대화",  // title
+                    fallbackContent.substring(0, Math.min(fallbackContent.length(), 500)),  // content (최대 500자)
+                    null,  // mood
+                    "대화", "일기"  // hashtags
+            );
+        }
         
         // 일기 생성
         Diary diary = Diary.builder()

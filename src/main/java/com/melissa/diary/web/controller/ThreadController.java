@@ -79,7 +79,7 @@ public class ThreadController {
     })
     @PostMapping(value = "/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> messageToAi(
-            @RequestBody ThreadRequestDTO.AiChatRequest request,
+            @jakarta.validation.Valid @RequestBody ThreadRequestDTO.AiChatRequest request,
             Principal principal) {
         Long userId = Long.parseLong(principal.getName());
 
