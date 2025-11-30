@@ -2,7 +2,7 @@ package com.melissa.diary.service;
 
 import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
-import com.melissa.diary.domain.Thread;
+import com.melissa.diary.domain.Diary;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.domain.UserMemory;
 import com.melissa.diary.repository.UserMemoryRepository;
@@ -71,22 +71,22 @@ public class UserMemoryService {
     }
     
     /**
-     * Thread 요약을 기반으로 사용자 메모리 업데이트
+     * Diary를 기반으로 사용자 메모리 업데이트
      */
     @Transactional
-    public void updateUserMemoryFromThread(Long userId, Thread thread) {
-        // Thread에 요약 정보가 없으면 스킵
-        if (thread.getSummaryContent() == null || thread.getSummaryContent().trim().isEmpty()) {
-            log.info("[UserMemory] Thread에 요약 정보가 없어 메모리 업데이트 스킵. userId={}, threadId={}", 
-                    userId, thread.getId());
+    public void updateUserMemoryFromDiary(Long userId, Diary diary) {
+        // Diary에 내용이 없으면 스킵
+        if (diary.getContent() == null || diary.getContent().trim().isEmpty()) {
+            log.info("[UserMemory] Diary에 내용이 없어 메모리 업데이트 스킵. userId={}, diaryId={}", 
+                    userId, diary.getId());
             return;
         }
         
         UserMemory userMemory = getUserMemory(userId);
         String currentMemory = userMemory.getMemoryContent() != null ? userMemory.getMemoryContent() : "";
         
-        // 새로운 일기 요약 정보 구성
-        String newDiaryInfo = buildDiaryInfo(thread);
+        // 새로운 일기 정보 구성
+        String newDiaryInfo = buildDiaryInfo(diary);
         
         // LLM을 통해 메모리 융합
         String updatedMemory = fuseMemoryWithLLM(currentMemory, newDiaryInfo);
@@ -94,44 +94,44 @@ public class UserMemoryService {
         userMemory.updateMemoryContent(updatedMemory);
         userMemoryRepository.save(userMemory);
         
-        log.info("[UserMemory] 사용자 메모리 업데이트 완료. userId={}, threadDate={}-{}-{}", 
-                userId, thread.getYear(), thread.getMonth(), thread.getDay());
+        log.info("[UserMemory] 사용자 메모리 업데이트 완료. userId={}, diaryDate={}-{}-{}", 
+                userId, diary.getYear(), diary.getMonth(), diary.getDay());
     }
     
     /**
-     * Thread 정보를 일기 정보로 변환 (사용자 발언만 추출)
+     * Diary 정보를 일기 정보로 변환
      */
-    private String buildDiaryInfo(Thread thread) {
-        LocalDate diaryDate = LocalDate.of(thread.getYear(), thread.getMonth(), thread.getDay());
+    private String buildDiaryInfo(Diary diary) {
+        LocalDate diaryDate = LocalDate.of(diary.getYear(), diary.getMonth(), diary.getDay());
         String formattedDate = diaryDate.format(DateTimeFormatter.ofPattern("yyyy년 M월 d일"));
         
         StringBuilder diaryInfo = new StringBuilder();
         diaryInfo.append(String.format("[%s] ", formattedDate));
         
         // 채팅 로그에서 전체 대화 내역 추출 (맥락 보존)
-        String fullConversation = extractFullConversation(thread);
+        String fullConversation = extractFullConversation(diary);
         
         if (fullConversation != null && !fullConversation.trim().isEmpty()) {
             diaryInfo.append("대화 내역:\n").append(fullConversation);
         } else {
-            // 채팅 로그가 없는 경우 (수동 작성 일기) 기존 방식 사용
-            if (thread.getSummaryTitle() != null) {
-                diaryInfo.append(thread.getSummaryTitle()).append(" - ");
+            // 채팅 로그가 없는 경우 (수동 작성 일기) Diary 정보 사용
+            if (diary.getTitle() != null) {
+                diaryInfo.append(diary.getTitle()).append(" - ");
             }
             
-            if (thread.getSummaryContent() != null) {
-                diaryInfo.append(thread.getSummaryContent());
+            if (diary.getContent() != null) {
+                diaryInfo.append(diary.getContent());
             }
         }
         
-        if (thread.getMood() != null) {
-            diaryInfo.append(" (기분: ").append(thread.getMood().name()).append(")");
+        if (diary.getMood() != null) {
+            diaryInfo.append(" (기분: ").append(diary.getMood().name()).append(")");
         }
         
-        if (thread.getHashtag1() != null || thread.getHashtag2() != null) {
+        if (diary.getHashtag1() != null || diary.getHashtag2() != null) {
             diaryInfo.append(" 태그: ");
-            if (thread.getHashtag1() != null) diaryInfo.append("#").append(thread.getHashtag1());
-            if (thread.getHashtag2() != null) diaryInfo.append(" #").append(thread.getHashtag2());
+            if (diary.getHashtag1() != null) diaryInfo.append("#").append(diary.getHashtag1());
+            if (diary.getHashtag2() != null) diaryInfo.append(" #").append(diary.getHashtag2());
         }
         
         return diaryInfo.toString();
@@ -140,12 +140,14 @@ public class UserMemoryService {
     /**
      * 채팅 로그에서 전체 대화 내역 추출 (AI 질문과 사용자 답변의 맥락 보존)
      */
-    private String extractFullConversation(Thread thread) {
-        if (thread.getDailyChatLogs() == null || thread.getDailyChatLogs().isEmpty()) {
+    private String extractFullConversation(Diary diary) {
+        if (diary.getThread() == null || 
+            diary.getThread().getDailyChatLogs() == null || 
+            diary.getThread().getDailyChatLogs().isEmpty()) {
             return null;
         }
         
-        return thread.getDailyChatLogs().stream()
+        return diary.getThread().getDailyChatLogs().stream()
                 .sorted((log1, log2) -> log1.getCreatedAt().compareTo(log2.getCreatedAt())) // 시간순 정렬
                 .map(log -> {
                     String role = log.getRole() == com.melissa.diary.domain.enums.Role.USER ? "[사용자]" : "[AI]";

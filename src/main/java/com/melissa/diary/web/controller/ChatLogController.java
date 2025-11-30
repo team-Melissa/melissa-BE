@@ -5,6 +5,7 @@ import com.melissa.diary.service.ChatLogService;
 import com.melissa.diary.web.dto.ChatLogRequestDTO;
 import com.melissa.diary.web.dto.ChatLogResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,13 @@ public class ChatLogController {
 
     private final ChatLogService chatLogService;
 
-    @Operation(summary = "채팅 메시지 삭제", description = "사용자가 작성한 채팅 메시지를 삭제합니다. AI 메시지는 삭제할 수 없습니다.")
+    @Operation(summary = "채팅 메시지 삭제", 
+               description = "[v1.3.0] 사용자 또는 AI가 작성한 채팅 메시지를 삭제합니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "CHAT4003: 채팅 메시지에 접근할 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "CHAT4002: 채팅 메시지를 찾을 수 없음")
+    })
     @DeleteMapping("/{chatLogId}")
     public ApiResponse<ChatLogResponseDTO.ChatLogDeleteResponse> deleteChatLog(
             @PathVariable Long chatLogId,
@@ -34,7 +41,14 @@ public class ChatLogController {
         return ApiResponse.onSuccess(response);
     }
 
-    @Operation(summary = "채팅 메시지 수정", description = "사용자가 작성한 채팅 메시지를 수정합니다. AI 메시지는 수정할 수 없습니다.")
+    @Operation(summary = "채팅 메시지 수정", 
+               description = "사용자가 작성한 채팅 메시지를 수정합니다. AI 메시지는 수정할 수 없습니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "CHAT4004: AI 메시지는 수정할 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "CHAT4003: 채팅 메시지에 접근할 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "CHAT4002: 채팅 메시지를 찾을 수 없음")
+    })
     @PatchMapping("/{chatLogId}")
     public ApiResponse<ChatLogResponseDTO.ChatLogResponse> updateChatLog(
             @PathVariable Long chatLogId,
@@ -47,4 +61,3 @@ public class ChatLogController {
         return ApiResponse.onSuccess(response);
     }
 }
-

@@ -51,6 +51,7 @@ public class User {
 
     @Version
     @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
+    @Builder.Default
     private Long version = 0L;
 
     // 마이그레이션용, Initialize를 통해 기존 사용자도 처리위해 추가
@@ -71,12 +72,6 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @Builder.Default
     private List<Thread> threadList = new ArrayList<>();
-
-    // v1.3.0: Deprecated - 임시 유지 (Service 완성 후 제거)
-    @Deprecated
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @Builder.Default
-    private List<AiProfile> aiProfileList = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @Builder.Default
@@ -100,12 +95,6 @@ public class User {
     public void addThread(Thread thread) {
         threadList.add(thread);
         thread.setUser(this);
-    }
-
-    @Deprecated
-    public void addAiProfile(AiProfile aiProfile) {
-        aiProfileList.add(aiProfile);
-        aiProfile.setUser(this);
     }
 
     public void addDiary(Diary diary) {
