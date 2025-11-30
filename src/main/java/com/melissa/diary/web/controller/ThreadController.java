@@ -105,4 +105,40 @@ public class ThreadController {
         ThreadResponseDTO.ChatListResponse response = threadService.getThreadMessages(userId, aiProfileId, year, month, day);
         return ApiResponse.onSuccess(response);
     }
+    
+    // =============== v2: UserMemory 기반 API ===============
+    
+    /**
+     * v2: UserMemory 기반 SSE 스트리밍 채팅
+     */
+    @PostMapping(value = "/v2/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "메모리 기반 스트리밍 채팅", 
+               description = "사용자 장기 기억을 활용한 AI와의 실시간 스트리밍 채팅입니다.")
+    public Flux<ServerSentEvent<String>> messageToAiV2(
+            @jakarta.validation.Valid @RequestBody ThreadRequestDTO.AiChatRequestV2 request,
+            Principal principal
+    ) {
+        Long userId = Long.parseLong(principal.getName());
+        return threadService.messageToAiV2(
+                userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay(), request.getContent()
+        );
+    }
+    
+    /**
+     * v2: 웹 테스트용 Non-SSE 메모리 기반 채팅
+     * 정성적 평가를 위한 동기 API
+     */
+    @PostMapping("/v2/message-test")
+    @Operation(summary = "웹 테스트용 메모리 기반 채팅", 
+               description = "정성적 평가를 위한 웹 테스트용 API입니다. SSE 없이 일반 HTTP 응답으로 메모리 기반 AI 채팅을 제공합니다.")
+    public ApiResponse<ThreadResponseDTO.ChatResponse> messageToAiTest(
+            @jakarta.validation.Valid @RequestBody ThreadRequestDTO.AiChatRequestV2 request,
+            Principal principal
+    ) {
+        Long userId = Long.parseLong(principal.getName());
+        ThreadResponseDTO.ChatResponse response = threadService.messageToAiTest(
+                userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay(), request.getContent()
+        );
+        return ApiResponse.onSuccess(response);
+    }
 }

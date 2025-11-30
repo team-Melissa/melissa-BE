@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ThreadRepository extends JpaRepository<Thread,Long> {
-    // [v1.3.0] aiProfileId 포함 쿼리 메서드
+    // [v1.3.0] aiProfileId 포함 쿼리 메서드 (1.3.0부터는 aiProfileId 필수)
     @Query("SELECT DISTINCT t FROM Thread t LEFT JOIN FETCH t.dailyChatLogs " +
             "WHERE t.user.id = :userId AND t.aiProfile.id = :aiProfileId AND t.year = :year AND t.month = :month AND t.day = :day")
     Optional<Thread> findByUserIdAndAiProfileIdAndYearAndMonthAndDay(@Param("userId") Long userId,

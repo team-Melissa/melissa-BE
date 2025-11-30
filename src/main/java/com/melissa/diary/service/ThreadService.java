@@ -17,16 +17,9 @@ import lombok.Getter;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-
-
-
-
-
 import org.springframework.beans.factory.annotation.Qualifier;
-
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
-
 import org.springframework.transaction.annotation.Transactional;
 import com.melissa.diary.domain.Thread;
 
@@ -49,15 +42,14 @@ public class ThreadService {
     private final AiProfileRepository aiProfileRepository;
     private final DailyChatLogRepository dailyChatLogRepository;
     private final ChatClient chatClient;
-
     private final QuotaService quotaService;
-
-    private final JailbreakDetector jailbreakDetector;
-    
-    // v1.3.0: UserMemory 통합 (V2 기능 적용)
     private final UserMemoryService userMemoryService;
+    private final JailbreakDetector jailbreakDetector;
 
-    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService, JailbreakDetector jailbreakDetector, UserMemoryService userMemoryService) {
+    public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, 
+                        AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, 
+                        @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService, 
+                        JailbreakDetector jailbreakDetector, UserMemoryService userMemoryService) {
         this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.aiProfileRepository = aiProfileRepository;
@@ -95,6 +87,7 @@ public class ThreadService {
                 .day(thread.getDay())
                 .build();
     }
+    
     private Thread createNewThread(User user, AiProfile aiProfile, int year, int month, int day) {
         // 스레드 생성
         Thread newThread = Thread.builder()
@@ -105,7 +98,7 @@ public class ThreadService {
                 .day(day)
                 .build();
 
-        // ====== 유니크 예외 방지를 위한 try-catch ======
+        // 유니크 예외 방지를 위한 try-catch
         try {
             threadRepository.save(newThread);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
@@ -153,8 +146,9 @@ public class ThreadService {
         return response;
     }
 
-
-    // 실시간 스트리밍
+    /**
+     * v1: 기본 SSE 스트리밍 채팅 (UserMemory 미적용)
+     */
     public Flux<ServerSentEvent<String>> messageToAi(Long userId, Long aiProfileId,
                                                      int year, int month, int day,
                                                      String userMessage) {
@@ -169,13 +163,31 @@ public class ThreadService {
                 buildAiStream(userId, aiProfileId, year, month, day, userMessage)
         );
     }
+    
+    /**
+     * v2: UserMemory 기반 SSE 스트리밍 채팅
+     */
+    public Flux<ServerSentEvent<String>> messageToAiV2(Long userId, Long aiProfileId,
+                                                       int year, int month, int day,
+                                                       String userMessage) {
 
-    /* ---------- 기존 플럭스 부분만 메서드로 분리 ---------- */
+        /* 블로킹(JPA) 차감 → 별도 스레드 풀 */
+        Mono<Void> quotaMono = Mono.fromRunnable(() ->
+                        quotaService.checkAndConsume(userId, UsageCost.CHAT))
+                .subscribeOn(Schedulers.boundedElastic()).then();
+
+        /* quotaMono 종료 → AI 스트림 실행 (Flux) */
+        return quotaMono.thenMany(
+                buildAiStreamV2(userId, aiProfileId, year, month, day, userMessage)
+        );
+    }
+
+    /* ---------- v1: 기본 플럭스 (UserMemory 미적용) ---------- */
     private Flux<ServerSentEvent<String>> buildAiStream(Long userId, Long aiProfileId, int year, int month,
                                                         int day, String userMessage) {
 
         ThreadData td   = getThreadData(userId, aiProfileId, year, month, day, userMessage);
-        String prompt   = buildAiChatPrompt(userId, userMessage, td.getChatHistory(), td.getAiProfile());
+        String prompt   = buildAiChatPrompt(userMessage, td.getChatHistory(), td.getAiProfile());
         StringBuilder b = new StringBuilder();
 
         /* 탈옥 시도 검사 */
@@ -207,7 +219,73 @@ public class ThreadService {
                     .delayElements(Duration.ofMillis(10));
         }
 
+        Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt(prompt)
+                .system(sp -> sp.param("system", td.getAiProfile().getPromptText())
+                        .param("q1", td.getAiProfile().getQ1())
+                        .param("q2", td.getAiProfile().getQ2())
+                        .param("q3", td.getAiProfile().getQ3())
+                        .param("q4", td.getAiProfile().getQ4())
+                        .param("q5", td.getAiProfile().getQ5())
+                        .param("q6", td.getAiProfile().getQ6()))
+                .stream()
+                .chatResponse()
+                .map(r -> {
+                    String part = r.getResults().get(0).getOutput().getText();
+                    b.append(part);
+                    return ServerSentEvent.<String>builder()
+                            .event("aiMessage").data(part).build();
+                })
+                .doOnComplete(() -> 
+                    Mono.fromRunnable(() -> saveAiMessage(b.toString().trim(), td))
+                        .subscribeOn(Schedulers.boundedElastic())
+                        .subscribe()
+                )
+                .onErrorResume(e -> Flux.just(ServerSentEvent.<String>builder()
+                        .event("error").data("SSE 오류: " + e.getMessage()).build()));
 
+        /* finish 이벤트 붙여서 반환 */
+        Flux<ServerSentEvent<String>> finish = Flux.just(
+                ServerSentEvent.<String>builder().event("finish").data("finish").build());
+
+        return Flux.concat(aiFlux, finish);
+    }
+    
+    /* ---------- v2: UserMemory 기반 플럭스 ---------- */
+    private Flux<ServerSentEvent<String>> buildAiStreamV2(Long userId, Long aiProfileId, int year, int month,
+                                                          int day, String userMessage) {
+
+        ThreadData td   = getThreadData(userId, aiProfileId, year, month, day, userMessage);
+        
+        // v2: UserMemory 포함 프롬프트
+        String prompt   = buildAiChatPromptV2(userId, userMessage, td.getChatHistory(), td.getAiProfile());
+        StringBuilder b = new StringBuilder();
+
+        /* 탈옥 시도 검사 */
+        if (jailbreakDetector.isJailbreakAttempt(userMessage)) {
+            String rejectMsg = "죄송합니다. 해당 요청은 처리할 수 없습니다.";
+
+            Flux<ServerSentEvent<String>> errFlux = Flux.just(
+                            ServerSentEvent.<String>builder()
+                                    .event("aiMessage")
+                                    .data(rejectMsg)
+                                    .build()
+                    )
+                    .doOnComplete(() -> 
+                        Mono.fromRunnable(() -> saveAiMessage(rejectMsg, td))
+                            .subscribeOn(Schedulers.boundedElastic())
+                            .subscribe()
+                    );
+
+            Flux<ServerSentEvent<String>> finishFlux = Flux.just(
+                    ServerSentEvent.<String>builder()
+                            .event("finish")
+                            .data("finish")
+                            .build()
+            );
+
+            return Flux.concat(errFlux, finishFlux)
+                    .delayElements(Duration.ofMillis(10));
+        }
 
         Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt(prompt)
                 .system(sp -> sp.param("system", td.getAiProfile().getPromptText())
@@ -262,10 +340,9 @@ public class ThreadService {
         dailyChatLogRepository.save(aiChat);
     }
 
-
     @Transactional
     public ThreadData getThreadData(Long userId, Long aiProfileId, int year, int month, int day, String userMessage) {
-        // 스레드 조회
+        // aiProfileId 포함하여 스레드 조회 (1.3.0부터는 필수)
         com.melissa.diary.domain.Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(userId, aiProfileId, year, month, day)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
 
@@ -292,10 +369,9 @@ public class ThreadService {
     }
 
     /**
-     * v1.3.0: UserMemory 통합 프롬프트 생성 (V2 기능)
-     * 기존 채팅 기록과 AI 프로필, 그리고 사용자 장기 기억을 이용해 프롬프트 생성
+     * v1: 기본 프롬프트 생성 (UserMemory 미적용)
      */
-    private String buildAiChatPrompt(Long userId, String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
+    private String buildAiChatPrompt(String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
         StringBuilder prompt = new StringBuilder();
 
         prompt.append("너는 아래와 같은 성격을 지녔어. 새 사용자의 입력을 이 성격을 기반으로 생성해야해 : \n");
@@ -315,36 +391,6 @@ public class ThreadService {
                     답변은 한글 문자 수 기준, 공백 포함 최대 150자로 작성해줘.
                     """);
         }
-
-        // ======== V2 기능 복구: UserMemory 통합 ========
-        // 주제 변경 감지 및 UserMemory 포함 여부 결정
-        boolean shouldIncludeMemory = false;
-        if (!chatHistory.isEmpty()) {
-            String todayConversation = buildTodayConversationSummary(chatHistory);
-            shouldIncludeMemory = userMemoryService.detectTopicChange(todayConversation, userMessage);
-            
-            if (shouldIncludeMemory) {
-                log.debug("[ThreadService] 주제 변경 감지. UserMemory 포함. userId={}", userId);
-            }
-        }
-        
-        // UserMemory 포함
-        if (shouldIncludeMemory && userMemoryService.hasMemoryContent(userId)) {
-            try {
-                com.melissa.diary.domain.UserMemory userMemory = userMemoryService.getUserMemoryReadOnly(userId);
-                if (userMemory != null && userMemory.getMemoryContent() != null && !userMemory.getMemoryContent().trim().isEmpty()) {
-                    prompt.append("\n\n=== 사용자에 대해 알고 있는 기억 ===\n");
-                    prompt.append(userMemory.getMemoryContent());
-                    prompt.append("\n=== 기억 끝 ===\n\n");
-                    prompt.append("위 기억을 자연스럽게 활용하되, 직접 언급하지 말고 대화 맥락에 스며들게 활용해줘.\n");
-                    
-                    log.info("[ThreadService] UserMemory 프롬프트 포함 완료. userId={}", userId);
-                }
-            } catch (Exception e) {
-                log.warn("[ThreadService] UserMemory 조회 실패, 메모리 없이 진행. userId={}", userId, e);
-            }
-        }
-        // ======== V2 기능 복구 끝 ========
 
         // 기존 채팅 내역 추가
         if (!chatHistory.isEmpty()) {
@@ -366,7 +412,70 @@ public class ThreadService {
     }
     
     /**
-     * v1.3.0: 오늘의 대화 내용 요약 생성 (주제 변경 감지용)
+     * v2: UserMemory 통합 프롬프트 생성
+     * 주제 변경 감지 시 사용자 장기 기억 포함
+     */
+    private String buildAiChatPromptV2(Long userId, String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
+        StringBuilder prompt = new StringBuilder();
+
+        prompt.append("너는 아래와 같은 성격을 지녔어. 새 사용자의 입력을 이 성격을 기반으로 생성해야해 : \n");
+        prompt.append(aiProfile.getPromptText());
+
+        prompt.append("""
+                기존의 대화 기록을 줄게. 너는 너의 성격을 기반으로 사용자 입력에 알맞는 적절한 다음 답변을 생성해줘.
+                """);
+
+        if (aiProfile.getQ2().contains("짧")){
+            prompt.append("""
+                답변은 한글 문자 수 기준, 공백 포함 최대 40자로 작성해줘.
+                """);
+        } else {
+            prompt.append("""
+                    답변은 한글 문자 수 기준, 공백 포함 최대 150자로 작성해줘.
+                    """);
+        }
+
+        // ======== v2: UserMemory 통합 (항상 포함) ========
+        // v2 개선: 주제 변경 감지 대신 항상 UserMemory 포함
+        if (userMemoryService.hasMemoryContent(userId)) {
+            log.debug("[ThreadService] v2 모드: UserMemory 포함 시작. userId={}", userId);
+            try {
+                com.melissa.diary.domain.UserMemory userMemory = userMemoryService.getUserMemoryReadOnly(userId);
+                if (userMemory != null && userMemory.getMemoryContent() != null && !userMemory.getMemoryContent().trim().isEmpty()) {
+                    prompt.append("\n\n=== 사용자에 대해 알고 있는 기억 ===\n");
+                    prompt.append(userMemory.getMemoryContent());
+                    prompt.append("\n=== 기억 끝 ===\n\n");
+                    prompt.append("위 기억을 자연스럽게 활용하되, 직접 언급하지 말고 대화 맥락에 스며들게 활용해줘.\n");
+                    
+                    log.info("[ThreadService] UserMemory 프롬프트 포함 완료. userId={}", userId);
+                }
+            } catch (Exception e) {
+                log.warn("[ThreadService] UserMemory 조회 실패, 메모리 없이 진행. userId={}", userId, e);
+            }
+        }
+        // ======== v2 끝 ========
+
+        // 기존 채팅 내역 추가
+        if (!chatHistory.isEmpty()) {
+            prompt.append("대화 기록:\n");
+            for (DailyChatLog log : chatHistory) {
+                prompt.append(log.getRole().name())
+                        .append(": ")
+                        .append(log.getContent())
+                        .append("\n");
+            }
+        }
+
+        // 새 사용자 입력 추가
+        prompt.append("사용자 입력: ")
+                .append(userMessage)
+                .append("\nAI: ");
+
+        return prompt.toString();
+    }
+    
+    /**
+     * v2 helper: 오늘의 대화 내용 요약 (주제 변경 감지용)
      */
     private String buildTodayConversationSummary(List<DailyChatLog> chatHistory) {
         return chatHistory.stream()
@@ -377,8 +486,6 @@ public class ThreadService {
                 })
                 .collect(java.util.stream.Collectors.joining("\n"));
     }
-    
-
 
     //해당 날짜(Thread)의 채팅메시지 조회
     @Transactional(readOnly = true)
@@ -424,17 +531,119 @@ public class ThreadService {
                 .chats(mappedChats)
                 .build();
     }
+    
+    /**
+     * v2: 웹 테스트용 Non-SSE 메모리 기반 채팅 (동기 방식)
+     * 정성적 평가를 위한 API
+     */
+    @Transactional
+    public ThreadResponseDTO.ChatResponse messageToAiTest(Long userId, Long aiProfileId,
+                                                         int year, int month, int day,
+                                                         String content) {
+        // 쿼터 차감
+        quotaService.checkAndConsume(userId, UsageCost.CHAT);
 
-    @Getter
-    protected static class ThreadData {
-        private final Thread thread;
-        private final AiProfile aiProfile;
-        private final List<DailyChatLog> chatHistory;
+        // 스레드 조회 및 검증 (v2: aiProfileId 포함)
+        Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(userId, aiProfileId, year, month, day)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
 
-        public ThreadData(com.melissa.diary.domain.Thread thread, AiProfile aiProfile, List<DailyChatLog> chatHistory) {
-            this.thread = thread;
-            this.aiProfile = aiProfile;
-            this.chatHistory = chatHistory;
+        if (!thread.getUser().getId().equals(userId)) {
+            throw new ErrorHandler(ErrorStatus.THREAD_FORBIDDEN);
+        }
+
+        // AI 프로필 조회
+        AiProfile aiProfile = aiProfileRepository.findById(aiProfileId)
+                .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
+        List<DailyChatLog> chatHistory = thread.getDailyChatLogs();
+
+        // 사용자 메시지 저장
+        DailyChatLog userLog = DailyChatLog.builder()
+                .role(Role.USER)
+                .content(content)
+                .thread(thread)
+                .aiProfile(aiProfile)
+                .createdAt(LocalDateTime.now())
+                .build();
+        dailyChatLogRepository.save(userLog);
+        
+        // 탈옥 시도 검사
+        if (jailbreakDetector.isJailbreakAttempt(content)) {
+            String rejectMsg = "죄송합니다. 해당 요청은 처리할 수 없습니다.";
+            DailyChatLog aiChat = DailyChatLog.builder()
+                    .role(Role.AI)
+                    .content(rejectMsg)
+                    .thread(thread)
+                    .aiProfile(aiProfile)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            dailyChatLogRepository.save(aiChat);
+            
+            return ThreadResponseDTO.ChatResponse.builder()
+                    .chatId(aiChat.getId())
+                    .role("AI")
+                    .content(rejectMsg)
+                    .createAt(LocalDateTime.now())
+                    .aiProfileName(aiProfile.getProfileName())
+                    .aiProfileImageS3(aiProfile.getImageS3())
+                    .build();
+        }
+        
+        // AI 채팅 프롬프트 생성 (v2: 메모리 포함)
+        String prompt = buildAiChatPromptV2(userId, content, chatHistory, aiProfile);
+
+        try {
+            // AI 응답 생성 (동기 방식)
+            String aiResponse = chatClient.prompt(prompt)
+                    .system(sp -> sp.param("system", aiProfile.getPromptText())
+                            .param("q1", aiProfile.getQ1())
+                            .param("q2", aiProfile.getQ2())
+                            .param("q3", aiProfile.getQ3())
+                            .param("q4", aiProfile.getQ4())
+                            .param("q5", aiProfile.getQ5())
+                            .param("q6", aiProfile.getQ6()))
+                    .call()
+                    .content();
+
+            // AI 응답 저장
+            String cleanAnswer = aiResponse.replace("null", "").trim();
+            DailyChatLog aiChat = DailyChatLog.builder()
+                    .role(Role.AI)
+                    .content(cleanAnswer)
+                    .thread(thread)
+                    .aiProfile(aiProfile)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            dailyChatLogRepository.save(aiChat);
+
+            return ThreadResponseDTO.ChatResponse.builder()
+                    .chatId(aiChat.getId())
+                    .role("AI")
+                    .content(cleanAnswer)
+                    .createAt(LocalDateTime.now())
+                    .aiProfileName(aiProfile.getProfileName())
+                    .aiProfileImageS3(aiProfile.getImageS3())
+                    .build();
+
+        } catch (Exception e) {
+            log.error("[ThreadService] 웹 테스트 채팅 중 오류 발생. userId={}, aiProfileId={}", userId, aiProfileId, e);
+            String errorMsg = "채팅 처리 중 오류가 발생했습니다.";
+            DailyChatLog aiChat = DailyChatLog.builder()
+                    .role(Role.AI)
+                    .content(errorMsg)
+                    .thread(thread)
+                    .aiProfile(aiProfile)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            dailyChatLogRepository.save(aiChat);
+            
+            return ThreadResponseDTO.ChatResponse.builder()
+                    .chatId(aiChat.getId())
+                    .role("AI")
+                    .content(errorMsg)
+                    .createAt(LocalDateTime.now())
+                    .aiProfileName(aiProfile.getProfileName())
+                    .aiProfileImageS3(aiProfile.getImageS3())
+                    .build();
         }
     }
     
@@ -459,4 +668,16 @@ public class ThreadService {
         return true;
     }
 
+    @Getter
+    protected static class ThreadData {
+        private final Thread thread;
+        private final AiProfile aiProfile;
+        private final List<DailyChatLog> chatHistory;
+
+        public ThreadData(com.melissa.diary.domain.Thread thread, AiProfile aiProfile, List<DailyChatLog> chatHistory) {
+            this.thread = thread;
+            this.aiProfile = aiProfile;
+            this.chatHistory = chatHistory;
+        }
+    }
 }
