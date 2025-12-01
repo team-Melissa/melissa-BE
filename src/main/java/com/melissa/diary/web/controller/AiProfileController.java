@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @Tag(name = "AiProfileAPI", description = "AI 프로필 관련 API")
-@RequestMapping("/api/v1/ai-profiles")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class AiProfileController {
 
@@ -32,7 +32,7 @@ public class AiProfileController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "QUOTA4001: 일일 사용량 초과"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "AI5001: LLM 파싱 실패")
     })
-    @PostMapping
+    @PostMapping("/v1/ai-profiles")
     @Deprecated(since = "1.2.0", forRemoval = true)
     public ApiResponse<AiProfileResponseDTO.AiProfileResponse> createAiProfile(
             Principal principal,
@@ -51,7 +51,7 @@ public class AiProfileController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "PROFILE4001: AI 프로필에 접근할 권한이 없음"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / PROFILE4002: AI 프로필을 찾을 수 없음")
     })
-    @GetMapping("/{aiProfileId}")
+    @GetMapping("/v1/ai-profiles/{aiProfileId}")
     public ApiResponse<AiProfileResponseDTO.AiProfileResponse> getAiProfile(
             @PathVariable(name = "aiProfileId") Long aiProfileId, 
             Principal principal) {
@@ -67,7 +67,7 @@ public class AiProfileController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "PROFILE4002: AI 프로필을 찾을 수 없음")
     })
-    @GetMapping("/recent")
+    @GetMapping("/v1/ai-profiles/recent")
     public ApiResponse<AiProfileResponseDTO.AiProfileResponse> getAiProfileIdRecent(
             Principal principal) {
 
@@ -84,7 +84,7 @@ public class AiProfileController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "PROFILE4001: AI 프로필에 접근할 권한이 없음"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / PROFILE4002: AI 프로필을 찾을 수 없음")
     })
-    @GetMapping("/{aiProfileId}/question")
+    @GetMapping("/v1/ai-profiles/{aiProfileId}/question")
     public ApiResponse<AiProfileResponseDTO.AiProfileQuestionResponse> getAiQuestionProfile(
             @PathVariable(name = "aiProfileId") Long aiProfileId, 
             Principal principal) {
@@ -100,7 +100,7 @@ public class AiProfileController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음")
     })
-    @GetMapping
+    @GetMapping("/v1/ai-profiles")
     public ApiResponse<List<AiProfileResponseDTO.AiProfileResponse>> getAiProfileList(
             Principal principal) {
 
@@ -118,7 +118,7 @@ public class AiProfileController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "PROFILE4001: AI 프로필에 접근할 권한이 없음"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / PROFILE4002: AI 프로필을 찾을 수 없음")
     })
-    @DeleteMapping("/{aiProfileId}")
+    @DeleteMapping("/v1/ai-profiles/{aiProfileId}")
     public ApiResponse<Void> deleteAiProfile(
             Principal principal,
             @PathVariable(name = "aiProfileId") Long aiProfileId) {
@@ -134,7 +134,7 @@ public class AiProfileController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음")
     })
-    @PatchMapping("/restore")
+    @PatchMapping("/v1/ai-profiles/restore")
     public ApiResponse<Void> restoreDefaults(Principal principal) {
         Long userId = Long.parseLong(principal.getName());
         aiProfileService.restoreUserDefaultProfiles(userId);
@@ -153,7 +153,7 @@ public class AiProfileController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "QUOTA4001: 일일 사용량 초과"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "AI5001: LLM 파싱 실패")
     })
-    @PostMapping("/v2")
+    @PostMapping("/v2/ai-profiles")
     public ApiResponse<AiProfileResponseDTO.AiProfileResponse> createAiProfileV2(
             Principal principal,
             @RequestBody AiProfileRequestDTO.AiProfileCreateRequest request) {

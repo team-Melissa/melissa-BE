@@ -1,12 +1,16 @@
 package com.melissa.diary.web.controller;
 
 import com.melissa.diary.apiPayload.ApiResponse;
+import com.melissa.diary.service.ChatLogService;
 import com.melissa.diary.service.ThreadService;
+import com.melissa.diary.web.dto.ChatLogRequestDTO;
+import com.melissa.diary.web.dto.ChatLogResponseDTO;
 import com.melissa.diary.web.dto.ThreadRequestDTO;
 import com.melissa.diary.web.dto.ThreadResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -18,12 +22,13 @@ import java.security.Principal;
 
 @RestController
 @Tag(name = "Thread&ChatsAPI", description = "Thread&Chats 관련 API")
-@RequestMapping("/api/v1/chats")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
 public class ThreadController {
 
     private final ThreadService threadService;
+    private final ChatLogService chatLogService;
 
     @Operation(summary = "채팅 스레드 생성",
                description = "해당 날짜의 채팅 스레드를 생성합니다. 기존에 존재 시, 같은 threadId 리턴")
@@ -32,7 +37,7 @@ public class ThreadController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "THREAD4001: 해당 날짜의 스레드가 이미 존재"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / PROFILE4002: AI 프로필을 찾을 수 없음")
     })
-    @PostMapping
+    @PostMapping("/v1/chats")
     public ApiResponse<ThreadResponseDTO.ThreadResponse> createThread(
             @RequestParam(name = "aiProfileId") Long aiProfileId,
             @RequestParam(name = "year") int year,
@@ -54,7 +59,7 @@ public class ThreadController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "CALENDAR4002: 스레드에 접근할 권한이 없음"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / CALENDAR4001: 스레드를 찾을 수 없음")
     })
-    @DeleteMapping
+    @DeleteMapping("/v1/chats")
     public ApiResponse<ThreadResponseDTO.ThreadResponse> deleteThread(
             @RequestParam(name = "aiProfileId") Long aiProfileId,
             @RequestParam(name = "year") int year,
@@ -77,7 +82,7 @@ public class ThreadController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / CALENDAR4001: 스레드를 찾을 수 없음 / PROFILE4002: AI 프로필을 찾을 수 없음"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "QUOTA4001: 일일 사용량 초과")
     })
-    @PostMapping(value = "/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/v1/chats/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> messageToAi(
             @jakarta.validation.Valid @RequestBody ThreadRequestDTO.AiChatRequest request,
             Principal principal) {
@@ -93,7 +98,7 @@ public class ThreadController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "CALENDAR4002: 스레드에 접근할 권한이 없음"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음 / CALENDAR4001: 스레드를 찾을 수 없음")
     })
-    @GetMapping
+    @GetMapping("/v1/chats")
     public ApiResponse<ThreadResponseDTO.ChatListResponse> getMessages(
             @RequestParam(name = "aiProfileId") Long aiProfileId,
             @RequestParam(name = "year") int year,
@@ -106,12 +111,50 @@ public class ThreadController {
         return ApiResponse.onSuccess(response);
     }
     
+    @Operation(summary = "채팅 메시지 수정", 
+               description = "사용자가 작성한 채팅 메시지를 수정합니다. AI 메시지는 수정할 수 없습니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "CHAT4004: AI 메시지는 수정할 수 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "CHAT4003: 채팅 메시지에 접근할 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "CHAT4002: 채팅 메시지를 찾을 수 없음")
+    })
+    @PatchMapping("/v1/chats/{chatLogId}")
+    public ApiResponse<ChatLogResponseDTO.ChatLogResponse> updateChatLog(
+            @PathVariable Long chatLogId,
+            @Valid @RequestBody ChatLogRequestDTO.ChatLogUpdateRequest request,
+            Principal principal) {
+
+        Long userId = Long.parseLong(principal.getName());
+        ChatLogResponseDTO.ChatLogResponse response = chatLogService.updateChatLog(userId, chatLogId, request);
+
+        return ApiResponse.onSuccess(response);
+    }
+    
+    @Operation(summary = "채팅 메시지 삭제", 
+               description = "[v1.3.0] 사용자 또는 AI가 작성한 채팅 메시지를 삭제합니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "CHAT4003: 채팅 메시지에 접근할 권한이 없음"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "CHAT4002: 채팅 메시지를 찾을 수 없음")
+    })
+    @DeleteMapping("/v1/chats/{chatLogId}")
+    public ApiResponse<ChatLogResponseDTO.ChatLogDeleteResponse> deleteChatLog(
+            @PathVariable Long chatLogId,
+            Principal principal) {
+
+        Long userId = Long.parseLong(principal.getName());
+        ChatLogResponseDTO.ChatLogDeleteResponse response = chatLogService.deleteChatLog(userId, chatLogId);
+
+        return ApiResponse.onSuccess(response);
+    }
+    
     // =============== v2: UserMemory 기반 API ===============
     
     /**
      * v2: UserMemory 기반 SSE 스트리밍 채팅
      */
-    @PostMapping(value = "/v2/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/v2/chats/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "메모리 기반 스트리밍 채팅", 
                description = "사용자 장기 기억을 활용한 AI와의 실시간 스트리밍 채팅입니다.")
     public Flux<ServerSentEvent<String>> messageToAiV2(
@@ -128,7 +171,7 @@ public class ThreadController {
      * v2: 웹 테스트용 Non-SSE 메모리 기반 채팅
      * 정성적 평가를 위한 동기 API
      */
-    @PostMapping("/v2/message-test")
+    @PostMapping("/v2/chats/message-test")
     @Operation(summary = "웹 테스트용 메모리 기반 채팅", 
                description = "정성적 평가를 위한 웹 테스트용 API입니다. SSE 없이 일반 HTTP 응답으로 메모리 기반 AI 채팅을 제공합니다.")
     public ApiResponse<ThreadResponseDTO.ChatResponse> messageToAiTest(
