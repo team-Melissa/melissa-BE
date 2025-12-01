@@ -12,7 +12,8 @@ public class CorsConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins(
                         "http://localhost:3000",
-                        "https://melissa-playground.nararia03.dev"
+                        "https://melissa-playground.nararia03.dev",
+                        "https://dev.melissa7.shop"  // 백엔드 자체 도메인 추가 (Swagger UI용)
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .allowedHeaders("Authorization", "Content-Type", "X-Requested-With")
