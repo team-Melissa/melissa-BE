@@ -17,7 +17,7 @@ public class SwaggerConfig {
         Info info = new Info()
                 .title("멜리사 Server API")
                 .description("멜리사 Spring Server API 명세서")
-                .version("1.0.0");
+                .version("1.3.0");
 
         String jwtSchemeName = "JWT TOKEN";
         // API 요청헤더에 인증정보 포함
