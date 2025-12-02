@@ -4,9 +4,9 @@ import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.converter.AiProfileConverter;
 import com.melissa.diary.domain.AiProfile;
-import com.melissa.diary.domain.Thread;
+import com.melissa.diary.domain.DailyChatLog;
 import com.melissa.diary.repository.AiProfileRepository;
-import com.melissa.diary.repository.ThreadRepository;
+import com.melissa.diary.repository.DailyChatLogRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.web.dto.AiProfileResponseDTO;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +21,7 @@ import java.util.Optional;
 public class AiProfileService {
 
     private final AiProfileRepository aiProfileRepository;
-    private final ThreadRepository threadRepository;
+    private final DailyChatLogRepository dailyChatLogRepository;
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
@@ -58,15 +58,17 @@ public class AiProfileService {
 
     @Transactional(readOnly = true)
     public AiProfileResponseDTO.AiProfileResponse getRecentAiProfileId(Long userId) {
-        Optional<Thread> recentThread = threadRepository.findFirstByUserIdOrderByYearDescMonthDescDayDesc(userId);
+        // 가장 최근 채팅 로그 기반으로 AI 프로필 조회
+        Optional<DailyChatLog> recentChatLog = dailyChatLogRepository.findFirstByThreadUserIdOrderByCreatedAtDesc(userId);
         
-        if (recentThread.isEmpty()) {
+        if (recentChatLog.isEmpty()) {
+            // 채팅 기록이 없으면 첫 번째 프로필 반환
             List<AiProfile> profiles = aiProfileRepository.findByActiveIsTrueOrderByIdAsc();
             if (profiles.isEmpty()) throw new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND);
             return AiProfileConverter.toResponse(profiles.get(0));
         }
         
-        AiProfile recentProfile = recentThread.get().getAiProfile();
+        AiProfile recentProfile = recentChatLog.get().getThread().getAiProfile();
         if (!recentProfile.isActive()) {
             throw new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND);
         }
