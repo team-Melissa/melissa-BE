@@ -8,6 +8,7 @@ import com.melissa.diary.web.dto.ChatLogResponseDTO;
 import com.melissa.diary.web.dto.ThreadRequestDTO;
 import com.melissa.diary.web.dto.ThreadResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -39,15 +40,19 @@ public class ThreadController {
     })
     @PostMapping("/v1/chats")
     public ApiResponse<ThreadResponseDTO.ThreadResponse> createThread(
+            @Parameter(description = "AI 프로필 ID", required = true, example = "1")
             @RequestParam(name = "aiProfileId") Long aiProfileId,
+            @Parameter(description = "년도", required = true, example = "2025")
             @RequestParam(name = "year") int year,
+            @Parameter(description = "월", required = true, example = "1")
             @RequestParam(name = "month") int month,
+            @Parameter(description = "일", required = true, example = "15")
             @RequestParam(name = "day") int day,
             Principal principal) {
 
         Long userId = Long.parseLong(principal.getName());
 
-        ThreadResponseDTO.ThreadResponse response = threadService. createThread(userId, aiProfileId, year, month, day);
+        ThreadResponseDTO.ThreadResponse response = threadService.createThread(userId, aiProfileId, year, month, day);
 
         return ApiResponse.onSuccess(response);
     }
@@ -61,9 +66,13 @@ public class ThreadController {
     })
     @DeleteMapping("/v1/chats")
     public ApiResponse<ThreadResponseDTO.ThreadResponse> deleteThread(
+            @Parameter(description = "AI 프로필 ID", required = true, example = "1")
             @RequestParam(name = "aiProfileId") Long aiProfileId,
+            @Parameter(description = "년도", required = true, example = "2025")
             @RequestParam(name = "year") int year,
+            @Parameter(description = "월", required = true, example = "1")
             @RequestParam(name = "month") int month,
+            @Parameter(description = "일", required = true, example = "15")
             @RequestParam(name = "day") int day,
             Principal principal) {
 
@@ -84,7 +93,7 @@ public class ThreadController {
     })
     @PostMapping(value = "/v1/chats/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> messageToAi(
-            @jakarta.validation.Valid @RequestBody ThreadRequestDTO.AiChatRequest request,
+            @Valid @RequestBody ThreadRequestDTO.AiChatRequest request,
             Principal principal) {
         Long userId = Long.parseLong(principal.getName());
 
@@ -100,9 +109,13 @@ public class ThreadController {
     })
     @GetMapping("/v1/chats")
     public ApiResponse<ThreadResponseDTO.ChatListResponse> getMessages(
+            @Parameter(description = "AI 프로필 ID", required = true, example = "1")
             @RequestParam(name = "aiProfileId") Long aiProfileId,
+            @Parameter(description = "년도", required = true, example = "2025")
             @RequestParam(name = "year") int year,
+            @Parameter(description = "월", required = true, example = "1")
             @RequestParam(name = "month") int month,
+            @Parameter(description = "일", required = true, example = "15")
             @RequestParam(name = "day") int day,
             Principal principal
     ){
@@ -121,6 +134,7 @@ public class ThreadController {
     })
     @PatchMapping("/v1/chats/{chatLogId}")
     public ApiResponse<ChatLogResponseDTO.ChatLogResponse> updateChatLog(
+            @Parameter(description = "채팅 로그 ID", required = true, example = "1")
             @PathVariable Long chatLogId,
             @Valid @RequestBody ChatLogRequestDTO.ChatLogUpdateRequest request,
             Principal principal) {
@@ -140,6 +154,7 @@ public class ThreadController {
     })
     @DeleteMapping("/v1/chats/{chatLogId}")
     public ApiResponse<ChatLogResponseDTO.ChatLogDeleteResponse> deleteChatLog(
+            @Parameter(description = "채팅 로그 ID", required = true, example = "1")
             @PathVariable Long chatLogId,
             Principal principal) {
 
@@ -158,7 +173,7 @@ public class ThreadController {
     @Operation(summary = "메모리 기반 스트리밍 채팅", 
                description = "사용자 장기 기억을 활용한 AI와의 실시간 스트리밍 채팅입니다.")
     public Flux<ServerSentEvent<String>> messageToAiV2(
-            @jakarta.validation.Valid @RequestBody ThreadRequestDTO.AiChatRequestV2 request,
+            @Valid @RequestBody ThreadRequestDTO.AiChatRequestV2 request,
             Principal principal
     ) {
         Long userId = Long.parseLong(principal.getName());
@@ -175,7 +190,7 @@ public class ThreadController {
     @Operation(summary = "웹 테스트용 메모리 기반 채팅", 
                description = "정성적 평가를 위한 웹 테스트용 API입니다. SSE 없이 일반 HTTP 응답으로 메모리 기반 AI 채팅을 제공합니다.")
     public ApiResponse<ThreadResponseDTO.ChatResponse> messageToAiTest(
-            @jakarta.validation.Valid @RequestBody ThreadRequestDTO.AiChatRequestV2 request,
+            @Valid @RequestBody ThreadRequestDTO.AiChatRequestV2 request,
             Principal principal
     ) {
         Long userId = Long.parseLong(principal.getName());

@@ -4,6 +4,7 @@ import com.melissa.diary.apiPayload.ApiResponse;
 import com.melissa.diary.service.CalenderService;
 import com.melissa.diary.web.dto.CalenderResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -32,8 +33,11 @@ public class CalenderController {
     })
     @GetMapping("/day")
     public ApiResponse<CalenderResponseDTO.DailySummaryResponseDTO> getDailySummary(
+            @Parameter(description = "년도", required = true, example = "2025")
             @RequestParam(name = "year") int year,
+            @Parameter(description = "월", required = true, example = "1")
             @RequestParam(name = "month") int month,
+            @Parameter(description = "일", required = true, example = "15")
             @RequestParam(name = "day") int day,
             Principal principal) {
 
@@ -52,7 +56,9 @@ public class CalenderController {
     })
     @GetMapping("/month")
     public ApiResponse<List<CalenderResponseDTO.DailyPreviewResponseDTO>> getCalenderPreview(
+            @Parameter(description = "년도", required = true, example = "2025")
             @RequestParam(name = "year") int year,
+            @Parameter(description = "월", required = true, example = "1")
             @RequestParam(name = "month") int month,
             Principal principal) {
 
@@ -71,7 +77,9 @@ public class CalenderController {
     })
     @GetMapping("/month/summary")
     public ApiResponse<List<CalenderResponseDTO.DailySummaryResponseDTO>> getCalenderView(
+            @Parameter(description = "년도", required = true, example = "2025")
             @RequestParam(name = "year") int year,
+            @Parameter(description = "월", required = true, example = "1")
             @RequestParam(name = "month") int month,
             Principal principal) {
 

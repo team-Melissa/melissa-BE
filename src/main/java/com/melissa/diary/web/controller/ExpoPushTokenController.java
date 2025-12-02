@@ -75,7 +75,7 @@ public class ExpoPushTokenController {
     )
     @DeleteMapping("/{expoPushToken}")
     public ApiResponse<ExpoPushTokenResponseDTO.DeleteResponse> deleteToken(
-            @Parameter(description = "삭제할 Expo Push Token", required = true)
+            @Parameter(description = "삭제할 Expo Push Token", required = true, example = "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]")
             @PathVariable String expoPushToken) {
         
         log.info("[ExpoPushTokenController] 토큰 삭제 요청. token={}", expoPushToken);
