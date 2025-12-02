@@ -20,7 +20,9 @@ public class ChatLogResponseDTO {
         @Schema(description = "채팅 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long chatId;
         
-        @Schema(description = "발신자 역할 (user/assistant)", example = "user", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "발신자 역할", example = "USER", 
+                allowableValues = {"AI", "USER"},
+                requiredMode = Schema.RequiredMode.REQUIRED)
         private String role;
         
         @Schema(description = "메시지 내용", example = "안녕하세요!", requiredMode = Schema.RequiredMode.REQUIRED)

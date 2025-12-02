@@ -24,7 +24,9 @@ public class ExpoPushTokenResponseDTO {
         @Schema(description = "Expo Push Token", example = "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]", requiredMode = Schema.RequiredMode.REQUIRED)
         private String expoPushToken;
         
-        @Schema(description = "플랫폼", example = "ANDROID", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "플랫폼", example = "ANDROID", 
+                allowableValues = {"ANDROID", "IOS"},
+                requiredMode = Schema.RequiredMode.REQUIRED)
         private Platform platform;
         
         @Schema(description = "기기 ID", example = "device-uuid-1234", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
