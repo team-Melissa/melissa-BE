@@ -5,6 +5,7 @@ import com.melissa.diary.service.DiaryService;
 import com.melissa.diary.web.dto.DiaryRequestDTO;
 import com.melissa.diary.web.dto.DiaryResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -67,7 +68,7 @@ public class DiaryController {
     }
     
     @Operation(summary = "일기 수정", 
-               description = "[v1.3.0] 일기를 수정합니다. null이 아닌 필드만 업데이트됩니다. 버전은 자동으로 증가합니다.")
+               description = "[v1.3.0] 일기를 수정합니다. null이 아닌 필드만 업데이트됩니다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "DIARY4003: 이미 삭제된 일기"),
@@ -77,6 +78,7 @@ public class DiaryController {
     })
     @PutMapping("/{diaryId}")
     public ApiResponse<DiaryResponseDTO.DiaryResponse> updateDiary(
+            @Parameter(description = "일기 ID", required = true, example = "1")
             @PathVariable Long diaryId,
             @Valid @RequestBody DiaryRequestDTO.DiaryUpdateRequest request,
             Principal principal) {
@@ -97,6 +99,7 @@ public class DiaryController {
     })
     @DeleteMapping("/{diaryId}")
     public ApiResponse<DiaryResponseDTO.DiaryDeleteResponse> deleteDiary(
+            @Parameter(description = "일기 ID", required = true, example = "1")
             @PathVariable Long diaryId,
             Principal principal) {
         

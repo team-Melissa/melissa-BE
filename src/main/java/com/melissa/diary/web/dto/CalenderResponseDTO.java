@@ -1,5 +1,6 @@
 package com.melissa.diary.web.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,15 +20,34 @@ public class CalenderResponseDTO {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(description = "일기 상세 정보")
     public static class DiaryDetailDTO {
+        
+        @Schema(description = "일기 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long diaryId;
+        
+        @Schema(description = "일기 제목", example = "오늘의 일기", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String title;
+        
+        @Schema(description = "일기 내용", example = "오늘은 좋은 하루였다.", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String content;
+        
+        @Schema(description = "기분", example = "행복", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String mood;
+        
+        @Schema(description = "해시태그 1", example = "#좋은하루", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String hashtag1;
+        
+        @Schema(description = "해시태그 2", example = "#감사", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String hashtag2;
+        
+        @Schema(description = "이미지 URL", example = "https://s3.amazonaws.com/...", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String imageUrl;
+        
+        @Schema(description = "버전", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private int version;
+        
+        @Schema(description = "생성일시", example = "2025-01-01T12:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
         private LocalDateTime createdAt;
     }
     
@@ -38,10 +58,19 @@ public class CalenderResponseDTO {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(description = "일기 미리보기")
     public static class DiaryPreviewDTO {
+        
+        @Schema(description = "일기 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long diaryId;
+        
+        @Schema(description = "해시태그 1", example = "#좋은하루", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String hashtag1;
+        
+        @Schema(description = "해시태그 2", example = "#감사", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String hashtag2;
+        
+        @Schema(description = "이미지 URL", example = "https://s3.amazonaws.com/...", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String imageUrl;
     }
     
@@ -52,10 +81,19 @@ public class CalenderResponseDTO {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(description = "날짜별 일기 상세 응답")
     public static class DailySummaryResponseDTO {
+        
+        @Schema(description = "년도", example = "2025", requiredMode = Schema.RequiredMode.REQUIRED)
         private int year;
+        
+        @Schema(description = "월", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private int month;
+        
+        @Schema(description = "일", example = "15", requiredMode = Schema.RequiredMode.REQUIRED)
         private int day;
+        
+        @Schema(description = "일기 목록 (최대 3개)", requiredMode = Schema.RequiredMode.REQUIRED)
         private List<DiaryDetailDTO> diaries;
     }
     
@@ -66,10 +104,19 @@ public class CalenderResponseDTO {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @Schema(description = "날짜별 일기 미리보기 응답")
     public static class DailyPreviewResponseDTO {
+        
+        @Schema(description = "년도", example = "2025", requiredMode = Schema.RequiredMode.REQUIRED)
         private int year;
+        
+        @Schema(description = "월", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private int month;
+        
+        @Schema(description = "일", example = "15", requiredMode = Schema.RequiredMode.REQUIRED)
         private int day;
+        
+        @Schema(description = "일기 미리보기 목록 (최대 3개)", requiredMode = Schema.RequiredMode.REQUIRED)
         private List<DiaryPreviewDTO> diaries;
     }
 }

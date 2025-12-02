@@ -1,39 +1,68 @@
 package com.melissa.diary.web.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 public class ThreadResponseDTO {
+    
     @Getter
     @Builder
+    @Schema(description = "스레드 응답")
     public static class ThreadResponse {
-        private Long threadId; // 이후 채팅로그 조회시 이용
-        // 생성시 -> 생성된 id, 재생성시 -> 기존 id, 삭제시 -> 삭제된 id
+        
+        @Schema(description = "스레드 ID (생성/재생성/삭제된 ID)", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+        private Long threadId;
+        
+        @Schema(description = "년도", example = "2025", requiredMode = Schema.RequiredMode.REQUIRED)
         private int year;
+        
+        @Schema(description = "월", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private int month;
+        
+        @Schema(description = "일", example = "15", requiredMode = Schema.RequiredMode.REQUIRED)
         private int day;
     }
+    
     @Getter
     @Builder
-    public static class ChatResponse{
+    @Schema(description = "채팅 응답")
+    public static class ChatResponse {
+        
+        @Schema(description = "채팅 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long chatId;
+        
+        @Schema(description = "발신자 역할 (user/assistant)", example = "user", requiredMode = Schema.RequiredMode.REQUIRED)
         private String role;
+        
+        @Schema(description = "메시지 내용", example = "안녕하세요!", requiredMode = Schema.RequiredMode.REQUIRED)
         private String content;
+        
+        @Schema(description = "생성일시", example = "2025-01-01T12:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
         private LocalDateTime createAt;
-        private String aiProfileName; // 채팅에 저장된 ai 프로필의 이름
-        private String aiProfileImageS3; // 채팅에 저장된 ai 프로필의 이미지
+        
+        @Schema(description = "AI 프로필 이름 (서버 주입)", example = "루나", requiredMode = Schema.RequiredMode.REQUIRED)
+        private String aiProfileName;
+        
+        @Schema(description = "AI 프로필 이미지 URL (서버 주입)", example = "https://s3.amazonaws.com/...", requiredMode = Schema.RequiredMode.REQUIRED)
+        private String aiProfileImageS3;
     }
 
     @Getter
     @Builder
-    public static class ChatListResponse{
-        private String aiProfileName; // Thread에 저장된 ai 프로필의 이름
-        private String aiProfileImageS3; // Thread에 저장된 ai 프로필의 이미지
+    @Schema(description = "채팅 목록 응답")
+    public static class ChatListResponse {
+        
+        @Schema(description = "스레드의 AI 프로필 이름 (서버 주입)", example = "루나", requiredMode = Schema.RequiredMode.REQUIRED)
+        private String aiProfileName;
+        
+        @Schema(description = "스레드의 AI 프로필 이미지 URL (서버 주입)", example = "https://s3.amazonaws.com/...", requiredMode = Schema.RequiredMode.REQUIRED)
+        private String aiProfileImageS3;
+        
+        @Schema(description = "채팅 목록", requiredMode = Schema.RequiredMode.REQUIRED)
         private List<ChatResponse> chats;
     }
-
 }

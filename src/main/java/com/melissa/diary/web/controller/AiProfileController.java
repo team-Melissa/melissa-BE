@@ -4,6 +4,7 @@ import com.melissa.diary.apiPayload.ApiResponse;
 import com.melissa.diary.service.AiProfileService;
 import com.melissa.diary.web.dto.AiProfileResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class AiProfileController {
     })
     @GetMapping("/v1/ai-profiles/{aiProfileId}")
     public ApiResponse<AiProfileResponseDTO.AiProfileResponse> getAiProfile(
+            @Parameter(description = "AI 프로필 ID", required = true, example = "1")
             @PathVariable(name = "aiProfileId") Long aiProfileId, 
             Principal principal) {
 
@@ -60,6 +62,7 @@ public class AiProfileController {
     })
     @GetMapping("/v1/ai-profiles/{aiProfileId}/question")
     public ApiResponse<AiProfileResponseDTO.AiProfileQuestionResponse> getAiQuestionProfile(
+            @Parameter(description = "AI 프로필 ID", required = true, example = "1")
             @PathVariable(name = "aiProfileId") Long aiProfileId, 
             Principal principal) {
 
@@ -82,5 +85,4 @@ public class AiProfileController {
         List<AiProfileResponseDTO.AiProfileResponse> list = aiProfileService.getAiProfileList(userId);
         return ApiResponse.onSuccess(list);
     }
-
 }
