@@ -32,7 +32,9 @@ public class CalenderResponseDTO {
         @Schema(description = "일기 내용", example = "오늘은 좋은 하루였다.", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String content;
         
-        @Schema(description = "기분", example = "행복", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        @Schema(description = "기분 (기본값: HAPPY)", example = "HAPPY", 
+                allowableValues = {"HAPPY", "SAD", "TIRED", "ANGRY", "RELAX"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String mood;
         
         @Schema(description = "해시태그 1", example = "#좋은하루", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)

@@ -53,7 +53,9 @@ public class DiaryRequestDTO {
         private String content;
         
         @Size(max = 40, message = "기분은 최대 40자까지 입력 가능합니다.")
-        @Schema(description = "기분", example = "행복", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        @Schema(description = "기분", example = "HAPPY", 
+                allowableValues = {"HAPPY", "SAD", "TIRED", "ANGRY", "RELAX"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String mood;
         
         // 해시태그는 LLM이 자동 생성 (사용자 입력 X)
@@ -82,7 +84,9 @@ public class DiaryRequestDTO {
         private String content;
         
         @Size(max = 40, message = "기분은 최대 40자까지 입력 가능합니다.")
-        @Schema(description = "기분", example = "평온", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        @Schema(description = "기분", example = "RELAX", 
+                allowableValues = {"HAPPY", "SAD", "TIRED", "ANGRY", "RELAX"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String mood;
         
         @Size(max = 30, message = "해시태그1은 최대 30자까지 입력 가능합니다.")
