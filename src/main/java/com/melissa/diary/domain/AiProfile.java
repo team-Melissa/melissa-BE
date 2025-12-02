@@ -7,12 +7,12 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 /**
- * v1.3.0: AI 프로필 (사용자별 캐릭터 관리)
- * - 서버 기본 제공 프로필 + 사용자 커스텀 프로필 지원
- * - defaultId가 null이 아니면 기본 제공 프로필
+ * v1.3.0: AI 프로필 (전역 공유 리소스)
+ * - ID 1~5: 서버 기본 제공 프로필 (모든 사용자 공유)
+ * - 커스텀 프로필 생성 불가
  */
 @Entity
-@Table(name = "ai_profile", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "default_id"}))
+@Table(name = "ai_profile")
 @Getter
 @Setter
 @Builder
@@ -68,15 +68,6 @@ public class AiProfile {
     // 생성 시각
     @CreationTimestamp
     private LocalDateTime createdAt;
-
-    // v1.3.0: 사용자별 프로필 관리 (권한 검증용)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
-
-    // 서버 기본 제공 프로필 판별용 (null이 아니면 기본 프로필)
-    @Column(name = "default_id")
-    private Long defaultId;
 
     // Soft delete용
     @Column(nullable = false)

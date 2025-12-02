@@ -4,7 +4,6 @@ import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.converter.UserConverter;
 import com.melissa.diary.domain.User;
-import com.melissa.diary.repository.AiProfileRepository;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UserSettingRepository;
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.PriorityQueue;
 
 @Service
 @RequiredArgsConstructor
@@ -27,7 +25,6 @@ public class UserService {
     private final JwtProvider jwtProvider;
     private final ThreadRepository threadRepository;
     private final UserSettingRepository userSettingRepository;
-    private final AiProfileRepository aiProfileRepository;
 
 
     @Transactional
@@ -173,9 +170,6 @@ public class UserService {
 
         // 유저의 스레드 및 관련 채팅 내역 삭제
         threadRepository.deleteAllByUserId(userId);
-
-        // 유저의 AI 프로필 삭제
-        aiProfileRepository.deleteAllByUserId(userId);
 
         // 유저 설정 삭제
         userSettingRepository.deleteByUserId(userId);
