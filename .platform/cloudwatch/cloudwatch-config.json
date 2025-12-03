@@ -70,16 +70,7 @@
           }
         ],
         "metrics_collection_interval": 60,
-        "resources": {
-          "*": {
-            "measurement": [
-              {
-                "name": "used_percent",
-                "unit": "Percent"
-              }
-            ]
-          }
-        }
+        "resources": ["/", "/home"]
       },
       "cpu": {
         "measurement": [
