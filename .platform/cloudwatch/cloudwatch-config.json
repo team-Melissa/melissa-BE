@@ -86,7 +86,7 @@
           }
         ],
         "metrics_collection_interval": 60,
-        "totalcpu": false
+        "totalcpu": true
       }
     },
     "append_dimensions": {
