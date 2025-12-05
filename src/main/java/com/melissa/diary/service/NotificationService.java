@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -93,8 +94,9 @@ public class NotificationService {
     /**
      * 개별 사용자 알림 발송
      * 유효한 토큰 모두에게 발송, 하나라도 성공하면 lastSentDate 갱신
+     * 비동기 컨텍스트에서 독립적인 트랜잭션 생성
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendNotificationToUser(UserSetting userSetting) {
         Long userId = userSetting.getUser().getId();
         
@@ -195,27 +197,37 @@ public class NotificationService {
     
     /**
      * Invalid 토큰 비활성화
+     * 독립적인 트랜잭션으로 처리
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markTokenAsInvalid(Long tokenId) {
-        expoPushTokenRepository.findById(tokenId).ifPresent(token -> {
-            token.setInvalid(true);
-            expoPushTokenRepository.save(token);
-            log.info("[Notification] 토큰 비활성화 완료. tokenId={}", tokenId);
-        });
+        try {
+            expoPushTokenRepository.findById(tokenId).ifPresent(token -> {
+                token.setInvalid(true);
+                expoPushTokenRepository.save(token);
+                log.info("[Notification] 토큰 비활성화 완료. tokenId={}", tokenId);
+            });
+        } catch (Exception e) {
+            log.error("[Notification] 토큰 비활성화 실패. tokenId={}", tokenId, e);
+        }
     }
     
     /**
      * 발송 완료 날짜 갱신
+     * 독립적인 트랜잭션으로 처리
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateLastSentDate(Long userSettingId) {
-        userSettingRepository.findById(userSettingId).ifPresent(setting -> {
-            setting.setLastSentDate(LocalDate.now());
-            userSettingRepository.save(setting);
-            log.debug("[Notification] lastSentDate 갱신 완료. userSettingId={}, date={}", 
-                    userSettingId, LocalDate.now());
-        });
+        try {
+            userSettingRepository.findById(userSettingId).ifPresent(setting -> {
+                setting.setLastSentDate(LocalDate.now());
+                userSettingRepository.save(setting);
+                log.debug("[Notification] lastSentDate 갱신 완료. userSettingId={}, date={}", 
+                        userSettingId, LocalDate.now());
+            });
+        } catch (Exception e) {
+            log.error("[Notification] lastSentDate 갱신 실패. userSettingId={}", userSettingId, e);
+        }
     }
     
     // 알림 제목 생성
