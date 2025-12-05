@@ -19,11 +19,12 @@ public interface UserSettingRepository extends JpaRepository<UserSetting, Long> 
 
     /**
      * 알림 발송 대상 조회 (시간 일치, 알림 활성화, 미발송, 유효 토큰)
+     * FETCH JOIN으로 N+1 문제 방지
      */
     @Query("""
         SELECT DISTINCT us FROM UserSetting us
-        INNER JOIN us.user u
-        INNER JOIN u.expoPushTokenList ept
+        INNER JOIN FETCH us.user u
+        INNER JOIN FETCH u.expoPushTokenList ept
         WHERE us.notificationTime = :notificationTime
         AND (us.notificationSummary = true OR us.notificationQna = true)
         AND (us.lastSentDate IS NULL OR us.lastSentDate < :today)
