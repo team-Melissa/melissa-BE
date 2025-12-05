@@ -93,11 +93,18 @@ public class NotificationService {
     
     /**
      * 개별 사용자 알림 발송
-     * 유효한 토큰 모두에게 발송, 하나라도 성공하면 lastSentDate 갱신
+     * 중복 발송 방지를 위해 발송 전 lastSentDate 먼저 갱신
      * 트랜잭션 없음 (읽기는 FETCH JOIN으로 이미 로딩, 쓰기는 하위 메서드에서 독립 처리)
      */
     public void sendNotificationToUser(UserSetting userSetting) {
         Long userId = userSetting.getUser().getId();
+        
+        // 중복 발송 방지: 발송 전에 먼저 lastSentDate 갱신
+        boolean updated = updateLastSentDateIfNotToday(userSetting.getId());
+        if (!updated) {
+            log.debug("[Notification] 이미 오늘 발송됨. userId={}", userId);
+            return;
+        }
         
         // 유효한 토큰 목록 조회
         List<ExpoPushToken> validTokens = userSetting.getUser().getExpoPushTokenList().stream()
@@ -111,7 +118,6 @@ public class NotificationService {
         
         log.info("[Notification] 사용자 알림 발송 시작. userId={}, 토큰 수={}", userId, validTokens.size());
         
-        boolean anySuccess = false;
         int tokenSuccessCount = 0;
         int tokenFailCount = 0;
         
@@ -123,7 +129,6 @@ public class NotificationService {
         for (ExpoPushToken token : validTokens) {
             try {
                 sendPushNotification(token.getExpoPushToken(), title, body);
-                anySuccess = true;
                 tokenSuccessCount++;
                 log.info("[Notification] 토큰 발송 성공. userId={}, tokenId={}", userId, token.getId());
             } catch (InvalidTokenException e) {
@@ -137,14 +142,8 @@ public class NotificationService {
             }
         }
         
-        // 하나라도 성공하면 lastSentDate 갱신
-        if (anySuccess) {
-            updateLastSentDate(userSetting.getId());
-            log.info("[Notification] 사용자 알림 발송 완료. userId={}, 토큰 성공: {}, 실패: {}", 
-                    userId, tokenSuccessCount, tokenFailCount);
-        } else {
-            log.error("[Notification] 모든 토큰 발송 실패. userId={}", userId);
-        }
+        log.info("[Notification] 사용자 알림 발송 완료. userId={}, 토큰 성공: {}, 실패: {}", 
+                userId, tokenSuccessCount, tokenFailCount);
     }
     
     /**
@@ -212,20 +211,36 @@ public class NotificationService {
     }
     
     /**
-     * 발송 완료 날짜 갱신
-     * 독립적인 트랜잭션으로 처리
+     * 발송 전 lastSentDate 갱신 (중복 발송 방지)
+     * 오늘 날짜가 아닐 때만 갱신하고 true 반환
+     * @return 갱신 성공 여부 (true: 갱신됨, false: 이미 오늘 날짜)
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void updateLastSentDate(Long userSettingId) {
+    public boolean updateLastSentDateIfNotToday(Long userSettingId) {
         try {
-            userSettingRepository.findById(userSettingId).ifPresent(setting -> {
-                setting.setLastSentDate(LocalDate.now());
-                userSettingRepository.save(setting);
-                log.debug("[Notification] lastSentDate 갱신 완료. userSettingId={}, date={}", 
-                        userSettingId, LocalDate.now());
-            });
+            UserSetting setting = userSettingRepository.findById(userSettingId).orElse(null);
+            if (setting == null) {
+                log.warn("[Notification] UserSetting not found. id={}", userSettingId);
+                return false;
+            }
+            
+            LocalDate today = LocalDate.now();
+            
+            // 이미 오늘 발송했으면 false 반환
+            if (today.equals(setting.getLastSentDate())) {
+                return false;
+            }
+            
+            // 오늘 날짜로 갱신
+            setting.setLastSentDate(today);
+            userSettingRepository.save(setting);
+            log.debug("[Notification] lastSentDate 갱신 완료. userSettingId={}, date={}", 
+                    userSettingId, today);
+            return true;
+            
         } catch (Exception e) {
             log.error("[Notification] lastSentDate 갱신 실패. userSettingId={}", userSettingId, e);
+            return false;
         }
     }
     
