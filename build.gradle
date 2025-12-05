@@ -52,8 +52,8 @@ dependencies {
 	// S3
 	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
-	// webFlux
-	//implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	// webFlux (Expo Push Notification 발송용 WebClient)
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
 	// 애플 jwt 토큰 검증용
 	implementation 'com.nimbusds:nimbus-jose-jwt:9.37.2'
