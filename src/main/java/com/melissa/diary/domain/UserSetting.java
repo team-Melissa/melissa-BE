@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.sql.Time;
+import java.time.LocalDate;
 
 @Getter
 @Builder
@@ -26,6 +27,9 @@ public class UserSetting {
     private Time sleepTime;
 
     private Time notificationTime;
+
+    @Column(name = "last_sent_date")
+    private LocalDate lastSentDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
