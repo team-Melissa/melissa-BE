@@ -40,7 +40,7 @@ public class NotificationService {
     
     /**
      * 배치 순차 발송
-     * 비동기 시작으로 스케줄러 블로킹 방지, 내부는 순차 처리로 안정성 확보
+     * 비동기 시작으로 스케줄러 블로킹 방지, 100명씩 배치 트랜잭션으로 I/O 최적화
      */
     @Async("notificationExecutor")
     public void sendBatchNotifications(List<UserSetting> userSettings) {
@@ -59,31 +59,15 @@ public class NotificationService {
             List<UserSetting> batch = userSettings.subList(i, endIndex);
             int batchNumber = (i / BATCH_SIZE) + 1;
             
-            long batchStartTime = System.currentTimeMillis();
-            int successCount = 0;
-            int failCount = 0;
-            
-            log.info("[Notification] 배치 {}/{} 발송 시작. 대상: {}명", 
-                    batchNumber, batchCount, batch.size());
-            
-            // 배치 내 사용자 순차 처리
-            for (UserSetting userSetting : batch) {
-                try {
-                    sendNotificationToUser(userSetting);
-                    successCount++;
-                } catch (Exception e) {
-                    log.error("[Notification] 사용자 알림 발송 실패. userId={}", 
-                            userSetting.getUser().getId(), e);
-                    failCount++;
-                }
+            // 배치 단위 트랜잭션 처리
+            try {
+                int[] result = processBatchWithTransaction(batch, batchNumber, batchCount);
+                totalSuccess += result[0];
+                totalFail += result[1];
+            } catch (Exception e) {
+                log.error("[Notification] 배치 {}/{} 처리 실패", batchNumber, batchCount, e);
+                totalFail += batch.size();
             }
-            
-            totalSuccess += successCount;
-            totalFail += failCount;
-            long batchElapsedTime = System.currentTimeMillis() - batchStartTime;
-            
-            log.info("[Notification] 배치 {}/{} 발송 완료. 성공: {}, 실패: {}, 소요: {}ms", 
-                    batchNumber, batchCount, successCount, failCount, batchElapsedTime);
         }
         
         long totalElapsedTime = System.currentTimeMillis() - totalStartTime;
@@ -92,15 +76,46 @@ public class NotificationService {
     }
     
     /**
+     * 배치 단위 트랜잭션 처리 (100명씩)
+     * DB I/O 최적화를 위해 배치를 하나의 트랜잭션으로 처리
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public int[] processBatchWithTransaction(List<UserSetting> batch, int batchNumber, int totalBatches) {
+        long batchStartTime = System.currentTimeMillis();
+        int successCount = 0;
+        int failCount = 0;
+        
+        log.info("[Notification] 배치 {}/{} 발송 시작. 대상: {}명", 
+                batchNumber, totalBatches, batch.size());
+        
+        for (UserSetting userSetting : batch) {
+            try {
+                sendNotificationToUser(userSetting);
+                successCount++;
+            } catch (Exception e) {
+                log.error("[Notification] 사용자 알림 발송 실패. userId={}", 
+                        userSetting.getUser().getId(), e);
+                failCount++;
+            }
+        }
+        
+        long batchElapsedTime = System.currentTimeMillis() - batchStartTime;
+        log.info("[Notification] 배치 {}/{} 발송 완료. 성공: {}, 실패: {}, 소요: {}ms", 
+                batchNumber, totalBatches, successCount, failCount, batchElapsedTime);
+        
+        return new int[]{successCount, failCount};
+    }
+    
+    /**
      * 개별 사용자 알림 발송
      * 중복 발송 방지를 위해 발송 전 lastSentDate 먼저 갱신
-     * 트랜잭션 없음 (읽기는 FETCH JOIN으로 이미 로딩, 쓰기는 하위 메서드에서 독립 처리)
+     * 배치 트랜잭션 내에서 실행됨
      */
     public void sendNotificationToUser(UserSetting userSetting) {
         Long userId = userSetting.getUser().getId();
         
-        // 중복 발송 방지: 발송 전에 먼저 lastSentDate 갱신
-        boolean updated = updateLastSentDateIfNotToday(userSetting.getId());
+        // 중복 발송 방지: 발송 전에 먼저 lastSentDate 갱신 (같은 트랜잭션 내)
+        boolean updated = updateLastSentDateIfNotTodayInternal(userSetting);
         if (!updated) {
             log.debug("[Notification] 이미 오늘 발송됨. userId={}", userId);
             return;
@@ -132,8 +147,8 @@ public class NotificationService {
                 tokenSuccessCount++;
                 log.info("[Notification] 토큰 발송 성공. userId={}, tokenId={}", userId, token.getId());
             } catch (InvalidTokenException e) {
-                // Invalid 토큰은 비활성화
-                markTokenAsInvalid(token.getId());
+                // Invalid 토큰은 비활성화 (같은 트랜잭션 내)
+                markTokenAsInvalidInternal(token);
                 tokenFailCount++;
                 log.warn("[Notification] Invalid 토큰 비활성화. userId={}, tokenId={}", userId, token.getId());
             } catch (Exception e) {
@@ -194,36 +209,24 @@ public class NotificationService {
     }
     
     /**
-     * Invalid 토큰 비활성화
-     * 독립적인 트랜잭션으로 처리
+     * Invalid 토큰 비활성화 (배치 트랜잭션 내에서 실행)
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markTokenAsInvalid(Long tokenId) {
+    private void markTokenAsInvalidInternal(ExpoPushToken token) {
         try {
-            expoPushTokenRepository.findById(tokenId).ifPresent(token -> {
-                token.setInvalid(true);
-                expoPushTokenRepository.save(token);
-                log.info("[Notification] 토큰 비활성화 완료. tokenId={}", tokenId);
-            });
+            token.setInvalid(true);
+            expoPushTokenRepository.save(token);
+            log.info("[Notification] 토큰 비활성화 완료. tokenId={}", token.getId());
         } catch (Exception e) {
-            log.error("[Notification] 토큰 비활성화 실패. tokenId={}", tokenId, e);
+            log.error("[Notification] 토큰 비활성화 실패. tokenId={}", token.getId(), e);
         }
     }
     
     /**
-     * 발송 전 lastSentDate 갱신 (중복 발송 방지)
-     * 오늘 날짜가 아닐 때만 갱신하고 true 반환
+     * 발송 전 lastSentDate 갱신 (배치 트랜잭션 내에서 실행)
      * @return 갱신 성공 여부 (true: 갱신됨, false: 이미 오늘 날짜)
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public boolean updateLastSentDateIfNotToday(Long userSettingId) {
+    private boolean updateLastSentDateIfNotTodayInternal(UserSetting setting) {
         try {
-            UserSetting setting = userSettingRepository.findById(userSettingId).orElse(null);
-            if (setting == null) {
-                log.warn("[Notification] UserSetting not found. id={}", userSettingId);
-                return false;
-            }
-            
             LocalDate today = LocalDate.now();
             
             // 이미 오늘 발송했으면 false 반환
@@ -235,11 +238,11 @@ public class NotificationService {
             setting.setLastSentDate(today);
             userSettingRepository.save(setting);
             log.debug("[Notification] lastSentDate 갱신 완료. userSettingId={}, date={}", 
-                    userSettingId, today);
+                    setting.getId(), today);
             return true;
             
         } catch (Exception e) {
-            log.error("[Notification] lastSentDate 갱신 실패. userSettingId={}", userSettingId, e);
+            log.error("[Notification] lastSentDate 갱신 실패. userSettingId={}", setting.getId(), e);
             return false;
         }
     }
