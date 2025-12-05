@@ -40,6 +40,9 @@ public class AmazonConfig {
     @Value("${cloud.aws.path.month-summary}")
     private String monthSummary;
 
+    @Value("${cloud.aws.path.diary}")
+    private String diary;
+
     @PostConstruct
     public void init() {
         this.awsCredentials = new BasicAWSCredentials(accessKey, secretKey);

@@ -5,13 +5,11 @@ package com.melissa.diary.aws.s3;
         import com.amazonaws.services.s3.model.PutObjectRequest;
         import com.melissa.diary.config.AmazonConfig;
         import com.melissa.diary.domain.Uuid;
-        import com.melissa.diary.repository.UuidRepository;
         import lombok.RequiredArgsConstructor;
         import lombok.extern.slf4j.Slf4j;
         import org.springframework.stereotype.Component;
         import org.springframework.web.multipart.MultipartFile;
 
-        import java.io.ByteArrayInputStream;
         import java.io.IOException;
         import java.util.Base64;
 
@@ -60,5 +58,8 @@ public class AmazonS3Manager{
     }
     public String generateAiProfileKeyName(Uuid uuid) {
         return amazonConfig.getAiProfile() + '/' + uuid.getUuid();
+    }
+    public String generateDiaryKeyName(Uuid uuid) {
+        return amazonConfig.getDiary() + '/' + uuid.getUuid();
     }
 }

@@ -48,12 +48,26 @@ public class ImageGenerator {
     public String genProfileImage(String prompt) {
         String base64Img = generateB64(prompt);
 
-        // keyName 생성 (ex. "profile/1679999999999.png")
+        // keyName 생성 (ex. "ai-profile/1679999999999.png")
         String uuid = UUID.randomUUID().toString();
         Uuid savedUuid = uuidRepository.save(Uuid.builder()
                 .uuid(uuid).build());
 
         String keyName = amazonS3Manager.generateAiProfileKeyName(savedUuid);
+
+        // S3 업로드
+        return amazonS3Manager.uploadFileFromBase64(keyName, base64Img, "image/png");
+    }
+
+    public String genDiaryImage(String prompt) {
+        String base64Img = generateB64(prompt);
+
+        // keyName 생성 (ex. "diary/1679999999999.png")
+        String uuid = UUID.randomUUID().toString();
+        Uuid savedUuid = uuidRepository.save(Uuid.builder()
+                .uuid(uuid).build());
+
+        String keyName = amazonS3Manager.generateDiaryKeyName(savedUuid);
 
         // S3 업로드
         return amazonS3Manager.uploadFileFromBase64(keyName, base64Img, "image/png");

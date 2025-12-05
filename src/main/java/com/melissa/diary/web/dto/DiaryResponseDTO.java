@@ -63,6 +63,12 @@ public class DiaryResponseDTO {
                 requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String mood;
         
+        @Schema(description = "일기 생성 타입 (MANUAL: 수동 작성, CHAT_BASED: 채팅 기반 자동 생성)", 
+                example = "MANUAL", 
+                allowableValues = {"MANUAL", "CHAT_BASED"},
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        private String type;
+        
         @Schema(description = "해시태그 1", example = "#좋은하루", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String hashtag1;
         

@@ -19,6 +19,7 @@ public class DiaryConverter {
                 .title(diary.getTitle())
                 .content(diary.getContent())
                 .mood(diary.getMood() != null ? diary.getMood().name() : null)
+                .type(diary.getType().name())  // 일기 생성 타입 추가
                 .hashtag1(diary.getHashtag1())
                 .hashtag2(diary.getHashtag2())
                 .imageUrl(diary.getImageUrl())
@@ -33,6 +34,7 @@ public class DiaryConverter {
     public static CalenderResponseDTO.DiaryPreviewDTO toDiaryPreviewDTO(Diary diary) {
         return CalenderResponseDTO.DiaryPreviewDTO.builder()
                 .diaryId(diary.getId())
+                .type(diary.getType().name())  // 일기 생성 타입 추가
                 .hashtag1(diary.getHashtag1())
                 .hashtag2(diary.getHashtag2())
                 .imageUrl(diary.getImageUrl())

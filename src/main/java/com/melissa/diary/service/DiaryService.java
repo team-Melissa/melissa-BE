@@ -9,6 +9,7 @@ import com.melissa.diary.domain.DailyChatLog;
 import com.melissa.diary.domain.Diary;
 import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.User;
+import com.melissa.diary.domain.enums.DiaryType;
 import com.melissa.diary.domain.enums.Mood;
 import com.melissa.diary.domain.enums.Role;
 import com.melissa.diary.domain.enums.UsageCost;
@@ -134,6 +135,7 @@ public class DiaryService {
                 .title(request.getTitle())
                 .content(request.getContent())
                 .mood(mood)
+                .type(DiaryType.MANUAL)  // 수동 작성
                 .hashtag1(hashtagData.getHashTag1())  // LLM 생성
                 .hashtag2(hashtagData.getHashTag2())  // LLM 생성
                 .imageUrl(null)  // 초기에는 null, 비동기로 생성
@@ -224,6 +226,7 @@ public class DiaryService {
                 .title(diaryData.getTitle())
                 .content(diaryData.getStory())
                 .mood(diaryData.getMood())
+                .type(DiaryType.CHAT_BASED)  // 채팅 기반 자동 생성
                 .hashtag1(diaryData.getHashTag1())
                 .hashtag2(diaryData.getHashTag2())
                 .imageUrl(null)  // 초기에는 null, 비동기로 생성
@@ -382,6 +385,7 @@ public class DiaryService {
                 .title(diary.getTitle())
                 .content(diary.getContent())
                 .mood(diary.getMood() != null ? diary.getMood().name() : null)
+                .type(diary.getType().name())  // 일기 생성 타입 추가
                 .hashtag1(diary.getHashtag1())
                 .hashtag2(diary.getHashtag2())
                 .imageUrl(diary.getImageUrl())
