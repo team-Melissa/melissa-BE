@@ -7,7 +7,7 @@ import com.melissa.diary.domain.Diary;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.repository.DiaryRepository;
 import com.melissa.diary.repository.UserRepository;
-import com.melissa.diary.web.dto.CalenderResponseDTO;
+import com.melissa.diary.web.dto.CalendarResponseDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class CalenderService {
+public class CalendarService {
 
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
@@ -33,7 +33,7 @@ public class CalenderService {
      * 특정 날짜의 일기 상세 조회 (최대 3개)
      */
     @Transactional(readOnly = true)
-    public CalenderResponseDTO.DailySummaryResponseDTO getDailySummary(Long userId, int year, int month, int day) {
+    public CalendarResponseDTO.DailySummaryResponseDTO getDailySummary(Long userId, int year, int month, int day) {
         // 유저 검증
         getUser(userId);
 
@@ -46,12 +46,12 @@ public class CalenderService {
                 userId, year, month, day, true);
 
         // 일기가 없어도 빈 배열로 반환 (에러 발생하지 않음)
-        List<CalenderResponseDTO.DiaryDetailDTO> diaryDetails = diaries.stream()
+        List<CalendarResponseDTO.DiaryDetailDTO> diaryDetails = diaries.stream()
                 .limit(3) // 최대 3개로 제한
                 .map(DiaryConverter::toDiaryDetailDTO)
                 .collect(Collectors.toList());
 
-        return CalenderResponseDTO.DailySummaryResponseDTO.builder()
+        return CalendarResponseDTO.DailySummaryResponseDTO.builder()
                 .year(year)
                 .month(month)
                 .day(day)
@@ -63,7 +63,7 @@ public class CalenderService {
      * 월간 미리보기 조회 (날짜별 그룹화)
      */
     @Transactional(readOnly = true)
-    public List<CalenderResponseDTO.DailyPreviewResponseDTO> getMonthlySummary(Long userId, int year, int month) {
+    public List<CalendarResponseDTO.DailyPreviewResponseDTO> getMonthlySummary(Long userId, int year, int month) {
         // 유저 검증
         getUser(userId);
 
@@ -90,12 +90,12 @@ public class CalenderService {
                     List<Diary> dayDiaries = entry.getValue();
                     
                     // 최대 3개로 제한하고 DiaryPreviewDTO로 변환
-                    List<CalenderResponseDTO.DiaryPreviewDTO> previews = dayDiaries.stream()
+                    List<CalendarResponseDTO.DiaryPreviewDTO> previews = dayDiaries.stream()
                             .limit(3)
                             .map(DiaryConverter::toDiaryPreviewDTO)
                             .collect(Collectors.toList());
 
-                    return CalenderResponseDTO.DailyPreviewResponseDTO.builder()
+                    return CalendarResponseDTO.DailyPreviewResponseDTO.builder()
                             .year(year)
                             .month(month)
                             .day(day)
@@ -109,7 +109,7 @@ public class CalenderService {
      * 월간 전체 조회 (날짜별 상세 정보 포함)
      */
     @Transactional(readOnly = true)
-    public List<CalenderResponseDTO.DailySummaryResponseDTO> getMonthlyView(Long userId, int year, int month) {
+    public List<CalendarResponseDTO.DailySummaryResponseDTO> getMonthlyView(Long userId, int year, int month) {
         // 유저 검증
         getUser(userId);
 
@@ -136,12 +136,12 @@ public class CalenderService {
                     List<Diary> dayDiaries = entry.getValue();
                     
                     // 최대 3개로 제한하고 DiaryDetailDTO로 변환
-                    List<CalenderResponseDTO.DiaryDetailDTO> details = dayDiaries.stream()
+                    List<CalendarResponseDTO.DiaryDetailDTO> details = dayDiaries.stream()
                             .limit(3)
                             .map(DiaryConverter::toDiaryDetailDTO)
                             .collect(Collectors.toList());
 
-                    return CalenderResponseDTO.DailySummaryResponseDTO.builder()
+                    return CalendarResponseDTO.DailySummaryResponseDTO.builder()
                             .year(year)
                             .month(month)
                             .day(day)

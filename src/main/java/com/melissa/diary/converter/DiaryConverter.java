@@ -1,7 +1,7 @@
 package com.melissa.diary.converter;
 
 import com.melissa.diary.domain.Diary;
-import com.melissa.diary.web.dto.CalenderResponseDTO;
+import com.melissa.diary.web.dto.CalendarResponseDTO;
 import org.springframework.stereotype.Component;
 
 /**
@@ -13,8 +13,8 @@ public class DiaryConverter {
     /**
      * Diary -> DiaryDetailDTO 변환 (상세 정보)
      */
-    public static CalenderResponseDTO.DiaryDetailDTO toDiaryDetailDTO(Diary diary) {
-        return CalenderResponseDTO.DiaryDetailDTO.builder()
+    public static CalendarResponseDTO.DiaryDetailDTO toDiaryDetailDTO(Diary diary) {
+        return CalendarResponseDTO.DiaryDetailDTO.builder()
                 .diaryId(diary.getId())
                 .title(diary.getTitle())
                 .content(diary.getContent())
@@ -31,8 +31,8 @@ public class DiaryConverter {
     /**
      * Diary -> DiaryPreviewDTO 변환 (미리보기)
      */
-    public static CalenderResponseDTO.DiaryPreviewDTO toDiaryPreviewDTO(Diary diary) {
-        return CalenderResponseDTO.DiaryPreviewDTO.builder()
+    public static CalendarResponseDTO.DiaryPreviewDTO toDiaryPreviewDTO(Diary diary) {
+        return CalendarResponseDTO.DiaryPreviewDTO.builder()
                 .diaryId(diary.getId())
                 .type(diary.getType().name())  // 일기 생성 타입 추가
                 .hashtag1(diary.getHashtag1())
