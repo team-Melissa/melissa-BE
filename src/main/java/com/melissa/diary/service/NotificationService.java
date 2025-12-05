@@ -94,9 +94,8 @@ public class NotificationService {
     /**
      * 개별 사용자 알림 발송
      * 유효한 토큰 모두에게 발송, 하나라도 성공하면 lastSentDate 갱신
-     * 비동기 컨텍스트에서 독립적인 트랜잭션 생성
+     * 트랜잭션 없음 (읽기는 FETCH JOIN으로 이미 로딩, 쓰기는 하위 메서드에서 독립 처리)
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendNotificationToUser(UserSetting userSetting) {
         Long userId = userSetting.getUser().getId();
         
