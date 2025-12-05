@@ -2,6 +2,7 @@ package com.melissa.diary.domain;
 
 import com.melissa.diary.converter.EncryptionAttributeConverter;
 import com.melissa.diary.domain.common.BaseEntity;
+import com.melissa.diary.domain.enums.DiaryType;
 import com.melissa.diary.domain.enums.Mood;
 import jakarta.persistence.*;
 import lombok.*;
@@ -51,6 +52,11 @@ public class Diary extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(length = 40)
     private Mood mood;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private DiaryType type = DiaryType.MANUAL;
     
     @Column(length = 30)
     private String hashtag1;

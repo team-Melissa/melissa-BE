@@ -44,8 +44,8 @@ public class DiaryImageService {
         String finalPrompt = refiner.refine(rawPrompt);
         
         try {
-            // DALL-E로 이미지 생성 → S3 업로드
-            String url = imageGenerator.genProfileImage(finalPrompt);
+            // DALL-E로 이미지 생성 → S3 diary 폴더에 업로드
+            String url = imageGenerator.genDiaryImage(finalPrompt);
             updateDiaryImage(diary, url);
             log.info("[Async-DiaryImage] 이미지 생성 완료. diaryId={}, url={}", diaryId, url);
         } catch (Exception e) {

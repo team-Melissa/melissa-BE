@@ -46,6 +46,7 @@ cloud:
       day-summary: day-summary
       month-summary: month-summary
       ai-profile: ai-profile
+      diary: diary
     region:
       static: ap-northeast-2
     stack:
