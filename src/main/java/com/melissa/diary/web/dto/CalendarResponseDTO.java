@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public class CalenderResponseDTO {
+public class CalendarResponseDTO {
     
     // ============== [v1.3.0] 새로운 DTO 구조 ==============
     
