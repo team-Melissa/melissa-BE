@@ -7,6 +7,7 @@ import com.melissa.diary.repository.UserSettingRepository;
 import com.melissa.diary.web.dto.ExpoPushNotificationDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,6 +23,8 @@ import java.util.List;
 @Service
 public class NotificationService {
     
+    private static final int BATCH_SIZE = 100;  // 배치당 처리 인원
+    
     private final UserSettingRepository userSettingRepository;
     private final ExpoPushTokenRepository expoPushTokenRepository;
     private final WebClient expoWebClient;
@@ -35,34 +38,61 @@ public class NotificationService {
     }
     
     /**
-     * 배치 단위로 알림 발송
-     * - 각 사용자별로 독립적인 트랜잭션
-     * - 개별 실패가 전체에 영향 없음
+     * 배치 순차 발송
+     * 비동기 시작으로 스케줄러 블로킹 방지, 내부는 순차 처리로 안정성 확보
      */
+    @Async("notificationExecutor")
     public void sendBatchNotifications(List<UserSetting> userSettings) {
-        int successCount = 0;
-        int failCount = 0;
+        int totalCount = userSettings.size();
+        int batchCount = (int) Math.ceil((double) totalCount / BATCH_SIZE);
+        long totalStartTime = System.currentTimeMillis();
         
-        log.info("[Notification] 배치 알림 발송 시작. 대상: {}명", userSettings.size());
+        int totalSuccess = 0;
+        int totalFail = 0;
         
-        for (UserSetting userSetting : userSettings) {
-            try {
-                sendNotificationToUser(userSetting);
-                successCount++;
-            } catch (Exception e) {
-                log.error("[Notification] 사용자 알림 발송 실패. userId={}", 
-                        userSetting.getUser().getId(), e);
-                failCount++;
+        log.info("[Notification] 배치 순차 발송 시작. 전체: {}명, 배치 수: {}, 스레드: {}", 
+                totalCount, batchCount, Thread.currentThread().getName());
+        
+        for (int i = 0; i < totalCount; i += BATCH_SIZE) {
+            int endIndex = Math.min(i + BATCH_SIZE, totalCount);
+            List<UserSetting> batch = userSettings.subList(i, endIndex);
+            int batchNumber = (i / BATCH_SIZE) + 1;
+            
+            long batchStartTime = System.currentTimeMillis();
+            int successCount = 0;
+            int failCount = 0;
+            
+            log.info("[Notification] 배치 {}/{} 발송 시작. 대상: {}명", 
+                    batchNumber, batchCount, batch.size());
+            
+            // 배치 내 사용자 순차 처리
+            for (UserSetting userSetting : batch) {
+                try {
+                    sendNotificationToUser(userSetting);
+                    successCount++;
+                } catch (Exception e) {
+                    log.error("[Notification] 사용자 알림 발송 실패. userId={}", 
+                            userSetting.getUser().getId(), e);
+                    failCount++;
+                }
             }
+            
+            totalSuccess += successCount;
+            totalFail += failCount;
+            long batchElapsedTime = System.currentTimeMillis() - batchStartTime;
+            
+            log.info("[Notification] 배치 {}/{} 발송 완료. 성공: {}, 실패: {}, 소요: {}ms", 
+                    batchNumber, batchCount, successCount, failCount, batchElapsedTime);
         }
         
-        log.info("[Notification] 배치 알림 발송 완료. 성공: {}, 실패: {}", successCount, failCount);
+        long totalElapsedTime = System.currentTimeMillis() - totalStartTime;
+        log.info("[Notification] 전체 발송 완료. 전체: {}명, 성공: {}, 실패: {}, 총 소요: {}ms, 스레드: {}", 
+                totalCount, totalSuccess, totalFail, totalElapsedTime, Thread.currentThread().getName());
     }
     
     /**
-     * 개별 사용자에게 알림 발송
-     * - 해당 사용자의 모든 유효한 토큰에 발송
-     * - 하나라도 성공하면 lastSentDate 갱신
+     * 개별 사용자 알림 발송
+     * 유효한 토큰 모두에게 발송, 하나라도 성공하면 lastSentDate 갱신
      */
     @Transactional
     public void sendNotificationToUser(UserSetting userSetting) {
@@ -118,8 +148,6 @@ public class NotificationService {
     
     /**
      * Expo Push API 호출
-     * @throws InvalidTokenException Invalid 토큰인 경우
-     * @throws RuntimeException 기타 오류
      */
     private void sendPushNotification(String token, String title, String body) {
         ExpoPushNotificationDTO.PushRequest request = ExpoPushNotificationDTO.PushRequest.builder()
@@ -166,7 +194,7 @@ public class NotificationService {
     }
     
     /**
-     * 토큰을 Invalid로 표시
+     * Invalid 토큰 비활성화
      */
     @Transactional
     public void markTokenAsInvalid(Long tokenId) {
@@ -178,7 +206,7 @@ public class NotificationService {
     }
     
     /**
-     * lastSentDate 갱신
+     * 발송 완료 날짜 갱신
      */
     @Transactional
     public void updateLastSentDate(Long userSettingId) {
@@ -190,9 +218,7 @@ public class NotificationService {
         });
     }
     
-    /**
-     * 알림 제목 생성
-     */
+    // 알림 제목 생성
     private String buildNotificationTitle(UserSetting userSetting) {
         if (userSetting.isNotificationSummary() && userSetting.isNotificationQna()) {
             return "📝 오늘의 일기를 작성해보세요!";
@@ -203,9 +229,7 @@ public class NotificationService {
         }
     }
     
-    /**
-     * 알림 본문 생성
-     */
+    // 알림 본문 생성
     private String buildNotificationBody(UserSetting userSetting) {
         if (userSetting.isNotificationSummary() && userSetting.isNotificationQna()) {
             return "오늘 하루는 어땠나요? AI와 대화하며 일기를 작성해보세요.";
@@ -216,9 +240,6 @@ public class NotificationService {
         }
     }
     
-    /**
-     * Invalid 토큰 예외
-     */
     public static class InvalidTokenException extends RuntimeException {
         public InvalidTokenException(String message) {
             super(message);

@@ -18,11 +18,7 @@ public interface UserSettingRepository extends JpaRepository<UserSetting, Long> 
     void deleteByUserId(Long userId);
 
     /**
-     * 알림 발송 대상 사용자 설정 조회
-     * - notificationTime이 정확히 일치 (프론트에서 10분 단위로 제한)
-     * - 최소 하나의 알림 유형 활성화
-     * - 오늘 아직 발송되지 않음
-     * - 유효한 푸시 토큰 보유
+     * 알림 발송 대상 조회 (시간 일치, 알림 활성화, 미발송, 유효 토큰)
      */
     @Query("""
         SELECT DISTINCT us FROM UserSetting us

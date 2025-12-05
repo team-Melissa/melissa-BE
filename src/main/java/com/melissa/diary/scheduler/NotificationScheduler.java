@@ -15,8 +15,7 @@ import java.util.List;
 
 /**
  * 푸시 알림 스케줄러
- * - 매 10분마다 실행 (00, 10, 20, 30, 40, 50분)
- * - 해당 시간에 알림 받을 사용자에게 푸시 발송
+ * 매 10분마다 실행하여 해당 시간 알림 설정 사용자에게 발송
  */
 @Component
 @RequiredArgsConstructor
@@ -27,9 +26,7 @@ public class NotificationScheduler {
     private final NotificationService notificationService;
     
     /**
-     * 10분 단위 알림 발송
-     * - 00, 10, 20, 30, 40, 50분에 실행
-     * - 해당 시간에 notificationTime이 설정된 사용자에게 알림 발송
+     * 10분 단위 알림 발송 (00, 10, 20, 30, 40, 50분)
      */
     @Scheduled(cron = "0 */10 * * * *", zone = "Asia/Seoul")
     public void sendDailyNotifications() {
@@ -57,11 +54,11 @@ public class NotificationScheduler {
             
             log.info("[NotificationScheduler] 발송 대상 조회 완료. 대상: {}명", targets.size());
             
-            // 배치 발송
+            // 배치 순차 발송 (비동기 시작, 100명씩 분할하여 안정적으로 순차 처리)
             notificationService.sendBatchNotifications(targets);
             
             long elapsedTime = System.currentTimeMillis() - startTime;
-            log.info("[NotificationScheduler] 알림 스케줄러 완료. 대상: {}명, 소요 시간: {}ms", 
+            log.info("[NotificationScheduler] 알림 스케줄러 완료 (배치 순차 발송 시작). 대상: {}명, 조회 시간: {}ms", 
                     targets.size(), elapsedTime);
             
         } catch (Exception e) {
