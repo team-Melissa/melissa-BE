@@ -2,22 +2,55 @@ package com.melissa.diary.repository;
 
 import com.melissa.diary.domain.Diary;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface DiaryRepository extends JpaRepository<Diary, Long> {
     
     /**
      * 특정 날짜의 활성화된 일기 전부 조회 (최대 3개)
+     * FETCH JOIN으로 Thread, AiProfile 한번에 로딩 (N+1 방지)
      */
+    @Query("""
+        SELECT d FROM Diary d
+        INNER JOIN FETCH d.thread t
+        INNER JOIN FETCH t.aiProfile ap
+        WHERE d.user.id = :userId
+        AND d.year = :year
+        AND d.month = :month
+        AND d.day = :day
+        AND d.isActive = :isActive
+        ORDER BY d.createdAt DESC
+        """)
     List<Diary> findAllByUserIdAndYearAndMonthAndDayAndIsActiveOrderByCreatedAtDesc(
-            Long userId, int year, int month, int day, boolean isActive);
+            @Param("userId") Long userId,
+            @Param("year") int year,
+            @Param("month") int month,
+            @Param("day") int day,
+            @Param("isActive") boolean isActive);
     
     /**
      * 특정 월의 활성화된 일기 전부 조회
+     * FETCH JOIN으로 Thread, AiProfile 한번에 로딩 (N+1 방지)
      */
+    @Query("""
+        SELECT d FROM Diary d
+        INNER JOIN FETCH d.thread t
+        INNER JOIN FETCH t.aiProfile ap
+        WHERE d.user.id = :userId
+        AND d.year = :year
+        AND d.month = :month
+        AND d.isActive = :isActive
+        ORDER BY d.day ASC, d.createdAt DESC
+        """)
     List<Diary> findAllByUserIdAndYearAndMonthAndIsActiveOrderByDayAscCreatedAtDesc(
-            Long userId, int year, int month, boolean isActive);
+            @Param("userId") Long userId,
+            @Param("year") int year,
+            @Param("month") int month,
+            @Param("isActive") boolean isActive);
     
     /**
      * 특정 날짜의 모든 사용자의 활성화된 일기 조회 (스케줄러용)
@@ -33,8 +66,30 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
     
     /**
      * Thread에 속한 모든 활성화된 일기 조회
+     * FETCH JOIN으로 Thread, AiProfile 한번에 로딩 (N+1 방지)
      */
-    List<Diary> findAllByThreadIdAndIsActiveOrderByCreatedAtDesc(Long threadId, boolean isActive);
+    @Query("""
+        SELECT d FROM Diary d
+        INNER JOIN FETCH d.thread t
+        INNER JOIN FETCH t.aiProfile ap
+        WHERE d.thread.id = :threadId
+        AND d.isActive = :isActive
+        ORDER BY d.createdAt DESC
+        """)
+    List<Diary> findAllByThreadIdAndIsActiveOrderByCreatedAtDesc(
+            @Param("threadId") Long threadId,
+            @Param("isActive") boolean isActive);
+    
+    /**
+     * Diary 단건 조회 (Thread, AiProfile FETCH JOIN)
+     */
+    @Query("""
+        SELECT d FROM Diary d
+        INNER JOIN FETCH d.thread t
+        INNER JOIN FETCH t.aiProfile ap
+        WHERE d.id = :id
+        """)
+    Optional<Diary> findByIdWithThreadAndProfile(@Param("id") Long id);
     
     /**
      * 회원 탈퇴시 삭제

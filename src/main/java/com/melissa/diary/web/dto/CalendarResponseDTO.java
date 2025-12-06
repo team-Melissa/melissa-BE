@@ -26,6 +26,9 @@ public class CalendarResponseDTO {
         @Schema(description = "일기 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long diaryId;
         
+        @Schema(description = "AI 프로필 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+        private Long aiProfileId;
+        
         @Schema(description = "일기 제목", example = "오늘의 일기", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String title;
         
@@ -71,6 +74,9 @@ public class CalendarResponseDTO {
         
         @Schema(description = "일기 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long diaryId;
+        
+        @Schema(description = "AI 프로필 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+        private Long aiProfileId;
         
         @Schema(description = "일기 생성 타입 (MANUAL: 수동 작성, CHAT_BASED: 채팅 기반 자동 생성)", 
                 example = "MANUAL", 
