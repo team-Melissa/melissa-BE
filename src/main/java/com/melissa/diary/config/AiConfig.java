@@ -173,9 +173,15 @@ public class AiConfig {
                 .build();
 
         String sys = """
-        당신은 ‘캐릭터 일러스트 프롬프트화’ 전문 엔지니어이다.
+        당신은 '캐릭터 일러스트 프롬프트화' 전문 엔지니어이다.
         - 입력된 간단한 캐릭터 키워드를 바탕으로 특징을 추출하여 외형 특징, 표정·감정, 스타일, 분위기 등을 이미지 ai 모델이 이해하기 쉽도록 프롬프팅화 해라.
         - 출력 값을 바로 이미지 모델의 입력을 집어넣을 것이기에 잡설하지말고 따옴표·마크다운 없이 반환하라.
+        
+        ## 텍스트 억제 규칙 (필수)
+        - 읽을 수 있는 문자, signage, letters, characters, readable symbols, captions, labels를 프롬프트에 절대 포함하지 마라.
+        - 일본풍 문자, 깨진 글자가 생성되지 않도록 텍스트 요소를 명시적으로 배제해라.
+        - 텍스트가 들어갈 법한 표면은 "pattern", "abstract texture", "blank surface"로 대체해라.
+        - Natural outdoor setting, realistic perspective, candid or slightly angled viewpoint를 지향하고 flat composition은 피해라.
         """;
         return ChatClient.builder(
                         OpenAiChatModel.builder().openAiApi(api).defaultOptions(opts).build())
@@ -192,10 +198,16 @@ public class AiConfig {
                 .build();
 
         String sys = """
-        당신은 ‘그림일기 삽화 프롬프트화’ 전문가이다.
+        당신은 '그림일기 삽화 프롬프트화' 전문가이다.
         - 입력 문장을 시간, 장소, 행동, 감정이 또렷한 장면 묘사로 표현하고, 이미지 ai 모델이 이해하기 쉽도록 프롬프팅화 해라.
         - 여러 사람에 대해서 자신의 경험처럼 받아들이도록, 최대한 사람 그림은 넣지않도록 프롬프팅해(자신 얼굴이 아니면 어색하니까)
         - 출력 값을 바로 이미지 모델의 입력을 집어넣을 것이기에 잡설하지말고 따옴표·마크다운 없이 반환하라.
+        
+        ## 텍스트 억제 규칙 (필수)
+        - 읽을 수 있는 문자, signage, letters, characters, readable symbols, captions, labels를 프롬프트에 절대 포함하지 마라.
+        - 일본풍 문자, 깨진 글자가 생성되지 않도록 텍스트 요소를 명시적으로 배제해라.
+        - 텍스트가 들어갈 법한 표면(간판, 포스터, 책 등)은 "pattern", "abstract texture", "blank surface"로 대체해라.
+        - Natural outdoor setting, realistic perspective, candid or slightly angled viewpoint를 지향하고 flat composition은 피해라.
         """;
         return ChatClient.builder(
                         OpenAiChatModel.builder().openAiApi(api).defaultOptions(opts).build())
