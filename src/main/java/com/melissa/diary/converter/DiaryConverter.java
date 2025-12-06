@@ -16,10 +16,11 @@ public class DiaryConverter {
     public static CalendarResponseDTO.DiaryDetailDTO toDiaryDetailDTO(Diary diary) {
         return CalendarResponseDTO.DiaryDetailDTO.builder()
                 .diaryId(diary.getId())
+                .aiProfileId(diary.getThread().getAiProfile().getId())
                 .title(diary.getTitle())
                 .content(diary.getContent())
                 .mood(diary.getMood() != null ? diary.getMood().name() : null)
-                .type(diary.getType().name())  // 일기 생성 타입 추가
+                .type(diary.getType().name())
                 .hashtag1(diary.getHashtag1())
                 .hashtag2(diary.getHashtag2())
                 .imageUrl(diary.getImageUrl())
@@ -34,7 +35,8 @@ public class DiaryConverter {
     public static CalendarResponseDTO.DiaryPreviewDTO toDiaryPreviewDTO(Diary diary) {
         return CalendarResponseDTO.DiaryPreviewDTO.builder()
                 .diaryId(diary.getId())
-                .type(diary.getType().name())  // 일기 생성 타입 추가
+                .aiProfileId(diary.getThread().getAiProfile().getId())
+                .type(diary.getType().name())
                 .hashtag1(diary.getHashtag1())
                 .hashtag2(diary.getHashtag2())
                 .imageUrl(diary.getImageUrl())

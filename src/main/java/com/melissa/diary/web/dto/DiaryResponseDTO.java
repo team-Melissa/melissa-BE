@@ -43,6 +43,9 @@ public class DiaryResponseDTO {
         @Schema(description = "스레드 ID (항상 존재)", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long threadId;
         
+        @Schema(description = "AI 프로필 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+        private Long aiProfileId;
+        
         @Schema(description = "년도", example = "2025", requiredMode = Schema.RequiredMode.REQUIRED)
         private int year;
         

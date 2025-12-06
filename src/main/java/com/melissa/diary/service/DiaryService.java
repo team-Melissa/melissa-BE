@@ -281,8 +281,8 @@ public class DiaryService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
         
-        // 일기 조회
-        Diary diary = diaryRepository.findById(diaryId)
+        // 일기 조회 (Thread, AiProfile FETCH JOIN)
+        Diary diary = diaryRepository.findByIdWithThreadAndProfile(diaryId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.DIARY_NOT_FOUND));
         
         // 권한 검증: 본인의 일기인지 확인
@@ -346,8 +346,8 @@ public class DiaryService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
         
-        // 일기 조회
-        Diary diary = diaryRepository.findById(diaryId)
+        // 일기 조회 (Thread, AiProfile FETCH JOIN) - 삭제 시에는 불필요하지만 일관성 유지
+        Diary diary = diaryRepository.findByIdWithThreadAndProfile(diaryId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.DIARY_NOT_FOUND));
         
         // 권한 검증: 본인의 일기인지 확인
@@ -379,13 +379,14 @@ public class DiaryService {
         return DiaryResponseDTO.DiaryResponse.builder()
                 .diaryId(diary.getId())
                 .threadId(diary.getThread().getId())
+                .aiProfileId(diary.getThread().getAiProfile().getId())
                 .year(diary.getYear())
                 .month(diary.getMonth())
                 .day(diary.getDay())
                 .title(diary.getTitle())
                 .content(diary.getContent())
                 .mood(diary.getMood() != null ? diary.getMood().name() : null)
-                .type(diary.getType().name())  // 일기 생성 타입 추가
+                .type(diary.getType().name())
                 .hashtag1(diary.getHashtag1())
                 .hashtag2(diary.getHashtag2())
                 .imageUrl(diary.getImageUrl())
