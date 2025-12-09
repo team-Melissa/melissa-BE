@@ -26,7 +26,7 @@ public interface UserSettingRepository extends JpaRepository<UserSetting, Long> 
         INNER JOIN FETCH us.user u
         INNER JOIN FETCH u.expoPushTokenList ept
         WHERE us.notificationTime = :notificationTime
-        AND (us.notificationSummary = true OR us.notificationQna = true)
+        AND us.notificationEnabled = true
         AND (us.lastSentDate IS NULL OR us.lastSentDate < :today)
         AND ept.invalid = false
         """)

@@ -249,24 +249,12 @@ public class NotificationService {
     
     // 알림 제목 생성
     private String buildNotificationTitle(UserSetting userSetting) {
-        if (userSetting.isNotificationSummary() && userSetting.isNotificationQna()) {
-            return "📝 오늘의 일기를 작성해보세요!";
-        } else if (userSetting.isNotificationSummary()) {
-            return "📝 오늘 하루를 정리해보세요";
-        } else {
-            return "💬 AI와 대화를 시작해보세요";
-        }
+        return "📝 오늘의 일기를 작성해보세요!";
     }
     
     // 알림 본문 생성
     private String buildNotificationBody(UserSetting userSetting) {
-        if (userSetting.isNotificationSummary() && userSetting.isNotificationQna()) {
-            return "오늘 하루는 어땠나요? AI와 대화하며 일기를 작성해보세요.";
-        } else if (userSetting.isNotificationSummary()) {
-            return "오늘의 기억을 일기로 남겨보세요.";
-        } else {
-            return "오늘 하루에 대해 이야기해보세요.";
-        }
+        return "오늘 하루는 어땠나요? 멜리사와 대화하며 일기를 작성해보세요.";
     }
     
     public static class InvalidTokenException extends RuntimeException {
