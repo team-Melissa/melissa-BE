@@ -22,6 +22,7 @@ public enum ErrorStatus implements BaseErrorCode {
     // Setting
     SETTING_NOT_FOUND(HttpStatus.NOT_FOUND, "SETTING4001", "해당 유저의 셋팅을 찾을 수 없습니다."),
     SETTING_ALREADY_ENROLL(HttpStatus.BAD_REQUEST, "SETTING4002", "해당 유저의 셋팅값이 이미 존재합니다."),
+    SETTING_INVALID_TIME_FORMAT(HttpStatus.BAD_REQUEST, "SETTING4003", "유효하지 않은 시간 형식입니다. HH:mm 또는 HH:mm:ss로 전달해주세요."),
 
     // AI
     PARSING_FAIL(HttpStatus.INTERNAL_SERVER_ERROR, "AI5001", "llm 파싱 도중 실패했습니다."),

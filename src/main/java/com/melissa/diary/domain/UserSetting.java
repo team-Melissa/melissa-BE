@@ -20,9 +20,7 @@ public class UserSetting {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private boolean notificationSummary;
-
-    private boolean notificationQna;
+    private boolean notificationEnabled;
 
     private Time sleepTime;
 

@@ -17,7 +17,7 @@ public class UserSettingResponseDTO {
         @Schema(description = "알림 시간 (기본값: 23:00)", example = "23:00", requiredMode = Schema.RequiredMode.REQUIRED)
         private String notificationTime;
 
-        @Schema(description = "요약 알림 활성화 여부", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
-        private boolean notificationSummary;
+        @Schema(description = "알림 활성화 여부", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
+        private boolean notificationEnabled;
     }
 }
