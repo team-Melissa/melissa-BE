@@ -5,6 +5,10 @@ spring:
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-5-mini
+          temperature: 0.7
       image:
         options:
           model: dall-e-3
