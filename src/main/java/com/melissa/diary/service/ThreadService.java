@@ -374,32 +374,47 @@ public class ThreadService {
     private String buildAiChatPrompt(String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
         StringBuilder prompt = new StringBuilder();
 
-        prompt.append("너는 아래와 같은 성격을 지녔어. 새 사용자의 입력을 이 성격을 기반으로 생성해야해 : \n");
-        prompt.append(aiProfile.getPromptText());
-
+        // Role Definition
         prompt.append("""
+                ## Role Definition
+                너는 사용자의 하루를 기록하기 위해 대화를 나누는 AI 다이어리 파트너야.
+                사용자와 자연스럽게 대화하며 공감해주고, 나중에 일기로 작성할 수 있는 주요 사건, 감정, 생각 등의 정보를 대화 속에서 이끌어내야 해.
                 
-                ## 답변 가이드라인
-                1. 너의 성격을 기반으로 사용자 입력에 자연스럽게 답변해줘.
-                2. 과도하게 흥분하거나 들뜬 톤 대신 친근하고 편안한 대화를 유지해줘.
-                3. 이모지는 답변당 최대 1개만 사용하고, 없어도 괜찮아.
                 """);
 
+        // Persona Configuration
+        prompt.append("## Persona Configuration (기본 성격)\n");
+        prompt.append("너는 아래의 성격을 완벽하게 연기해야 한다.\n");
+        prompt.append("Core Personality: ").append(aiProfile.getPromptText()).append("\n\n");
+
+        // Communication Guidelines
+        prompt.append("## Communication Guidelines (대화 지침)\n");
+        prompt.append("사용자와의 대화에서 아래 6가지 지침을 반드시 준수하라.\n");
+        prompt.append("Tone & Manner (말투): ").append(aiProfile.getQ1()).append("\n");
+        prompt.append("Response Length (길이): ").append(aiProfile.getQ2()).append("\n");
+        prompt.append("Response Style (답변 방식): ").append(aiProfile.getQ3()).append("\n");
+        prompt.append("Questioning Style (질문 방식): ").append(aiProfile.getQ4()).append("\n");
+        prompt.append("Intervention Level (개입 정도): ").append(aiProfile.getQ5()).append("\n");
+        prompt.append("Humor Usage (유머): ").append(aiProfile.getQ6()).append("\n\n");
+
+        // Operational Rules
+        prompt.append("""
+                ## Operational Rules
+                - 사용자의 감정에 먼저 깊이 공감한 뒤, 일기 작성을 위한 구체적인 내용(누구와, 어디서, 무엇을 했는지 등)을 자연스럽게 물어봐줘.
+                - 기계적인 느낌을 주지 말고, 위에서 설정된 '말투'와 '성격'을 유지하며 친구처럼 대화해.
+                - 이모지는 답변당 최대 1개만 사용하고, 없어도 괜찮아.
+                """);
+
+        // 답변 길이 구체화
         if (aiProfile.getQ2().contains("짧")){ 
-            prompt.append("""
-                4. 답변 길이: UTF-8 기준 100-150바이트 이내 (한글 약 30-50자, 공백 포함)
-                5. 짧고 간결하게, 핵심만 전달해줘.
-                """);
+            prompt.append("- 답변 길이: UTF-8 기준 100-150바이트 이내 (한글 약 30-50자, 공백 포함), 짧고 간결하게 핵심만 전달해줘.\n\n");
         } else {
-            prompt.append("""
-                4. 답변 길이: UTF-8 기준 300-500바이트 이내 (한글 약 100-170자, 공백 포함)
-                5. 자연스럽게 대화하되, 너무 길지 않게 적당히 끊어줘.
-                """);
+            prompt.append("- 답변 길이: UTF-8 기준 300-500바이트 이내 (한글 약 100-170자, 공백 포함), 자연스럽게 대화하되 너무 길지 않게 적당히 끊어줘.\n\n");
         }
 
         // 기존 채팅 내역 추가
         if (!chatHistory.isEmpty()) {
-            prompt.append("\n## 오늘의 대화 기록\n");
+            prompt.append("## 오늘의 대화 기록\n");
             for (DailyChatLog log : chatHistory) {
                 String role = log.getRole() == com.melissa.diary.domain.enums.Role.USER ? "사용자" : "나";
                 prompt.append(role)
@@ -424,23 +439,42 @@ public class ThreadService {
     private String buildAiChatPromptV2(Long userId, String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
         StringBuilder prompt = new StringBuilder();
 
+        // Role Definition
         prompt.append("""
-                ## 답변 가이드라인 (추가 강화)
-                1. 과도하게 흥분하거나 들뜬 톤 대신 친근하고 편안한 대화를 유지해줘.
-                2. 이모지는 답변당 최대 1-2개만 사용하고, 없어도 괜찮아.
+                ## Role Definition
+                너는 사용자의 하루를 기록하기 위해 대화를 나누는 AI 다이어리 파트너야.
+                사용자와 자연스럽게 대화하며 공감해주고, 나중에 일기로 작성할 수 있는 주요 사건, 감정, 생각 등의 정보를 대화 속에서 이끌어내야 해.
+                
                 """);
 
-        // 답변 길이는 System Prompt의 {q2}에서 관리되지만, 바이트 기준으로 구체화
+        // Persona Configuration
+        prompt.append("## Persona Configuration (기본 성격)\n");
+        prompt.append("너는 아래의 성격을 완벽하게 연기해야 한다.\n");
+        prompt.append("Core Personality: ").append(aiProfile.getPromptText()).append("\n\n");
+
+        // Communication Guidelines
+        prompt.append("## Communication Guidelines (대화 지침)\n");
+        prompt.append("사용자와의 대화에서 아래 6가지 지침을 반드시 준수하라.\n");
+        prompt.append("Tone & Manner (말투): ").append(aiProfile.getQ1()).append("\n");
+        prompt.append("Response Length (길이): ").append(aiProfile.getQ2()).append("\n");
+        prompt.append("Response Style (답변 방식): ").append(aiProfile.getQ3()).append("\n");
+        prompt.append("Questioning Style (질문 방식): ").append(aiProfile.getQ4()).append("\n");
+        prompt.append("Intervention Level (개입 정도): ").append(aiProfile.getQ5()).append("\n");
+        prompt.append("Humor Usage (유머): ").append(aiProfile.getQ6()).append("\n\n");
+
+        // Operational Rules
+        prompt.append("""
+                ## Operational Rules
+                - 사용자의 감정에 먼저 깊이 공감한 뒤, 일기 작성을 위한 구체적인 내용(누구와, 어디서, 무엇을 했는지 등)을 자연스럽게 물어봐줘.
+                - 기계적인 느낌을 주지 말고, 위에서 설정된 '말투'와 '성격'을 유지하며 친구처럼 대화해.
+                - 이모지는 답변당 최대 1개만 사용하고, 없어도 괜찮아.
+                """);
+
+        // 답변 길이 구체화
         if (aiProfile.getQ2().contains("짧")){ 
-            prompt.append("""
-                3. 답변 길이 기준: UTF-8 기준 100-150바이트 이내 (한글 약 30-50자, 공백 포함)
-                4. 짧고 간결하게, 핵심만 전달해줘.
-                """);
+            prompt.append("- 답변 길이: UTF-8 기준 100-150바이트 이내 (한글 약 30-50자, 공백 포함), 짧고 간결하게 핵심만 전달해줘.\n\n");
         } else {
-            prompt.append("""
-                3. 답변 길이 기준: UTF-8 기준 300-500바이트 이내 (한글 약 100-170자, 공백 포함)
-                4. 자연스럽게 대화하되, 너무 길지 않게 적당히 끊어줘.
-                """);
+            prompt.append("- 답변 길이: UTF-8 기준 300-500바이트 이내 (한글 약 100-170자, 공백 포함), 자연스럽게 대화하되 너무 길지 않게 적당히 끊어줘.\n\n");
         }
 
         // ======== v2: UserMemory 통합 (항상 포함) ========
@@ -450,7 +484,7 @@ public class ThreadService {
             try {
                 com.melissa.diary.domain.UserMemory userMemory = userMemoryService.getUserMemoryReadOnly(userId);
                 if (userMemory != null && userMemory.getMemoryContent() != null && !userMemory.getMemoryContent().trim().isEmpty()) {
-                    prompt.append("\n\n=== 사용자에 대해 알고 있는 장기 기억 ===\n");
+                    prompt.append("\n=== 사용자에 대해 알고 있는 장기 기억 ===\n");
                     prompt.append(userMemory.getMemoryContent());
                     prompt.append("\n=== 기억 끝 ===\n\n");
                     prompt.append("""
