@@ -465,6 +465,14 @@ public class DiaryService {
             String hashTag1 = node.has("hashTag1") ? node.get("hashTag1").asText() : null;
             String hashTag2 = node.has("hashTag2") ? node.get("hashTag2").asText() : null;
             
+            // # 기호 제거 (안전장치)
+            if (hashTag1 != null) {
+                hashTag1 = hashTag1.replace("#", "").trim();
+            }
+            if (hashTag2 != null) {
+                hashTag2 = hashTag2.replace("#", "").trim();
+            }
+            
             // Mood enum 변환 (기본값 HAPPY)
             Mood mood = Mood.HAPPY;
             if (moodStr != null) {
@@ -516,6 +524,10 @@ public class DiaryService {
             
             String hashTag1 = node.has("hashTag1") ? node.get("hashTag1").asText() : "일상";
             String hashTag2 = node.has("hashTag2") ? node.get("hashTag2").asText() : "기록";
+            
+            // # 기호 제거 (안전장치)
+            hashTag1 = hashTag1.replace("#", "").trim();
+            hashTag2 = hashTag2.replace("#", "").trim();
             
             return new HashtagData(hashTag1, hashTag2);
             
