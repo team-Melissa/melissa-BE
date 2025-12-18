@@ -5,6 +5,9 @@ spring:
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-5.2
       image:
         options:
           model: dall-e-3
