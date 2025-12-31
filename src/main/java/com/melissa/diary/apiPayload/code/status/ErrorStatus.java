@@ -35,6 +35,8 @@ public enum ErrorStatus implements BaseErrorCode {
     CALENDAR_NOT_FOUND(HttpStatus.NOT_FOUND, "CALENDAR4001", "해당 날짜 또는 월의 데이터가 존재하지 않습니다."),
     CALENDAR_FORBIDDEN(HttpStatus.FORBIDDEN, "CALENDAR4002", "해당 캘린더 데이터를 조회할 권한이 없습니다."),
     CALENDAR_INVALID_DATE(HttpStatus.BAD_REQUEST, "CALENDAR4003", "유효하지 않은 날짜입니다."),
+    CALENDAR_INVALID_CURSOR(HttpStatus.BAD_REQUEST, "CALENDAR4004", "유효하지 않은 커서입니다."),
+    CALENDAR_INVALID_LIMIT(HttpStatus.BAD_REQUEST, "CALENDAR4005", "유효하지 않은 limit 값입니다."),
     CALENDAR_PROCESSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "CALENDAR5001", "캘린더 데이터를 처리하는 중 오류가 발생했습니다."),
     THREAD_ALREADY_ENROLL(HttpStatus.BAD_REQUEST, "THREAD4001", "해당 날짜의 스레드가 이미 존재합니다."),
     THREAD_LATEST_NOT_FOUND(HttpStatus.NOT_FOUND, "THREAD4002", "최근 스레드를 찾을 수 없습니다."),
