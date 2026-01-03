@@ -153,7 +153,7 @@ public class CalendarResponseDTO {
         @Schema(description = "다음 페이지 존재 여부", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
         private boolean hasNext;
 
-        @Schema(description = "다음 커서 (없으면 null)", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        @Schema(description = "다음 커서 (마지막 페이지면 null)", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private FeedNextCursorDTO nextCursor;
     }
 
