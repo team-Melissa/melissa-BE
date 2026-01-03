@@ -434,7 +434,7 @@ public class ThreadService {
     
     /**
      * v2: UserMemory 통합 프롬프트 생성
-     * 주제 변경 감지 시 사용자 장기 기억 포함
+     * 사용자 장기 기억 포함
      */
     private String buildAiChatPromptV2(Long userId, String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
         StringBuilder prompt = new StringBuilder();

@@ -139,4 +139,55 @@ public class CalendarResponseDTO {
         @Schema(description = "일기 미리보기 목록 (최대 3개)", requiredMode = Schema.RequiredMode.REQUIRED)
         private List<DiaryPreviewDTO> diaries;
     }
+
+    /**
+     * 커서 기반 페이지 정보
+     */
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "피드 페이지 정보")
+    public static class FeedPageInfoDTO {
+
+        @Schema(description = "다음 페이지 존재 여부", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
+        private boolean hasNext;
+
+        @Schema(description = "다음 커서 (없으면 null)", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        private FeedNextCursorDTO nextCursor;
+    }
+
+    /**
+     * 다음 커서
+     */
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "피드 다음 커서")
+    public static class FeedNextCursorDTO {
+
+        @Schema(description = "커서 createdAt (ISO-8601, 서버가 내려준 값을 그대로 재전송)", example = "2025-12-30T21:15:10.123456", requiredMode = Schema.RequiredMode.REQUIRED)
+        private LocalDateTime cursorCreatedAt;
+
+        @Schema(description = "커서 diaryId", example = "401", requiredMode = Schema.RequiredMode.REQUIRED)
+        private Long cursorDiaryId;
+    }
+
+    /**
+     * 응답 (월간 전체조회(DailySummaryResponseDTO) 구조 재사용)
+     */
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "피드 조회 응답")
+    public static class FeedResponseDTO {
+
+        @Schema(description = "일자별 일기 목록 (최신순 피드)", requiredMode = Schema.RequiredMode.REQUIRED)
+        private List<DailySummaryResponseDTO> days;
+
+        @Schema(description = "페이지 정보", requiredMode = Schema.RequiredMode.REQUIRED)
+        private FeedPageInfoDTO pageInfo;
+    }
 }
