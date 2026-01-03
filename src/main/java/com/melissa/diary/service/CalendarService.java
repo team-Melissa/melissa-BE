@@ -9,10 +9,14 @@ import com.melissa.diary.repository.DiaryRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.web.dto.CalendarResponseDTO;
 import lombok.RequiredArgsConstructor;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -151,6 +155,91 @@ public class CalendarService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 최신순 피드 조회 (커서 기반 무한 페이징)
+     * - 월간 전체조회(DailySummaryResponseDTO) 구조를 재사용하기 위해 "일자별 그룹"으로 반환
+     * - 정렬 안정성: createdAt DESC, diaryId DESC
+     */
+    @Transactional(readOnly = true)
+    public CalendarResponseDTO.FeedResponseDTO getFeed(Long userId, Integer limit, String cursorCreatedAt, Long cursorDiaryId) {
+        // 유저 검증
+        getUser(userId);
+
+        int resolvedLimit = (limit == null ? 20 : limit);
+        if (resolvedLimit < 1 || resolvedLimit > 50) {
+            throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_LIMIT);
+        }
+
+        // 커서 짝 검증 (2필드 커서)
+        boolean hasCreatedAt = cursorCreatedAt != null && !cursorCreatedAt.isBlank();
+        boolean hasDiaryId = cursorDiaryId != null;
+        if (hasCreatedAt != hasDiaryId) {
+            throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_CURSOR);
+        }
+
+        LocalDateTime parsedCursorCreatedAt = null;
+        if (hasCreatedAt) {
+            try {
+                parsedCursorCreatedAt = LocalDateTime.parse(cursorCreatedAt);
+            } catch (DateTimeParseException e) {
+                throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_CURSOR);
+            }
+        }
+
+        // limit+1로 가져와서 hasNext 판단
+        List<Diary> diaries = diaryRepository.findFeedPage(
+                userId,
+                parsedCursorCreatedAt,
+                cursorDiaryId,
+                PageRequest.of(0, resolvedLimit + 1)
+        );
+
+        boolean hasNext = diaries.size() > resolvedLimit;
+        if (hasNext) {
+            diaries = diaries.subList(0, resolvedLimit);
+        }
+
+        // 일자별 그룹핑 (최신순 피드 흐름을 유지하기 위해 LinkedHashMap 사용)
+        Map<String, List<CalendarResponseDTO.DiaryDetailDTO>> byDayKey = new LinkedHashMap<>();
+        Map<String, int[]> dayParts = new LinkedHashMap<>(); // year, month, day 저장
+
+        for (Diary diary : diaries) {
+            String key = diary.getYear() + "-" + diary.getMonth() + "-" + diary.getDay();
+            byDayKey.computeIfAbsent(key, k -> new ArrayList<>()).add(DiaryConverter.toDiaryDetailDTO(diary));
+            dayParts.putIfAbsent(key, new int[]{diary.getYear(), diary.getMonth(), diary.getDay()});
+        }
+
+        List<CalendarResponseDTO.DailySummaryResponseDTO> days = byDayKey.entrySet().stream()
+                .map(entry -> {
+                    String key = entry.getKey();
+                    int[] parts = dayParts.get(key);
+                    return CalendarResponseDTO.DailySummaryResponseDTO.builder()
+                            .year(parts[0])
+                            .month(parts[1])
+                            .day(parts[2])
+                            .diaries(entry.getValue())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        CalendarResponseDTO.FeedNextCursorDTO nextCursor = null;
+        if (hasNext && !diaries.isEmpty()) {
+            Diary last = diaries.get(diaries.size() - 1);
+            nextCursor = CalendarResponseDTO.FeedNextCursorDTO.builder()
+                    .cursorCreatedAt(last.getCreatedAt())
+                    .cursorDiaryId(last.getId())
+                    .build();
+        }
+
+        return CalendarResponseDTO.FeedResponseDTO.builder()
+                .days(days)
+                .pageInfo(CalendarResponseDTO.FeedPageInfoDTO.builder()
+                        .hasNext(hasNext)
+                        .nextCursor(nextCursor)
+                        .build())
+                .build();
+    }
+
     private boolean isValidDate(int year, int month, int day) {
         if (month < 1 || month > 12) return false;
         if (day < 1 || day > 31) return false;
@@ -170,7 +259,7 @@ public class CalendarService {
     }
 
     @Transactional(readOnly = true)
-    public User getUser(Long userId) {
+    public User getUser(@NonNull Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
     }

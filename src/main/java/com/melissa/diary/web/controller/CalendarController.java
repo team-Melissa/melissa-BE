@@ -88,4 +88,27 @@ public class CalendarController {
 
         return ApiResponse.onSuccess(response);
     }
+
+    @Operation(summary = "피드 전용 최신순 조회 (커서 기반 무한 페이징)",
+               description = "[v1.3.0+] 피드 전용 최신순 정렬을 보장하며, 커서 기반 무한 페이징을 제공합니다. (days 구조는 월간 전체조회와 유사)")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "CALENDAR4004: 유효하지 않은 커서 / CALENDAR4005: 유효하지 않은 limit"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음")
+    })
+    @GetMapping("/feed")
+    public ApiResponse<CalendarResponseDTO.FeedResponseDTO> getFeed(
+            @Parameter(description = "조회 개수 (기본 20, 최대 50)", example = "20")
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @Parameter(description = "커서 createdAt (ISO-8601, nextCursor로 받은 값을 그대로 재전송)", example = "2025-12-30T21:15:10.123456")
+            @RequestParam(name = "cursorCreatedAt", required = false) String cursorCreatedAt,
+            @Parameter(description = "커서 diaryId (nextCursor로 받은 값을 그대로 재전송)", example = "401")
+            @RequestParam(name = "cursorDiaryId", required = false) Long cursorDiaryId,
+            Principal principal) {
+
+        Long userId = Long.parseLong(principal.getName());
+        CalendarResponseDTO.FeedResponseDTO response = calendarService.getFeed(userId, limit, cursorCreatedAt, cursorDiaryId);
+
+        return ApiResponse.onSuccess(response);
+    }
 }
