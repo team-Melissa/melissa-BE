@@ -183,4 +183,12 @@ public class UserService {
         return deleteDTO;
     }
 
+    @Transactional(readOnly = true)
+    public UserResponseDTO.MeResponseDTO getMe(Long userId){
+        // 유저 정보 조회
+        User user = userRepository.findById(userId).orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
+        return UserConverter.toGetMe(user);
+    }
+
 }
