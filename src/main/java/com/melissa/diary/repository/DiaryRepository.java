@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 
+import java.sql.Date;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -124,5 +125,31 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
      * 회원 탈퇴시 삭제
      */
     void deleteAllByUserId(Long userId);
+
+    /**
+     * 스트릭 계산용: 활성 일기 작성 날짜(중복 제거) 최신순 조회 (KST 기준 오늘까지)
+     *
+     * - year/month/day를 DATE로 변환하여 DISTINCT
+     * - 반환 타입은 java.sql.Date로 두고 서비스에서 LocalDate로 변환
+     */
+    @Query(value = """
+        SELECT DISTINCT STR_TO_DATE(
+            CONCAT(d.year, '-', LPAD(d.month, 2, '0'), '-', LPAD(d.day, 2, '0')),
+            '%Y-%m-%d'
+        ) AS diary_date
+        FROM diary d
+        WHERE d.user_id = :userId
+          AND d.is_active = 1
+          AND STR_TO_DATE(
+                CONCAT(d.year, '-', LPAD(d.month, 2, '0'), '-', LPAD(d.day, 2, '0')),
+                '%Y-%m-%d'
+              ) <= :endDate
+        ORDER BY diary_date DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Date> findRecentActiveDiaryDatesDesc(
+            @Param("userId") Long userId,
+            @Param("endDate") Date endDate,
+            @Param("limit") int limit);
 }
 
