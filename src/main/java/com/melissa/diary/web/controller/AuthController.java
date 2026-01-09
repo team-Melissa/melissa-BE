@@ -9,12 +9,11 @@ import com.melissa.diary.service.UserService;
 import com.melissa.diary.web.dto.UserRequestDTO;
 import com.melissa.diary.web.dto.UserResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,7 +31,15 @@ public class AuthController {
 
     // 구글 로그인
     @PostMapping("/google")
-    @Operation(description = "구글로그인으로, id토큰을 입력해주세요")
+    @Operation(
+            summary = "구글 로그인",
+            description = "구글 idToken을 검증하고, Access/Refresh 토큰을 발급합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "COMMON400: 잘못된 요청(요청 바디 검증 실패 등)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "AUTH4001: 소셜 로그인 인증 실패")
+    })
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> googleLogin(
             @RequestBody @Valid UserRequestDTO.GoogleOAuthDTO request
     ) {
@@ -52,7 +59,15 @@ public class AuthController {
 
     // 카카오 로그인
     @PostMapping("/kakao")
-    @Operation(description = "카카오로그인으로, 액세스토큰을 입력해주세요")
+    @Operation(
+            summary = "카카오 로그인",
+            description = "카카오 accessToken을 검증하고, Access/Refresh 토큰을 발급합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "COMMON400: 잘못된 요청(요청 바디 검증 실패 등)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "AUTH4001: 소셜 로그인 인증 실패")
+    })
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> kakaoLogin(
             @RequestBody @Valid UserRequestDTO.KakaoOAuthDTO request
     ) {
@@ -66,7 +81,15 @@ public class AuthController {
 
     // --- Apple 로그인 ---
     @PostMapping("/apple")
-    @Operation(description = "애플 로그인 (idToken 입력)")
+    @Operation(
+            summary = "애플 로그인",
+            description = "애플 idToken을 검증하고, Access/Refresh 토큰을 발급합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "COMMON400: 잘못된 요청(요청 바디 검증 실패 등)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "AUTH4001: 소셜 로그인 인증 실패")
+    })
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> appleLogin(
             @RequestBody @Valid UserRequestDTO.AppleOAuthDTO request
     ) {
@@ -80,7 +103,17 @@ public class AuthController {
 
     // Refresh Token 재발급
     @PostMapping("/refresh")
-    @Operation(description = "Authorization 헤더에 Refresh토큰을 입력해, AccessToken 재생성합니다.")
+    @Operation(
+            summary = "토큰 재발급(Refresh)",
+            description = """
+                Authorization 헤더에 Refresh Token(Bearer)을 전달하여 Access/Refresh 토큰을 재발급합니다.
+                - 예: Authorization: Bearer {refreshToken}
+                """
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "AUTH4002/AUTH4003/AUTH4005: 토큰이 유효하지 않음/만료/검증 실패")
+    })
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> refreshToken(
             HttpServletRequest request
     ) {
@@ -115,7 +148,14 @@ public class AuthController {
 
     // 로그아웃
     @PostMapping("/logout")
-    @Operation(description = "로그아웃 기능으로, 서버의 토큰을 지웁니다.")
+    @Operation(
+            summary = "로그아웃",
+            description = "현재 로그인 사용자의 서버 저장 Refresh Token을 제거합니다."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "AUTH4002/AUTH4003/AUTH4005: 토큰이 유효하지 않음/만료/검증 실패")
+    })
     public ApiResponse<Void> logout(Principal principal) {
 
         userService.logout(Long.parseLong(principal.getName()));

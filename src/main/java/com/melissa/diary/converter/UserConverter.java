@@ -34,4 +34,20 @@ public class UserConverter {
                 .providerId(user.getProviderId())
                 .build();
     }
+
+    public UserResponseDTO.MeResponseDTO toGetMe(User user){
+        return UserResponseDTO.MeResponseDTO.builder()
+                .userId(user.getId())
+                .oauthProvider(user.getProvider())
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .usage(UserResponseDTO.MeResponseDTO.UsageDTO.builder()
+                        .dailyQuotaLimit(100)
+                        .dailyQuotaRemaining(user.getDailyQuota())
+                        .dailyQuotaUsed(100-user.getDailyQuota())
+                        .quotaDate(user.getQuotaDate())
+                        .build())
+                .build();
+    }
+
 }
