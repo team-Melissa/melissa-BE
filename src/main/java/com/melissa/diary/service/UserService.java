@@ -8,6 +8,7 @@ import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UserSettingRepository;
 import com.melissa.diary.security.JwtProvider;
+import com.melissa.diary.security.JwtTokenType;
 import com.melissa.diary.web.dto.UserRequestDTO;
 import com.melissa.diary.web.dto.UserResponseDTO;
 import lombok.RequiredArgsConstructor;
@@ -141,10 +142,19 @@ public class UserService {
             throw new ErrorHandler(ErrorStatus.EXPIRED_TOKEN);
         }
 
-        // Refresh 토큰 자체가 JWT라면 validate
-        if (!jwtProvider.validateToken(refreshToken)) {
-            // -> 위조된 토큰
-            throw new ErrorHandler(ErrorStatus.TOKEN_VERIFICATION_FAILED);
+        // Refresh 토큰(JWT) 자체의 유효성(만료/위조 등) 먼저 검증
+        // - 타입(typ) 파싱 과정에서 예외가 발생할 수 있으므로, 순서를 앞당겨 500을 방지합니다.
+        switch (jwtProvider.validateTokenResult(refreshToken)) {
+            case EXPIRED -> throw new ErrorHandler(ErrorStatus.EXPIRED_TOKEN);
+            case INVALID -> throw new ErrorHandler(ErrorStatus.TOKEN_VERIFICATION_FAILED);
+            case VALID -> {
+            }
+        }
+
+        // Refresh 토큰 타입 검증 (access 토큰으로 refresh 호출 방지)
+        JwtTokenType tokenType = jwtProvider.getTokenTypeOrNull(refreshToken);
+        if (tokenType != JwtTokenType.REFRESH) {
+            throw new ErrorHandler(ErrorStatus.TOKEN_TYPE_MISMATCH);
         }
         // [4] Access Token 재발급시 필요한 사용자 반환
         return user;
