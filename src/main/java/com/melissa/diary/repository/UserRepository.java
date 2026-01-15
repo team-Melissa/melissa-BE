@@ -15,8 +15,10 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByProviderAndProviderId(String provider, String providerId);
 
-    // Refresh 토큰으로 유저 찾기 (간단 예시 - 실제론 해시 등 보안처리)
-    Optional<User> findByRefreshToken(String refreshToken);
+    /**
+     * Refresh 토큰 해시로 유저 찾기
+     */
+    Optional<User> findByRefreshToken(String refreshTokenHash);
 
     @Modifying
     @Query("""

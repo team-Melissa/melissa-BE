@@ -9,6 +9,8 @@ import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UserSettingRepository;
 import com.melissa.diary.security.JwtProvider;
 import com.melissa.diary.security.JwtTokenType;
+import com.melissa.diary.security.RefreshTokenHasher;
+import com.melissa.diary.security.TokenValidationResult;
 import com.melissa.diary.web.dto.UserRequestDTO;
 import com.melissa.diary.web.dto.UserResponseDTO;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final SocialAuthService socialAuthService;
     private final JwtProvider jwtProvider;
+    private final RefreshTokenHasher refreshTokenHasher;
     private final ThreadRepository threadRepository;
     private final UserSettingRepository userSettingRepository;
 
@@ -122,7 +125,8 @@ public class UserService {
     @Transactional
     public String createRefreshToken(User user) {
         String token = jwtProvider.createRefreshToken(user.getId(), user.getProvider());
-        user.setRefreshToken(token);
+        // refreshToken 컬럼에 해시값 저장
+        user.setRefreshToken(refreshTokenHasher.sha256Hex(token));
         user.setRefreshTokenExpiry(LocalDateTime.now().plusDays(15));
         userRepository.save(user);
         return token;
@@ -130,8 +134,19 @@ public class UserService {
 
     @Transactional
     public User refreshAccessToken(String refreshToken) {
-        // DB에서 refreshToken으로 유저 찾기
-        User user = userRepository.findByRefreshToken(refreshToken)
+        // Refresh 토큰(JWT) 자체의 유효성(만료/위조 등) 먼저 검증
+        // - 타입(typ) 파싱 과정에서 예외가 발생할 수 있으므로, 순서를 앞당겨 500을 방지
+        TokenValidationResult validation = jwtProvider.validateTokenResult(refreshToken);
+        if (validation == TokenValidationResult.EXPIRED) {
+            throw new ErrorHandler(ErrorStatus.EXPIRED_TOKEN);
+        }
+        if (validation == TokenValidationResult.INVALID) {
+            throw new ErrorHandler(ErrorStatus.TOKEN_VERIFICATION_FAILED);
+        }
+
+        // DB에서 refreshToken 해시로 유저 찾기
+        String refreshTokenHash = refreshTokenHasher.sha256Hex(refreshToken);
+        User user = userRepository.findByRefreshToken(refreshTokenHash)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.INVALID_TOKEN));
         // -> "Refresh Token이 유효하지 않습니다." 의미로 INVALID_TOKEN 사용
 
@@ -140,15 +155,6 @@ public class UserService {
                 || user.getRefreshTokenExpiry().isBefore(LocalDateTime.now())) {
             // -> Refresh Token이 만료된 경우
             throw new ErrorHandler(ErrorStatus.EXPIRED_TOKEN);
-        }
-
-        // Refresh 토큰(JWT) 자체의 유효성(만료/위조 등) 먼저 검증
-        // - 타입(typ) 파싱 과정에서 예외가 발생할 수 있으므로, 순서를 앞당겨 500을 방지합니다.
-        switch (jwtProvider.validateTokenResult(refreshToken)) {
-            case EXPIRED -> throw new ErrorHandler(ErrorStatus.EXPIRED_TOKEN);
-            case INVALID -> throw new ErrorHandler(ErrorStatus.TOKEN_VERIFICATION_FAILED);
-            case VALID -> {
-            }
         }
 
         // Refresh 토큰 타입 검증 (access 토큰으로 refresh 호출 방지)
@@ -166,9 +172,8 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.INVALID_TOKEN));
 
-        // Refresh Token 삭제
+        // Refresh Token 해시 삭제
         user.setRefreshToken(null);
-        // 만료 시각도 null
         user.setRefreshTokenExpiry(null);
 
     }

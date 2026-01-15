@@ -34,6 +34,11 @@ public class User {
     @Column(nullable = false, length = 50)
     private String nickname;
 
+    /**
+     * Refresh 토큰 저장 (실제로는 SHA-256 해시값을 저장함)
+     * - 보안: 평문 대신 해시를 저장하여 DB 유출 시 토큰 재사용 방지
+     * - 마이그레이션: 평문 -> 해시값으로 변경되었지만, 재로그인 강제하여 문제 없음.
+     */
     @Column(nullable = true, length = 255)
     private String refreshToken;
 

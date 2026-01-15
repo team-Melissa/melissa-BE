@@ -28,7 +28,7 @@ public class JwtProvider {
     }
 
     // 유효 기간
-    private final long ACCESS_TOKEN_VALID_MILLIS = 1000L * 60 * 60 * 24;       // 1일
+    private final long ACCESS_TOKEN_VALID_MILLIS = 1000L * 60 * 60 * 2;        // 2시간
     private final long REFRESH_TOKEN_VALID_MILLIS = 1000L * 60 * 60 * 24 * 15; // 15일
 
     // Access Token 생성
