@@ -37,13 +37,17 @@ public class StreakService {
             return 0;
         }
 
-        LocalDate first = recentDates.get(0).toLocalDate();
-        if (!first.equals(today)) {
-            return 0; // 오늘 작성이 없으면 스트릭 0
+        LocalDate lastActiveDate = recentDates.get(0).toLocalDate();
+
+        // 개선 규칙:
+        // - 오늘 작성이 없더라도 "어제까지의 연속 기록"은 오늘 하루 동안 유지
+        // - 단, 마지막 작성일이 어제보다 이전이면 이미 끊긴 것으로 간주하여 0
+        if (lastActiveDate.isBefore(today.minusDays(1))) {
+            return 0;
         }
 
         int streak = 1;
-        LocalDate expected = today.minusDays(1);
+        LocalDate expected = lastActiveDate.minusDays(1);
 
         for (int i = 1; i < recentDates.size(); i++) {
             LocalDate d = recentDates.get(i).toLocalDate();

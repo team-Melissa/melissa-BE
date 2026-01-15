@@ -27,9 +27,10 @@ public class StreakController {
     @Operation(
             summary = "현재 스트릭 조회",
             description = """
-                [v1.3.0+] 오늘(KST) 일기 작성 여부를 기준으로 연속 작성 일수를 반환합니다.
+                [v1.3.0+] KST 기준 연속 작성 일수를 반환합니다.
                 - 쿼리 파라미터 없음 (서버가 KST 기준 '오늘'로 계산)
-                - 오늘 작성이 없으면 streakDays=0
+                - 오늘 미작성이어도 마지막 작성일이 '어제'라면 streakDays는 유지됩니다.
+                - 마지막 작성일이 '어제'보다 이전이면 streakDays=0 입니다. (이미 끊김)
                 - 하루에 여러 개 작성해도 그 날은 +1로만 계산
                 """
     )
