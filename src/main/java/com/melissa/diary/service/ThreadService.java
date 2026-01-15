@@ -219,7 +219,7 @@ public class ThreadService {
                     .delayElements(Duration.ofMillis(10));
         }
 
-        Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt(prompt)
+        Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt()
                 .system(sp -> sp.param("system", td.getAiProfile().getPromptText())
                         .param("q1", td.getAiProfile().getQ1())
                         .param("q2", td.getAiProfile().getQ2())
@@ -227,6 +227,7 @@ public class ThreadService {
                         .param("q4", td.getAiProfile().getQ4())
                         .param("q5", td.getAiProfile().getQ5())
                         .param("q6", td.getAiProfile().getQ6()))
+                .user(prompt)
                 .stream()
                 .chatResponse()
                 .map(r -> {
@@ -287,7 +288,7 @@ public class ThreadService {
                     .delayElements(Duration.ofMillis(10));
         }
 
-        Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt(prompt)
+        Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt()
                 .system(sp -> sp.param("system", td.getAiProfile().getPromptText())
                         .param("q1", td.getAiProfile().getQ1())
                         .param("q2", td.getAiProfile().getQ2())
@@ -295,6 +296,7 @@ public class ThreadService {
                         .param("q4", td.getAiProfile().getQ4())
                         .param("q5", td.getAiProfile().getQ5())
                         .param("q6", td.getAiProfile().getQ6()))
+                .user(prompt)
                 .stream()
                 .chatResponse()
                 .map(r -> {
@@ -630,7 +632,7 @@ public class ThreadService {
 
         try {
             // AI 응답 생성 (동기 방식)
-            String aiResponse = chatClient.prompt(prompt)
+            String aiResponse = chatClient.prompt()
                     .system(sp -> sp.param("system", aiProfile.getPromptText())
                             .param("q1", aiProfile.getQ1())
                             .param("q2", aiProfile.getQ2())
@@ -638,6 +640,7 @@ public class ThreadService {
                             .param("q4", aiProfile.getQ4())
                             .param("q5", aiProfile.getQ5())
                             .param("q6", aiProfile.getQ6()))
+                    .user(prompt)
                     .call()
                     .content();
 
