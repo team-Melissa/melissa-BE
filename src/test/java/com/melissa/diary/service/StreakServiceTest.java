@@ -27,12 +27,24 @@ class StreakServiceTest {
     StreakService streakService;
 
     @Test
-    void 오늘작성없으면_0() {
+    void 오늘작성없어도_어제작성있으면_유지() {
         Long userId = 1L;
         LocalDate today = LocalDate.of(2026, 1, 10);
 
         when(diaryRepository.findRecentActiveDiaryDatesDesc(eq(userId), eq(Date.valueOf(today)), anyInt()))
                 .thenReturn(List.of(Date.valueOf(today.minusDays(1))));
+
+        int streak = streakService.getCurrentStreakDays(userId, today);
+        assertThat(streak).isEqualTo(1);
+    }
+
+    @Test
+    void 오늘작성없고_어제도없으면_0() {
+        Long userId = 1L;
+        LocalDate today = LocalDate.of(2026, 1, 10);
+
+        when(diaryRepository.findRecentActiveDiaryDatesDesc(eq(userId), eq(Date.valueOf(today)), anyInt()))
+                .thenReturn(List.of(Date.valueOf(today.minusDays(2))));
 
         int streak = streakService.getCurrentStreakDays(userId, today);
         assertThat(streak).isEqualTo(0);
