@@ -66,7 +66,7 @@ public class SecurityConfig {
     private final AuthenticationEntryPoint unauthorizedEntryPoint =
             (request, response, authException) -> {
 
-                ApiResponse<?> apiResponse = new ApiResponse(false,"401","인증이 필요합니다.",null);
+                ApiResponse<?> apiResponse = ApiResponse.onFailure("401", "인증이 필요합니다.", null);
                 response.setCharacterEncoding("UTF-8");
                 response.setStatus(HttpStatus.UNAUTHORIZED.value());
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);

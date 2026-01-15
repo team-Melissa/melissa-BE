@@ -14,10 +14,8 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.security.interfaces.RSAKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -31,7 +29,6 @@ public class SocialAuthService {
     // Google (ID Token 검증)
     public GooglePayload verifyGoogleToken(String idToken) {
         String url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken;
-        log.info(idToken);
         try {
             RestTemplate restTemplate = new RestTemplate();
             GoogleIdTokenResponse response =
