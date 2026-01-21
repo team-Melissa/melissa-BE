@@ -37,6 +37,9 @@ import java.util.Optional;
 @Service
 public class ThreadService {
 
+    private static final int CHAT_HISTORY_LIMIT = 15;
+    private static final List<String> CHAT_ERROR_KEYWORDS = List.of("채팅 처리 중 오류", "sse 오류", "sse error");
+
     private final ThreadRepository threadRepository;
     private final UserRepository userRepository;
     private final AiProfileRepository aiProfileRepository;
@@ -219,14 +222,9 @@ public class ThreadService {
                     .delayElements(Duration.ofMillis(10));
         }
 
-        Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt(prompt)
-                .system(sp -> sp.param("system", td.getAiProfile().getPromptText())
-                        .param("q1", td.getAiProfile().getQ1())
-                        .param("q2", td.getAiProfile().getQ2())
-                        .param("q3", td.getAiProfile().getQ3())
-                        .param("q4", td.getAiProfile().getQ4())
-                        .param("q5", td.getAiProfile().getQ5())
-                        .param("q6", td.getAiProfile().getQ6()))
+        Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt()
+                .system(sp -> sp.param("characterPrompt", td.getAiProfile().getPromptText()))
+                .user(prompt)
                 .stream()
                 .chatResponse()
                 .map(r -> {
@@ -287,14 +285,9 @@ public class ThreadService {
                     .delayElements(Duration.ofMillis(10));
         }
 
-        Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt(prompt)
-                .system(sp -> sp.param("system", td.getAiProfile().getPromptText())
-                        .param("q1", td.getAiProfile().getQ1())
-                        .param("q2", td.getAiProfile().getQ2())
-                        .param("q3", td.getAiProfile().getQ3())
-                        .param("q4", td.getAiProfile().getQ4())
-                        .param("q5", td.getAiProfile().getQ5())
-                        .param("q6", td.getAiProfile().getQ6()))
+        Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt()
+                .system(sp -> sp.param("characterPrompt", td.getAiProfile().getPromptText()))
+                .user(prompt)
                 .stream()
                 .chatResponse()
                 .map(r -> {
@@ -372,60 +365,22 @@ public class ThreadService {
      * v1: 기본 프롬프트 생성 (UserMemory 미적용)
      */
     private String buildAiChatPrompt(String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
+        List<DailyChatLog> preparedHistory = sliceRecentChatHistory(chatHistory);
         StringBuilder prompt = new StringBuilder();
 
-        // Role Definition
-        prompt.append("""
-                ## Role Definition
-                너는 사용자의 하루를 기록하기 위해 대화를 나누는 AI 다이어리 파트너야.
-                사용자와 자연스럽게 대화하며 공감해주고, 나중에 일기로 작성할 수 있는 주요 사건, 감정, 생각 등의 정보를 대화 속에서 이끌어내야 해.
-                
-                """);
-
-        // Persona Configuration
-        prompt.append("## Persona Configuration (기본 성격)\n");
-        prompt.append("너는 아래의 성격을 완벽하게 연기해야 한다.\n");
-        prompt.append("Core Personality: ").append(aiProfile.getPromptText()).append("\n\n");
-
-        // Communication Guidelines
-        prompt.append("## Communication Guidelines (대화 지침)\n");
-        prompt.append("사용자와의 대화에서 아래 6가지 지침을 반드시 준수하라.\n");
-        prompt.append("Tone & Manner (말투): ").append(aiProfile.getQ1()).append("\n");
-        prompt.append("Response Length (길이): ").append(aiProfile.getQ2()).append("\n");
-        prompt.append("Response Style (답변 방식): ").append(aiProfile.getQ3()).append("\n");
-        prompt.append("Questioning Style (질문 방식): ").append(aiProfile.getQ4()).append("\n");
-        prompt.append("Intervention Level (개입 정도): ").append(aiProfile.getQ5()).append("\n");
-        prompt.append("Humor Usage (유머): ").append(aiProfile.getQ6()).append("\n\n");
-
-        // Operational Rules
-        prompt.append("""
-                ## Operational Rules
-                - 사용자의 감정에 먼저 깊이 공감한 뒤, 일기 작성을 위한 구체적인 내용(누구와, 어디서, 무엇을 했는지 등)을 자연스럽게 물어봐줘.
-                - 기계적인 느낌을 주지 말고, 위에서 설정된 '말투'와 '성격'을 유지하며 친구처럼 대화해.
-                - 이모지는 답변당 최대 1개만 사용하고, 없어도 괜찮아.
-                """);
-
-        // 답변 길이 구체화
-        if (aiProfile.getQ2().contains("짧")){ 
-            prompt.append("- 답변 길이: UTF-8 기준 100-150바이트 이내 (한글 약 30-50자, 공백 포함), 짧고 간결하게 핵심만 전달해줘.\n\n");
-        } else {
-            prompt.append("- 답변 길이: UTF-8 기준 300-500바이트 이내 (한글 약 100-170자, 공백 포함), 자연스럽게 대화하되 너무 길지 않게 적당히 끊어줘.\n\n");
-        }
-
-        // 기존 채팅 내역 추가
-        if (!chatHistory.isEmpty()) {
-            prompt.append("## 오늘의 대화 기록\n");
-            for (DailyChatLog log : chatHistory) {
+        if (!preparedHistory.isEmpty()) {
+            prompt.append("최근 대화 기록\n");
+            for (DailyChatLog log : preparedHistory) {
                 String role = log.getRole() == com.melissa.diary.domain.enums.Role.USER ? "사용자" : "나";
                 prompt.append(role)
                         .append(": ")
                         .append(log.getContent())
                         .append("\n");
             }
+            prompt.append("\n");
         }
 
-        // 새 사용자 입력 추가
-        prompt.append("\n## 새로운 사용자 메시지\n사용자: ")
+        prompt.append("사용자: ")
                 .append(userMessage)
                 .append("\n\n나: ");
 
@@ -437,86 +392,36 @@ public class ThreadService {
      * 사용자 장기 기억 포함
      */
     private String buildAiChatPromptV2(Long userId, String userMessage, List<DailyChatLog> chatHistory, AiProfile aiProfile) {
+        List<DailyChatLog> preparedHistory = sliceRecentChatHistory(chatHistory);
         StringBuilder prompt = new StringBuilder();
 
-        // Role Definition
-        prompt.append("""
-                ## Role Definition
-                너는 사용자의 하루를 기록하기 위해 대화를 나누는 AI 다이어리 파트너야.
-                사용자와 자연스럽게 대화하며 공감해주고, 나중에 일기로 작성할 수 있는 주요 사건, 감정, 생각 등의 정보를 대화 속에서 이끌어내야 해.
-                
-                """);
-
-        // Persona Configuration
-        prompt.append("## Persona Configuration (기본 성격)\n");
-        prompt.append("너는 아래의 성격을 완벽하게 연기해야 한다.\n");
-        prompt.append("Core Personality: ").append(aiProfile.getPromptText()).append("\n\n");
-
-        // Communication Guidelines
-        prompt.append("## Communication Guidelines (대화 지침)\n");
-        prompt.append("사용자와의 대화에서 아래 6가지 지침을 반드시 준수하라.\n");
-        prompt.append("Tone & Manner (말투): ").append(aiProfile.getQ1()).append("\n");
-        prompt.append("Response Length (길이): ").append(aiProfile.getQ2()).append("\n");
-        prompt.append("Response Style (답변 방식): ").append(aiProfile.getQ3()).append("\n");
-        prompt.append("Questioning Style (질문 방식): ").append(aiProfile.getQ4()).append("\n");
-        prompt.append("Intervention Level (개입 정도): ").append(aiProfile.getQ5()).append("\n");
-        prompt.append("Humor Usage (유머): ").append(aiProfile.getQ6()).append("\n\n");
-
-        // Operational Rules
-        prompt.append("""
-                ## Operational Rules
-                - 사용자의 감정에 먼저 깊이 공감한 뒤, 일기 작성을 위한 구체적인 내용(누구와, 어디서, 무엇을 했는지 등)을 자연스럽게 물어봐줘.
-                - 기계적인 느낌을 주지 말고, 위에서 설정된 '말투'와 '성격'을 유지하며 친구처럼 대화해.
-                - 이모지는 답변당 최대 1개만 사용하고, 없어도 괜찮아.
-                """);
-
-        // 답변 길이 구체화
-        if (aiProfile.getQ2().contains("짧")){ 
-            prompt.append("- 답변 길이: UTF-8 기준 100-150바이트 이내 (한글 약 30-50자, 공백 포함), 짧고 간결하게 핵심만 전달해줘.\n\n");
-        } else {
-            prompt.append("- 답변 길이: UTF-8 기준 300-500바이트 이내 (한글 약 100-170자, 공백 포함), 자연스럽게 대화하되 너무 길지 않게 적당히 끊어줘.\n\n");
-        }
-
-        // ======== v2: UserMemory 통합 (항상 포함) ========
-        // v2 개선: 주제 변경 감지 대신 항상 UserMemory 포함
         if (userMemoryService.hasMemoryContent(userId)) {
             log.debug("[ThreadService] v2 모드: UserMemory 포함 시작. userId={}", userId);
             try {
                 com.melissa.diary.domain.UserMemory userMemory = userMemoryService.getUserMemoryReadOnly(userId);
                 if (userMemory != null && userMemory.getMemoryContent() != null && !userMemory.getMemoryContent().trim().isEmpty()) {
-                    prompt.append("\n=== 사용자에 대해 알고 있는 장기 기억 ===\n");
-                    prompt.append(userMemory.getMemoryContent());
-                    prompt.append("\n=== 기억 끝 ===\n\n");
-                    prompt.append("""
-                            ## 기억 활용 가이드
-                            - 사용자가 관련 주제를 언급하면 위 기억을 자연스럽게 활용해줘.
-                            - "기억하고 있어", "저번에 말했지" 같은 직접적 언급은 피하고, 자연스럽게 녹여서 대화해.
-                            - 사용자가 물어보면 기억한 내용을 구체적으로 답변해줘.
-                            - 기억에 없는 내용은 솔직하게 모른다고 해도 괜찮아.
-                            """);
-                    
+                    prompt.append("사용자 장기 기억\n");
+                    prompt.append(userMemory.getMemoryContent().trim()).append("\n\n");
                     log.info("[ThreadService] UserMemory 프롬프트 포함 완료. userId={}", userId);
                 }
             } catch (Exception e) {
                 log.warn("[ThreadService] UserMemory 조회 실패, 메모리 없이 진행. userId={}", userId, e);
             }
         }
-        // ======== v2 끝 ========
 
-        // 기존 채팅 내역 추가
-        if (!chatHistory.isEmpty()) {
-            prompt.append("\n## 오늘의 대화 기록\n");
-            for (DailyChatLog log : chatHistory) {
+        if (!preparedHistory.isEmpty()) {
+            prompt.append("최근 대화 기록\n");
+            for (DailyChatLog log : preparedHistory) {
                 String role = log.getRole() == com.melissa.diary.domain.enums.Role.USER ? "사용자" : "나";
                 prompt.append(role)
                         .append(": ")
                         .append(log.getContent())
                         .append("\n");
             }
+            prompt.append("\n");
         }
 
-        // 새 사용자 입력 추가
-        prompt.append("\n## 새로운 사용자 메시지\n사용자: ")
+        prompt.append("사용자: ")
                 .append(userMessage)
                 .append("\n\n나: ");
 
@@ -630,14 +535,9 @@ public class ThreadService {
 
         try {
             // AI 응답 생성 (동기 방식)
-            String aiResponse = chatClient.prompt(prompt)
-                    .system(sp -> sp.param("system", aiProfile.getPromptText())
-                            .param("q1", aiProfile.getQ1())
-                            .param("q2", aiProfile.getQ2())
-                            .param("q3", aiProfile.getQ3())
-                            .param("q4", aiProfile.getQ4())
-                            .param("q5", aiProfile.getQ5())
-                            .param("q6", aiProfile.getQ6()))
+            String aiResponse = chatClient.prompt()
+                    .system(sp -> sp.param("characterPrompt", aiProfile.getPromptText()))
+                    .user(prompt)
                     .call()
                     .content();
 
@@ -716,5 +616,34 @@ public class ThreadService {
             this.aiProfile = aiProfile;
             this.chatHistory = chatHistory;
         }
+    }
+
+    private List<DailyChatLog> sliceRecentChatHistory(List<DailyChatLog> chatHistory) {
+        if (chatHistory == null || chatHistory.isEmpty()) {
+            return List.of();
+        }
+
+        List<DailyChatLog> sorted = chatHistory.stream()
+                .filter(this::isUsableChatLog)
+                .sorted(Comparator.comparing(DailyChatLog::getCreatedAt))
+                .toList();
+
+        int size = sorted.size();
+        if (size <= CHAT_HISTORY_LIMIT) {
+            return sorted;
+        }
+        return sorted.subList(size - CHAT_HISTORY_LIMIT, size);
+    }
+
+    private boolean isUsableChatLog(DailyChatLog log) {
+        if (log == null) {
+            return false;
+        }
+        String content = Optional.ofNullable(log.getContent()).orElse("").trim();
+        if (content.isEmpty()) {
+            return false;
+        }
+        String lowerContent = content.toLowerCase();
+        return CHAT_ERROR_KEYWORDS.stream().noneMatch(keyword -> lowerContent.contains(keyword.toLowerCase()));
     }
 }
