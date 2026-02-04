@@ -15,8 +15,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -157,78 +155,104 @@ public class CalendarService {
 
     /**
      * 최신순 피드 조회 (커서 기반 무한 페이징)
-     * - 월간 전체조회(DailySummaryResponseDTO) 구조를 재사용하기 위해 "일자별 그룹"으로 반환
-     * - 정렬 안정성: createdAt DESC, diaryId DESC
+     * - 날짜 묶음 N개를 보장 (일기 개수가 아닌 고유 날짜 개수 기준)
+     * - 정렬: id DESC (AUTO_INCREMENT로 최신순 보장)
      */
     @Transactional(readOnly = true)
-    public CalendarResponseDTO.FeedResponseDTO getFeed(Long userId, Integer limit, String cursorCreatedAt, Long cursorDiaryId) {
+    public CalendarResponseDTO.FeedResponseDTO getFeed(Long userId, Integer limit, Long cursorDiaryId) {
         // 유저 검증
         getUser(userId);
 
+        // limit은 날짜 묶음 개수 (기본 20개, 최대 50개)
         int resolvedLimit = (limit == null ? 20 : limit);
         if (resolvedLimit < 1 || resolvedLimit > 50) {
             throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_LIMIT);
         }
 
-        // 커서 짝 검증 (2필드 커서)
-        boolean hasCreatedAt = cursorCreatedAt != null && !cursorCreatedAt.isBlank();
-        boolean hasDiaryId = cursorDiaryId != null;
-        if (hasCreatedAt != hasDiaryId) {
-            throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_CURSOR);
-        }
-
-        LocalDateTime parsedCursorCreatedAt = null;
-        if (hasCreatedAt) {
-            try {
-                parsedCursorCreatedAt = LocalDateTime.parse(cursorCreatedAt);
-            } catch (DateTimeParseException e) {
-                throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_CURSOR);
+        // 날짜 묶음을 저장할 자료구조 (순서 유지)
+        Map<String, List<CalendarResponseDTO.DiaryDetailDTO>> byDayKey = new LinkedHashMap<>();
+        Map<String, int[]> dayParts = new LinkedHashMap<>(); // year, month, day 저장
+        
+        Long currentCursor = cursorDiaryId;
+        boolean hasMore = true;
+        
+        // 날짜 묶음이 resolvedLimit+1개가 될 때까지 반복 조회 (+1은 hasNext 판단용)
+        while (byDayKey.size() <= resolvedLimit && hasMore) {
+            // 한 번에 가져올 일기 개수 (배치 사이즈)
+            // 날짜당 평균 1.5개 일기를 가정하여, 부족한 날짜 수 * 2
+            int remainingDays = (resolvedLimit + 1) - byDayKey.size();
+            int batchSize = Math.max(remainingDays * 2, 20);
+            
+            List<Diary> batch = diaryRepository.findFeedPage(
+                    userId,
+                    currentCursor,
+                    PageRequest.of(0, batchSize)
+            );
+            
+            if (batch.isEmpty()) {
+                hasMore = false;
+                break;
+            }
+            
+            // 배치 데이터를 날짜별로 그룹화
+            for (Diary diary : batch) {
+                String key = diary.getYear() + "-" + diary.getMonth() + "-" + diary.getDay();
+                
+                // 이미 목표 날짜 수(+1)에 도달했으면 중단
+                if (byDayKey.size() >= resolvedLimit + 1 && !byDayKey.containsKey(key)) {
+                    hasMore = true;
+                    break;
+                }
+                
+                List<CalendarResponseDTO.DiaryDetailDTO> diaryList = byDayKey.computeIfAbsent(key, k -> new ArrayList<>());
+                
+                // 각 날짜별 최대 3개까지만 추가
+                if (diaryList.size() < 3) {
+                    diaryList.add(DiaryConverter.toDiaryDetailDTO(diary));
+                    dayParts.putIfAbsent(key, new int[]{diary.getYear(), diary.getMonth(), diary.getDay()});
+                }
+                
+                currentCursor = diary.getId(); // 다음 조회를 위한 커서 업데이트
+            }
+            
+            // 배치 크기보다 적게 조회되었다면 더 이상 데이터가 없음
+            if (batch.size() < batchSize) {
+                hasMore = false;
             }
         }
 
-        // limit+1로 가져와서 hasNext 판단
-        List<Diary> diaries = diaryRepository.findFeedPage(
-                userId,
-                parsedCursorCreatedAt,
-                cursorDiaryId,
-                PageRequest.of(0, resolvedLimit + 1)
-        );
-
-        boolean hasNext = diaries.size() > resolvedLimit;
+        // hasNext 판단 및 실제 반환할 날짜 목록 결정
+        boolean hasNext = byDayKey.size() > resolvedLimit;
+        List<String> dayKeys = new ArrayList<>(byDayKey.keySet());
+        
         if (hasNext) {
-            diaries = diaries.subList(0, resolvedLimit);
+            // 초과된 날짜 제거
+            dayKeys = dayKeys.subList(0, resolvedLimit);
         }
-
-        // 일자별 그룹핑 (최신순 피드 흐름을 유지하기 위해 LinkedHashMap 사용)
-        Map<String, List<CalendarResponseDTO.DiaryDetailDTO>> byDayKey = new LinkedHashMap<>();
-        Map<String, int[]> dayParts = new LinkedHashMap<>(); // year, month, day 저장
-
-        for (Diary diary : diaries) {
-            String key = diary.getYear() + "-" + diary.getMonth() + "-" + diary.getDay();
-            byDayKey.computeIfAbsent(key, k -> new ArrayList<>()).add(DiaryConverter.toDiaryDetailDTO(diary));
-            dayParts.putIfAbsent(key, new int[]{diary.getYear(), diary.getMonth(), diary.getDay()});
-        }
-
-        List<CalendarResponseDTO.DailySummaryResponseDTO> days = byDayKey.entrySet().stream()
-                .map(entry -> {
-                    String key = entry.getKey();
+        
+        // 응답 DTO 생성
+        List<CalendarResponseDTO.DailySummaryResponseDTO> days = dayKeys.stream()
+                .map(key -> {
                     int[] parts = dayParts.get(key);
                     return CalendarResponseDTO.DailySummaryResponseDTO.builder()
                             .year(parts[0])
                             .month(parts[1])
                             .day(parts[2])
-                            .diaries(entry.getValue())
+                            .diaries(byDayKey.get(key))
                             .build();
                 })
                 .collect(Collectors.toList());
 
+        // 다음 커서 계산: 마지막 날짜의 마지막 일기 ID
         CalendarResponseDTO.FeedNextCursorDTO nextCursor = null;
-        if (hasNext && !diaries.isEmpty()) {
-            Diary last = diaries.get(diaries.size() - 1);
-            nextCursor = CalendarResponseDTO.FeedNextCursorDTO.builder()
-                    .cursorCreatedAt(last.getCreatedAt())
-                    .cursorDiaryId(last.getId())
-                    .build();
+        if (hasNext && !days.isEmpty()) {
+            List<CalendarResponseDTO.DiaryDetailDTO> lastDayDiaries = days.get(days.size() - 1).getDiaries();
+            if (!lastDayDiaries.isEmpty()) {
+                Long lastDiaryId = lastDayDiaries.get(lastDayDiaries.size() - 1).getDiaryId();
+                nextCursor = CalendarResponseDTO.FeedNextCursorDTO.builder()
+                        .cursorDiaryId(lastDiaryId)
+                        .build();
+            }
         }
 
         return CalendarResponseDTO.FeedResponseDTO.builder()
