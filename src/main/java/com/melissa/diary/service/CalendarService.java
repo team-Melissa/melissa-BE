@@ -195,12 +195,14 @@ public class CalendarService {
             }
             
             // 배치 데이터를 날짜별로 그룹화
+            boolean earlyExit = false;
             for (Diary diary : batch) {
                 String key = diary.getYear() + "-" + diary.getMonth() + "-" + diary.getDay();
                 
                 // 이미 목표 날짜 수(+1)에 도달했으면 중단
                 if (byDayKey.size() >= resolvedLimit + 1 && !byDayKey.containsKey(key)) {
                     hasMore = true;
+                    earlyExit = true;
                     break;
                 }
                 
@@ -213,6 +215,11 @@ public class CalendarService {
                 }
                 
                 currentCursor = diary.getId(); // 다음 조회를 위한 커서 업데이트
+            }
+            
+            // 일찍 종료했다면 hasMore는 이미 true로 설정됨
+            if (earlyExit) {
+                break;
             }
             
             // 배치 크기보다 적게 조회되었다면 더 이상 데이터가 없음
