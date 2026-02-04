@@ -91,30 +91,24 @@ public class CalendarController {
 
     @Operation(summary = "피드 전용 최신순 조회 (커서 기반 무한 페이징)",
                description = """
-                   [v1.3.0+] 피드 전용 최신순 정렬(createdAt DESC, diaryId DESC)을 보장하며, 커서 기반 무한 페이징을 제공합니다.
-                   - 첫 요청(첫 페이지)은 cursorCreatedAt/cursorDiaryId 없이 호출합니다.
-                   - 다음 페이지부터는 직전 응답의 pageInfo.nextCursor 값을 그대로 재전송합니다.
+                   [v1.3.0+] 피드 전용 최신순 정렬(id DESC)을 보장하며, 커서 기반 무한 페이징을 제공합니다.
+                   - limit은 날짜 묶음 개수입니다 (일기 개수가 아님). 기본 20개, 최대 50개.
+                   - 첫 요청(첫 페이지)은 cursorDiaryId 없이 호출합니다.
+                   - 다음 페이지부터는 직전 응답의 pageInfo.nextCursor.cursorDiaryId 값을 그대로 재전송합니다.
                    - 마지막 페이지에서는 pageInfo.hasNext=false 이며 pageInfo.nextCursor=null 입니다.
-                   - 커서는 2필드(cursorCreatedAt + cursorDiaryId)이며 둘 중 하나만 전달하면 400 입니다.
+                   - 각 날짜 묶음에는 최대 3개의 일기가 포함됩니다.
                    """)
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
-        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "CALENDAR4004: 유효하지 않은 커서 / CALENDAR4005: 유효하지 않은 limit"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "CALENDAR4005: 유효하지 않은 limit"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음")
     })
     @GetMapping("/feed")
     public ApiResponse<CalendarResponseDTO.FeedResponseDTO> getFeed(
-            @Parameter(description = "조회 개수 (기본 20, 최대 50)", example = "20")
+            @Parameter(description = "조회할 날짜 묶음 개수 (기본 20, 최대 50)", example = "20")
             @RequestParam(name = "limit", required = false) Integer limit,
             @Parameter(description = """
-                    커서 createdAt (ISO-8601)
-                    - 첫 요청은 미전송(null) 가능
-                    - 다음 페이지부터는 직전 응답의 pageInfo.nextCursor.cursorCreatedAt 값을 그대로 재전송
-                    - 마지막 페이지는 pageInfo.nextCursor=null 이므로 커서를 다시 미전송
-                    """, example = "2025-12-30T21:15:10.123456")
-            @RequestParam(name = "cursorCreatedAt", required = false) String cursorCreatedAt,
-            @Parameter(description = """
-                    커서 diaryId
+                    커서 diaryId (단일 필드 커서)
                     - 첫 요청은 미전송(null) 가능
                     - 다음 페이지부터는 직전 응답의 pageInfo.nextCursor.cursorDiaryId 값을 그대로 재전송
                     - 마지막 페이지는 pageInfo.nextCursor=null 이므로 커서를 다시 미전송
@@ -123,7 +117,7 @@ public class CalendarController {
             Principal principal) {
 
         Long userId = Long.parseLong(principal.getName());
-        CalendarResponseDTO.FeedResponseDTO response = calendarService.getFeed(userId, limit, cursorCreatedAt, cursorDiaryId);
+        CalendarResponseDTO.FeedResponseDTO response = calendarService.getFeed(userId, limit, cursorDiaryId);
 
         return ApiResponse.onSuccess(response);
     }
