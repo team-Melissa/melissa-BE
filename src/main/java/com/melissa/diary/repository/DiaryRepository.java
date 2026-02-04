@@ -7,7 +7,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 
 import java.sql.Date;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -96,8 +95,8 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
 
     /**
      * 피드 전용 조회 (최신순, 커서 기반 페이지네이션)
-     * - createdAt DESC, id DESC 정렬
-     * - 커서 조건: (createdAt < cursorCreatedAt) OR (createdAt = cursorCreatedAt AND id < cursorDiaryId)
+     * - id DESC 정렬 (AUTO_INCREMENT로 최신순 보장)
+     * - 커서 조건: id < cursorDiaryId
      * - FETCH JOIN으로 Thread, AiProfile 한번에 로딩 (N+1 방지)
      *
      * 주의: Pageable은 limit 용도로만 사용 (page=0 고정)
@@ -108,16 +107,11 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
         INNER JOIN FETCH t.aiProfile ap
         WHERE d.user.id = :userId
           AND d.isActive = true
-          AND (
-            :cursorCreatedAt IS NULL
-            OR d.createdAt < :cursorCreatedAt
-            OR (d.createdAt = :cursorCreatedAt AND d.id < :cursorDiaryId)
-          )
-        ORDER BY d.createdAt DESC, d.id DESC
+          AND (:cursorDiaryId IS NULL OR d.id < :cursorDiaryId)
+        ORDER BY d.id DESC
         """)
     List<Diary> findFeedPage(
             @Param("userId") Long userId,
-            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
             @Param("cursorDiaryId") Long cursorDiaryId,
             Pageable pageable);
     
