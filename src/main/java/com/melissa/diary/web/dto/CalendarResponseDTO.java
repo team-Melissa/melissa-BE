@@ -158,7 +158,7 @@ public class CalendarResponseDTO {
     }
 
     /**
-     * 다음 커서
+     * 다음 커서 (단일 필드)
      */
     @Getter
     @Builder
@@ -167,10 +167,7 @@ public class CalendarResponseDTO {
     @Schema(description = "피드 다음 커서")
     public static class FeedNextCursorDTO {
 
-        @Schema(description = "커서 createdAt (ISO-8601, 서버가 내려준 값을 그대로 재전송)", example = "2025-12-30T21:15:10.123456", requiredMode = Schema.RequiredMode.REQUIRED)
-        private LocalDateTime cursorCreatedAt;
-
-        @Schema(description = "커서 diaryId", example = "401", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "커서 diaryId (서버가 내려준 값을 그대로 재전송)", example = "401", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long cursorDiaryId;
     }
 
