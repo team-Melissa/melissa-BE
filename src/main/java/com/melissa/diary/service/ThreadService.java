@@ -17,6 +17,7 @@ import lombok.Getter;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
@@ -193,6 +194,10 @@ public class ThreadService {
         String prompt   = buildAiChatPrompt(userMessage, td.getChatHistory(), td.getAiProfile());
         StringBuilder b = new StringBuilder();
 
+        /* 입력 길이 기반 최대 토큰 계산 */
+        int maxTokens = calculateMaxTokens(userMessage);
+        log.info("[ThreadService] v1 입력 길이: {}자, 최대 토큰: {}", userMessage.length(), maxTokens);
+
         /* 탈옥 시도 검사 */
         if (jailbreakDetector.isJailbreakAttempt(userMessage)) {
             String rejectMsg = "죄송합니다. 해당 요청은 처리할 수 없습니다.";
@@ -225,6 +230,9 @@ public class ThreadService {
         Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt()
                 .system(sp -> sp.param("characterPrompt", td.getAiProfile().getPromptText()))
                 .user(prompt)
+                .options(OpenAiChatOptions.builder()
+                        .maxTokens(maxTokens)
+                        .build())
                 .stream()
                 .chatResponse()
                 .map(r -> {
@@ -258,6 +266,10 @@ public class ThreadService {
         String prompt   = buildAiChatPromptV2(userId, userMessage, td.getChatHistory(), td.getAiProfile());
         StringBuilder b = new StringBuilder();
 
+        /* 입력 길이 기반 최대 토큰 계산 */
+        int maxTokens = calculateMaxTokens(userMessage);
+        log.info("[ThreadService] v2 입력 길이: {}자, 최대 토큰: {}", userMessage.length(), maxTokens);
+
         /* 탈옥 시도 검사 */
         if (jailbreakDetector.isJailbreakAttempt(userMessage)) {
             String rejectMsg = "죄송합니다. 해당 요청은 처리할 수 없습니다.";
@@ -288,6 +300,9 @@ public class ThreadService {
         Flux<ServerSentEvent<String>> aiFlux = chatClient.prompt()
                 .system(sp -> sp.param("characterPrompt", td.getAiProfile().getPromptText()))
                 .user(prompt)
+                .options(OpenAiChatOptions.builder()
+                        .maxTokens(maxTokens)
+                        .build())
                 .stream()
                 .chatResponse()
                 .map(r -> {
@@ -533,11 +548,18 @@ public class ThreadService {
         // AI 채팅 프롬프트 생성 (v2: 메모리 포함)
         String prompt = buildAiChatPromptV2(userId, content, chatHistory, aiProfile);
 
+        /* 입력 길이 기반 최대 토큰 계산 */
+        int maxTokens = calculateMaxTokens(content);
+        log.info("[ThreadService] Test API 입력 길이: {}자, 최대 토큰: {}", content.length(), maxTokens);
+
         try {
             // AI 응답 생성 (동기 방식)
             String aiResponse = chatClient.prompt()
                     .system(sp -> sp.param("characterPrompt", aiProfile.getPromptText()))
                     .user(prompt)
+                    .options(OpenAiChatOptions.builder()
+                            .maxTokens(maxTokens)
+                            .build())
                     .call()
                     .content();
 
@@ -645,5 +667,30 @@ public class ThreadService {
         }
         String lowerContent = content.toLowerCase();
         return CHAT_ERROR_KEYWORDS.stream().noneMatch(keyword -> lowerContent.contains(keyword.toLowerCase()));
+    }
+
+    /**
+     * 사용자 입력 길이에 따른 최대 토큰 수 계산
+     * 입력 길이에 비례하여 응답 길이를 동적으로 조절
+     * 
+     * @param userInput 사용자 입력 메시지
+     * @return OpenAI API maxTokens 파라미터 값
+     */
+    private int calculateMaxTokens(String userInput) {
+        if (userInput == null || userInput.isEmpty()) {
+            return 50; // 기본값
+        }
+        
+        int inputLength = userInput.trim().length();
+        
+        if (inputLength <= 20) {
+            return 50; // 짧은 응답 (~30자)
+        } else if (inputLength <= 100) {
+            return 120; // 중간 응답 (~60~120자)
+        } else if (inputLength <= 300) {
+            return 200; // 긴 응답 (~120~200자)
+        } else {
+            return 300; // 매우 긴 응답 (~200~300자)
+        }
     }
 }
