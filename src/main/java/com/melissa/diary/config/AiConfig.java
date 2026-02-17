@@ -277,7 +277,7 @@ Character Acting Rule
         OpenAiChatOptions opts = OpenAiChatOptions.builder()
                 .model(OpenAiApi.ChatModel.GPT_4_1)
                 .temperature(1.0)
-                .maxTokens(1000)   // 메모리 융합을 위한 충분한 토큰
+                .maxCompletionTokens(1000)   // 메모리 융합을 위한 충분한 토큰
                 .build();
 
         String sys = """
