@@ -55,5 +55,13 @@ public class ExpoPushToken {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public void markValid() {
+        this.invalid = false;
+    }
+
+    public void markInvalid() {
+        this.invalid = true;
+    }
 }
 

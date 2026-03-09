@@ -80,6 +80,11 @@ public class DiaryResponseDTO {
         
         @Schema(description = "이미지 URL (비동기 생성, 초기에는 null)", example = "https://s3.amazonaws.com/...", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String imageUrl;
+
+        @Schema(description = "이미지 생성 상태", example = "PENDING",
+                allowableValues = {"NONE", "PENDING", "READY", "FAILED"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        private String imageStatus;
         
         @Schema(description = "버전", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private int version;
