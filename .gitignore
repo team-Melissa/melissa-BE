@@ -364,3 +364,6 @@ gradle-app.setting
 .idea/jarRepositories.xml
 .idea/modules/
 *.iml
+
+# Project-specific: keep internal decision/issue docs local only
+docs/
