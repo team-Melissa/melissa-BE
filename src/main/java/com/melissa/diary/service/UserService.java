@@ -5,6 +5,7 @@ import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.converter.UserConverter;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.repository.ThreadRepository;
+import com.melissa.diary.repository.UserMemoryRepository;
 import com.melissa.diary.repository.UserRepository;
 import com.melissa.diary.repository.UserSettingRepository;
 import com.melissa.diary.security.JwtProvider;
@@ -29,6 +30,7 @@ public class UserService {
     private final RefreshTokenHasher refreshTokenHasher;
     private final ThreadRepository threadRepository;
     private final UserSettingRepository userSettingRepository;
+    private final UserMemoryRepository userMemoryRepository;
 
 
     @Transactional
@@ -188,6 +190,7 @@ public class UserService {
 
         // 유저 설정 삭제
         userSettingRepository.deleteByUserId(userId);
+        userMemoryRepository.deleteByUserId(userId);
 
         // 삭제될 유저 정보를 DTO로 변환
         UserResponseDTO.DeleteResultDTO deleteDTO = UserConverter.toDeleteDTO(user);
