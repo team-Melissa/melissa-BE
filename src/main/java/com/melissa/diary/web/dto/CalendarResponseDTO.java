@@ -54,6 +54,11 @@ public class CalendarResponseDTO {
         
         @Schema(description = "이미지 URL", example = "https://s3.amazonaws.com/...", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String imageUrl;
+
+        @Schema(description = "이미지 생성 상태", example = "READY",
+                allowableValues = {"NONE", "PENDING", "READY", "FAILED"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        private String imageStatus;
         
         @Schema(description = "버전", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private int version;
@@ -92,6 +97,11 @@ public class CalendarResponseDTO {
         
         @Schema(description = "이미지 URL", example = "https://s3.amazonaws.com/...", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String imageUrl;
+
+        @Schema(description = "이미지 생성 상태", example = "READY",
+                allowableValues = {"NONE", "PENDING", "READY", "FAILED"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        private String imageStatus;
     }
     
     /**

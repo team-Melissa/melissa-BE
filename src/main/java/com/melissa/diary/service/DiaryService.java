@@ -9,6 +9,7 @@ import com.melissa.diary.domain.DailyChatLog;
 import com.melissa.diary.domain.Diary;
 import com.melissa.diary.domain.Thread;
 import com.melissa.diary.domain.User;
+import com.melissa.diary.domain.enums.DiaryImageStatus;
 import com.melissa.diary.domain.enums.DiaryType;
 import com.melissa.diary.domain.enums.Mood;
 import com.melissa.diary.domain.enums.Role;
@@ -139,6 +140,7 @@ public class DiaryService {
                 .hashtag1(hashtagData.getHashTag1())  // LLM 생성
                 .hashtag2(hashtagData.getHashTag2())  // LLM 생성
                 .imageUrl(null)  // 초기에는 null, 비동기로 생성
+                .imageStatus(Boolean.TRUE.equals(request.getGenerateImage()) ? DiaryImageStatus.PENDING : DiaryImageStatus.NONE)
                 .version(1)
                 .isActive(true)
                 .build();
@@ -230,6 +232,7 @@ public class DiaryService {
                 .hashtag1(diaryData.getHashTag1())
                 .hashtag2(diaryData.getHashTag2())
                 .imageUrl(null)  // 초기에는 null, 비동기로 생성
+                .imageStatus(Boolean.TRUE.equals(request.getGenerateImage()) ? DiaryImageStatus.PENDING : DiaryImageStatus.NONE)
                 .version(1)
                 .isActive(true)
                 .build();
@@ -324,7 +327,7 @@ public class DiaryService {
         // 이미지 재생성 요청 (선택적)
         if (Boolean.TRUE.equals(request.getGenerateImage())) {
             quotaService.checkAndConsume(user, UsageCost.SUMMARY);
-            diary.setImageUrl(null);  // 기존 이미지 초기화
+            diary.requestImageGeneration();
             diaryRepository.save(diary);
             publisher.publishEvent(new DiaryImageEvent(diary.getId()));
         }
@@ -361,7 +364,7 @@ public class DiaryService {
         }
         
         // 소프트 삭제
-        diary.setActive(false);
+        diary.deactivate();
         diaryRepository.save(diary);
         
         log.info("[Diary] 일기 삭제 완료. userId={}, diaryId={}", userId, diaryId);
@@ -390,6 +393,7 @@ public class DiaryService {
                 .hashtag1(diary.getHashtag1())
                 .hashtag2(diary.getHashtag2())
                 .imageUrl(diary.getImageUrl())
+                .imageStatus(diary.getImageStatus() != null ? diary.getImageStatus().name() : null)
                 .version(diary.getVersion())
                 .createdAt(diary.getCreatedAt())
                 .build();

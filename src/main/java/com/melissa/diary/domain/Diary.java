@@ -2,6 +2,7 @@ package com.melissa.diary.domain;
 
 import com.melissa.diary.converter.EncryptionAttributeConverter;
 import com.melissa.diary.domain.common.BaseEntity;
+import com.melissa.diary.domain.enums.DiaryImageStatus;
 import com.melissa.diary.domain.enums.DiaryType;
 import com.melissa.diary.domain.enums.Mood;
 import jakarta.persistence.*;
@@ -66,6 +67,11 @@ public class Diary extends BaseEntity {
     
     @Column(length = 255)
     private String imageUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "image_status", nullable = false, length = 20)
+    @Builder.Default
+    private DiaryImageStatus imageStatus = DiaryImageStatus.NONE;
     
     @Column(nullable = false)
     @Builder.Default
@@ -74,5 +80,24 @@ public class Diary extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private boolean isActive = true;
+
+    public void deactivate() {
+        this.isActive = false;
+    }
+
+    public void requestImageGeneration() {
+        this.imageStatus = DiaryImageStatus.PENDING;
+        this.imageUrl = null;
+    }
+
+    public void markImageReady(String imageUrl) {
+        this.imageStatus = DiaryImageStatus.READY;
+        this.imageUrl = imageUrl;
+    }
+
+    public void markImageFailed(String fallbackImageUrl) {
+        this.imageStatus = DiaryImageStatus.FAILED;
+        this.imageUrl = fallbackImageUrl;
+    }
 }
 

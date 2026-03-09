@@ -24,6 +24,7 @@ public class DiaryConverter {
                 .hashtag1(diary.getHashtag1())
                 .hashtag2(diary.getHashtag2())
                 .imageUrl(diary.getImageUrl())
+                .imageStatus(diary.getImageStatus() != null ? diary.getImageStatus().name() : null)
                 .version(diary.getVersion())
                 .createdAt(diary.getCreatedAt())
                 .build();
@@ -40,6 +41,7 @@ public class DiaryConverter {
                 .hashtag1(diary.getHashtag1())
                 .hashtag2(diary.getHashtag2())
                 .imageUrl(diary.getImageUrl())
+                .imageStatus(diary.getImageStatus() != null ? diary.getImageStatus().name() : null)
                 .build();
     }
 }
