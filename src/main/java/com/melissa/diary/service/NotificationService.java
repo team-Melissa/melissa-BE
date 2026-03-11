@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -197,6 +198,10 @@ public class NotificationService {
 
         } catch (InvalidTokenException e) {
             throw e;
+        } catch (WebClientResponseException e) {
+            log.error("[Notification] Expo API response error. token={}, status={}, body={}",
+                    token, e.getStatusCode(), e.getResponseBodyAsString(), e);
+            throw new RuntimeException("Expo API response error", e);
         } catch (Exception e) {
             log.error("[Notification] notification send exception. token={}", token, e);
             throw new RuntimeException("Notification send failed", e);
