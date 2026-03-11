@@ -10,14 +10,15 @@ import org.springframework.stereotype.Component;
 
 import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
- * 푸시 알림 스케줄러
- * 매 10분마다 실행하여 해당 시간 알림 설정 사용자에게 발송
+ * Push notification scheduler.
+ * Runs every 10 minutes in KST.
  */
 @Component
 @RequiredArgsConstructor
@@ -25,46 +26,53 @@ import java.util.List;
 public class NotificationScheduler {
 
     private static final ZoneId KST_ZONE_ID = ZoneId.of("Asia/Seoul");
+    private static final int RETRY_INTERVAL_MINUTES = 10;
+    private static final int MAX_RETRY_COUNT = 6;
 
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
 
-    /**
-     * 10분 단위 알림 발송 (00, 10, 20, 30, 40, 50분)
-     */
     @Scheduled(cron = "0 */10 * * * *", zone = "Asia/Seoul")
     public void sendDailyNotifications() {
         long startTime = System.currentTimeMillis();
         ZonedDateTime nowInKst = ZonedDateTime.now(KST_ZONE_ID);
         LocalDate todayInKst = nowInKst.toLocalDate();
+        LocalDateTime retryEligibleBefore = nowInKst.toLocalDateTime().minusMinutes(RETRY_INTERVAL_MINUTES);
         LocalTime targetTime = floorToTenMinuteSlot(nowInKst.toLocalTime());
         Time notificationTime = Time.valueOf(targetTime);
 
-        log.info("[NotificationScheduler] 알림 스케줄러 시작. zone={}, now={}, targetTime={}",
-                KST_ZONE_ID, nowInKst.toLocalDateTime(), targetTime);
+        log.info(
+                "[NotificationScheduler] started. zone={}, now={}, targetTime={}, retryInterval={}m, maxRetryCount={}",
+                KST_ZONE_ID,
+                nowInKst.toLocalDateTime(),
+                targetTime,
+                RETRY_INTERVAL_MINUTES,
+                MAX_RETRY_COUNT
+        );
 
         try {
             List<UserSetting> targets = userSettingRepository.findNotificationTargets(
                     notificationTime,
-                    todayInKst
+                    todayInKst,
+                    retryEligibleBefore,
+                    MAX_RETRY_COUNT
             );
 
             if (targets.isEmpty()) {
-                log.info("[NotificationScheduler] 발송 대상 없음. 시간: {}", targetTime);
+                log.info("[NotificationScheduler] no targets. targetTime={}", targetTime);
                 return;
             }
 
-            log.info("[NotificationScheduler] 발송 대상 조회 완료. 대상: {}명", targets.size());
+            log.info("[NotificationScheduler] targets fetched. count={}", targets.size());
 
             notificationService.sendBatchNotifications(targets);
 
             long elapsedTime = System.currentTimeMillis() - startTime;
-            log.info("[NotificationScheduler] 알림 스케줄러 완료 (배치 순차 발송 시작). 대상: {}명, 조회 시간: {}ms",
-                    targets.size(), elapsedTime);
+            log.info("[NotificationScheduler] completed. targetCount={}, elapsed={}ms", targets.size(), elapsedTime);
 
         } catch (Exception e) {
             long elapsedTime = System.currentTimeMillis() - startTime;
-            log.error("[NotificationScheduler] 알림 스케줄러 실행 중 오류 발생. 소요 시간: {}ms", elapsedTime, e);
+            log.error("[NotificationScheduler] failed. elapsed={}ms", elapsedTime, e);
         }
     }
 

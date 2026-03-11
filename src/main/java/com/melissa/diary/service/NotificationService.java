@@ -15,6 +15,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 /**
@@ -25,6 +27,7 @@ import java.util.List;
 public class NotificationService {
 
     private static final int BATCH_SIZE = 100;
+    private static final ZoneId KST_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     private final UserSettingRepository userSettingRepository;
     private final ExpoPushTokenRepository expoPushTokenRepository;
@@ -38,9 +41,6 @@ public class NotificationService {
         this.expoWebClient = expoWebClient;
     }
 
-    /**
-     * 스케줄러 스레드 블로킹을 피하기 위한 비동기 진입점
-     */
     @Async("notificationExecutor")
     public void sendBatchNotifications(List<UserSetting> userSettings) {
         int totalCount = userSettings.size();
@@ -73,9 +73,6 @@ public class NotificationService {
                 totalCount, totalSuccess, totalFail, totalElapsedTime, Thread.currentThread().getName());
     }
 
-    /**
-     * 배치 단위를 새로운 트랜잭션으로 처리
-     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int[] processBatchWithTransaction(List<UserSetting> batch, int batchNumber, int totalBatches) {
         long batchStartTime = System.currentTimeMillis();
@@ -86,11 +83,14 @@ public class NotificationService {
 
         for (UserSetting userSetting : batch) {
             try {
-                sendNotificationToUser(userSetting);
-                successCount++;
+                boolean delivered = sendNotificationToUser(userSetting);
+                if (delivered) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
             } catch (Exception e) {
-                log.error("[Notification] failed to send notification to userId={}",
-                        userSetting.getUser().getId(), e);
+                log.error("[Notification] failed to send notification to userId={}", userSetting.getUser().getId(), e);
                 failCount++;
             }
         }
@@ -103,16 +103,16 @@ public class NotificationService {
     }
 
     /**
-     * 단일 사용자 알림 발송
+     * @return true when at least one push was delivered successfully.
      */
-    public void sendNotificationToUser(UserSetting userSetting) {
+    public boolean sendNotificationToUser(UserSetting userSetting) {
         Long userId = userSetting.getUser().getId();
+        LocalDate today = LocalDate.now(KST_ZONE_ID);
+        LocalDateTime now = LocalDateTime.now(KST_ZONE_ID);
 
-        // 날짜 기준 중복 발송 방지: 먼저 lastSentDate를 갱신한 뒤 발송
-        boolean updated = updateLastSentDateIfNotTodayInternal(userSetting);
-        if (!updated) {
+        if (isAlreadySentToday(userSetting, today)) {
             log.debug("[Notification] already sent today. userId={}", userId);
-            return;
+            return true;
         }
 
         List<ExpoPushToken> validTokens = userSetting.getUser().getExpoPushTokenList().stream()
@@ -121,7 +121,8 @@ public class NotificationService {
 
         if (validTokens.isEmpty()) {
             log.warn("[Notification] no valid token. userId={}", userId);
-            return;
+            markNotificationAttemptFailedInternal(userSetting, today, now, "NO_VALID_TOKEN");
+            return false;
         }
 
         log.info("[Notification] sending notification. userId={}, tokenCount={}", userId, validTokens.size());
@@ -147,13 +148,19 @@ public class NotificationService {
             }
         }
 
-        log.info("[Notification] user notification completed. userId={}, success={}, fail={}",
+        if (tokenSuccessCount > 0) {
+            markNotificationSuccessInternal(userSetting, today, now);
+            log.info("[Notification] user notification completed. userId={}, success={}, fail={}",
+                    userId, tokenSuccessCount, tokenFailCount);
+            return true;
+        }
+
+        markNotificationAttemptFailedInternal(userSetting, today, now, "ALL_TOKEN_SEND_FAILED");
+        log.warn("[Notification] user notification failed. userId={}, success={}, fail={}",
                 userId, tokenSuccessCount, tokenFailCount);
+        return false;
     }
 
-    /**
-     * Expo Push API 호출
-     */
     private void sendPushNotification(String token, String title, String body) {
         ExpoPushNotificationDTO.PushRequest request = ExpoPushNotificationDTO.PushRequest.builder()
                 .to(token)
@@ -196,9 +203,51 @@ public class NotificationService {
         }
     }
 
-    /**
-     * 같은 배치 트랜잭션 내에서 Invalid 토큰 처리
-     */
+    private boolean isAlreadySentToday(UserSetting setting, LocalDate today) {
+        return today.equals(setting.getLastSentDate());
+    }
+
+    private void markNotificationSuccessInternal(UserSetting setting, LocalDate today, LocalDateTime now) {
+        try {
+            setting.setLastSentDate(today);
+            setting.setLastAttemptAt(now);
+            setting.setRetryCount(0);
+            userSettingRepository.save(setting);
+            log.info("[Notification] delivery state marked success. userSettingId={}, date={}", setting.getId(), today);
+        } catch (Exception e) {
+            log.error("[Notification] failed to mark success state. userSettingId={}", setting.getId(), e);
+        }
+    }
+
+    private void markNotificationAttemptFailedInternal(
+            UserSetting setting,
+            LocalDate today,
+            LocalDateTime now,
+            String reason
+    ) {
+        try {
+            int nextRetryCount = calculateNextRetryCount(setting, today);
+            setting.setRetryCount(nextRetryCount);
+            setting.setLastAttemptAt(now);
+            userSettingRepository.save(setting);
+            log.info("[Notification] delivery state marked failure. userSettingId={}, retryCount={}, reason={}",
+                    setting.getId(), nextRetryCount, reason);
+        } catch (Exception e) {
+            log.error("[Notification] failed to mark failure state. userSettingId={}", setting.getId(), e);
+        }
+    }
+
+    private int calculateNextRetryCount(UserSetting setting, LocalDate today) {
+        Integer currentRetryCount = setting.getRetryCount() == null ? 0 : setting.getRetryCount();
+        LocalDateTime lastAttemptAt = setting.getLastAttemptAt();
+
+        if (lastAttemptAt == null || !today.equals(lastAttemptAt.toLocalDate())) {
+            return 1;
+        }
+
+        return currentRetryCount + 1;
+    }
+
     private void markTokenAsInvalidInternal(ExpoPushToken token) {
         try {
             token.markInvalid();
@@ -209,30 +258,8 @@ public class NotificationService {
         }
     }
 
-    /**
-     * 오늘 아직 발송하지 않은 경우에만 lastSentDate 갱신
-     */
-    private boolean updateLastSentDateIfNotTodayInternal(UserSetting setting) {
-        try {
-            LocalDate today = LocalDate.now();
-
-            if (today.equals(setting.getLastSentDate())) {
-                return false;
-            }
-
-            setting.setLastSentDate(today);
-            userSettingRepository.save(setting);
-            log.debug("[Notification] lastSentDate updated. userSettingId={}, date={}", setting.getId(), today);
-            return true;
-
-        } catch (Exception e) {
-            log.error("[Notification] failed to update lastSentDate. userSettingId={}", setting.getId(), e);
-            return false;
-        }
-    }
-
     private String buildNotificationTitle(UserSetting userSetting) {
-        return "📝 오늘의 일기를 작성해보세요!";
+        return "📖 오늘의 일기를 작성해보세요!";
     }
 
     private String buildNotificationBody(UserSetting userSetting) {

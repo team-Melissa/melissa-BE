@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -28,6 +29,13 @@ public class UserSetting {
 
     @Column(name = "last_sent_date")
     private LocalDate lastSentDate;
+
+    @Column(name = "last_attempt_at")
+    private LocalDateTime lastAttemptAt;
+
+    @Builder.Default
+    @Column(name = "retry_count", nullable = false, columnDefinition = "INT DEFAULT 0")
+    private Integer retryCount = 0;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
