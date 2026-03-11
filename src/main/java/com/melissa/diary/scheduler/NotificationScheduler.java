@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 /**
@@ -21,50 +23,53 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationScheduler {
-    
+
+    private static final ZoneId KST_ZONE_ID = ZoneId.of("Asia/Seoul");
+
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;
-    
+
     /**
      * 10분 단위 알림 발송 (00, 10, 20, 30, 40, 50분)
      */
     @Scheduled(cron = "0 */10 * * * *", zone = "Asia/Seoul")
     public void sendDailyNotifications() {
         long startTime = System.currentTimeMillis();
-        LocalTime now = LocalTime.now();
-        
-        // 현재 시각을 10분 단위로 내림 (예: 23:03 → 23:00, 23:17 → 23:10)
-        int currentMinute = (now.getMinute() / 10) * 10;
-        LocalTime targetTime = LocalTime.of(now.getHour(), currentMinute, 0);
+        ZonedDateTime nowInKst = ZonedDateTime.now(KST_ZONE_ID);
+        LocalDate todayInKst = nowInKst.toLocalDate();
+        LocalTime targetTime = floorToTenMinuteSlot(nowInKst.toLocalTime());
         Time notificationTime = Time.valueOf(targetTime);
-        
-        log.info("[NotificationScheduler] 알림 스케줄러 시작. 대상 시간: {}", targetTime);
-        
+
+        log.info("[NotificationScheduler] 알림 스케줄러 시작. zone={}, now={}, targetTime={}",
+                KST_ZONE_ID, nowInKst.toLocalDateTime(), targetTime);
+
         try {
-            // 발송 대상 조회
             List<UserSetting> targets = userSettingRepository.findNotificationTargets(
-                    notificationTime, 
-                    LocalDate.now()
+                    notificationTime,
+                    todayInKst
             );
-            
+
             if (targets.isEmpty()) {
                 log.info("[NotificationScheduler] 발송 대상 없음. 시간: {}", targetTime);
                 return;
             }
-            
+
             log.info("[NotificationScheduler] 발송 대상 조회 완료. 대상: {}명", targets.size());
-            
-            // 배치 순차 발송 (비동기 시작, 100명씩 분할하여 안정적으로 순차 처리)
+
             notificationService.sendBatchNotifications(targets);
-            
+
             long elapsedTime = System.currentTimeMillis() - startTime;
-            log.info("[NotificationScheduler] 알림 스케줄러 완료 (배치 순차 발송 시작). 대상: {}명, 조회 시간: {}ms", 
+            log.info("[NotificationScheduler] 알림 스케줄러 완료 (배치 순차 발송 시작). 대상: {}명, 조회 시간: {}ms",
                     targets.size(), elapsedTime);
-            
+
         } catch (Exception e) {
             long elapsedTime = System.currentTimeMillis() - startTime;
             log.error("[NotificationScheduler] 알림 스케줄러 실행 중 오류 발생. 소요 시간: {}ms", elapsedTime, e);
         }
     }
-}
 
+    static LocalTime floorToTenMinuteSlot(LocalTime time) {
+        int minuteSlot = (time.getMinute() / 10) * 10;
+        return LocalTime.of(time.getHour(), minuteSlot, 0);
+    }
+}
