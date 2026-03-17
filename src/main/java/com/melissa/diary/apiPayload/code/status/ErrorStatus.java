@@ -69,6 +69,10 @@ public enum ErrorStatus implements BaseErrorCode {
     EXPO_TOKEN_ALREADY_EXISTS(HttpStatus.CONFLICT, "EXPO4002", "이미 등록된 Expo Push Token입니다."),
     EXPO_TOKEN_INVALID_FORMAT(HttpStatus.BAD_REQUEST, "EXPO4003", "유효하지 않은 Expo Push Token 형식입니다."),
 
+    // Idempotency
+    IDEMPOTENCY_REQUEST_IN_PROGRESS(HttpStatus.CONFLICT, "IDEMP4001", "같은 요청이 이미 처리 중입니다."),
+    IDEMPOTENCY_REQUEST_MISMATCH(HttpStatus.CONFLICT, "IDEMP4002", "같은 멱등 키로 다른 요청 본문을 보낼 수 없습니다."),
+
     // Diary (v1.3.0)
     DIARY_NOT_FOUND(HttpStatus.NOT_FOUND, "DIARY4001", "해당 일기를 찾을 수 없습니다."),
     DIARY_FORBIDDEN(HttpStatus.FORBIDDEN, "DIARY4002", "해당 일기에 접근할 권한이 없습니다."),

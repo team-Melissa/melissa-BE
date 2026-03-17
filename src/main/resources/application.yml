@@ -68,3 +68,7 @@ security:
     refresh-token-pepper: ${MELISSA_REFRESH_TOKEN_PEPPER}
   encrypt:
     secret-key: ${ENC_SECRET_KEY}
+
+idempotency:
+  ttl-hours: 24
+  cleanup-cron: "0 0 * * * *"
