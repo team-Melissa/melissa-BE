@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 
@@ -26,7 +25,6 @@ public class MemoryUpdateScheduler {
      * 사용자가 일기를 작성한 경우에만 메모리 업데이트 수행
      */
     @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Seoul")
-    @Transactional
     public void updateUserMemoriesFromYesterdayDiaries() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         log.info("[MemoryScheduler] 메모리 업데이트 스케줄러 시작. 대상 날짜: {}", yesterday);
@@ -50,7 +48,7 @@ public class MemoryUpdateScheduler {
                 try {
                     // Diary 내용이 있는 경우에만 메모리 업데이트
                     if (diary.getContent() != null && !diary.getContent().trim().isEmpty()) {
-                        userMemoryService.updateUserMemoryFromDiary(diary.getUser().getId(), diary);
+                        userMemoryService.updateUserMemoryFromDiarySeparated(diary.getUser().getId(), diary.getId());
                         successCount++;
                     } else {
                         log.debug("[MemoryScheduler] Diary 내용 없음. diaryId={}", diary.getId());

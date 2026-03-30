@@ -42,7 +42,7 @@ public class DiaryController {
             Principal principal) {
         
         Long userId = Long.parseLong(principal.getName());
-        DiaryResponseDTO.DiaryResponse response = diaryService.createChatDiary(userId, request);
+        DiaryResponseDTO.DiaryResponse response = diaryService.createChatDiarySeparated(userId, request);
         
         return ApiResponse.onSuccess(response);
     }
@@ -62,7 +62,7 @@ public class DiaryController {
             Principal principal) {
         
         Long userId = Long.parseLong(principal.getName());
-        DiaryResponseDTO.DiaryResponse response = diaryService.createManualDiary(userId, request);
+        DiaryResponseDTO.DiaryResponse response = diaryService.createManualDiarySeparated(userId, request);
         
         return ApiResponse.onSuccess(response);
     }
@@ -84,7 +84,7 @@ public class DiaryController {
             Principal principal) {
         
         Long userId = Long.parseLong(principal.getName());
-        DiaryResponseDTO.DiaryResponse response = diaryService.updateDiary(userId, diaryId, request);
+        DiaryResponseDTO.DiaryResponse response = diaryService.updateDiarySeparated(userId, diaryId, request);
         
         return ApiResponse.onSuccess(response);
     }

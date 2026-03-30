@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import com.melissa.diary.domain.Thread;
 
 import reactor.core.publisher.Flux;
@@ -48,11 +49,13 @@ public class ThreadService {
     private final QuotaService quotaService;
     private final UserMemoryService userMemoryService;
     private final JailbreakDetector jailbreakDetector;
+    private final TransactionTemplate transactionTemplate;
 
     public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, 
                         AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, 
                         @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService, 
-                        JailbreakDetector jailbreakDetector, UserMemoryService userMemoryService) {
+                        JailbreakDetector jailbreakDetector, UserMemoryService userMemoryService,
+                        TransactionTemplate transactionTemplate) {
         this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.aiProfileRepository = aiProfileRepository;
@@ -61,6 +64,7 @@ public class ThreadService {
         this.quotaService = quotaService;
         this.jailbreakDetector = jailbreakDetector;
         this.userMemoryService = userMemoryService;
+        this.transactionTemplate = transactionTemplate;
     }
 
     @Transactional
@@ -478,7 +482,6 @@ public class ThreadService {
      * v2: 웹 테스트용 Non-SSE 메모리 기반 채팅 (동기 방식)
      * 정성적 평가를 위한 API
      */
-    @Transactional
     public ThreadResponseDTO.ChatResponse messageToAiTest(Long userId, Long aiProfileId,
                                                          int year, int month, int day,
                                                          String content) {
@@ -598,6 +601,107 @@ public class ThreadService {
     /**
      * 날짜 유효성 검증
      */
+    public ThreadResponseDTO.ChatResponse messageToAiTestSeparated(Long userId, Long aiProfileId,
+                                                                   int year, int month, int day,
+                                                                   String content) {
+        PreparedChatContext context = prepareChatContext(userId, aiProfileId, year, month, day, content);
+
+        if (jailbreakDetector.isJailbreakAttempt(content)) {
+            String rejectMsg = "二꾩넚?⑸땲?? ?대떦 ?붿껌? 泥섎━?????놁뒿?덈떎.";
+            return persistAiChatResponse(context, rejectMsg);
+        }
+
+        String prompt = buildAiChatPromptV2(userId, content, context.getChatHistory(), context.getAiProfile());
+
+        try {
+            var chatResponse = chatClient.prompt()
+                    .system(sp -> sp.param("characterPrompt", context.getAiProfile().getPromptText()))
+                    .user(prompt)
+                    .call()
+                    .chatResponse();
+
+            log.info("[ThreadService] Test API ChatResponse: {}", chatResponse);
+
+            String aiResponse = null;
+            if (chatResponse != null && chatResponse.getResults() != null && !chatResponse.getResults().isEmpty()) {
+                aiResponse = chatResponse.getResults().get(0).getOutput().getText();
+            }
+
+            log.info("[ThreadService] Test API OpenAI ?먮낯 ?묐떟: {}", aiResponse);
+
+            String cleanAnswer = aiResponse != null ? aiResponse.replace("null", "").trim() : "";
+            log.info("[ThreadService] Test API ?뺤젣???묐떟: {}", cleanAnswer);
+            return persistAiChatResponse(context, cleanAnswer);
+        } catch (Exception e) {
+            log.error("[ThreadService] ???뚯뒪??梨꾪똿 以??ㅻ쪟 諛쒖깮. userId={}, aiProfileId={}", userId, aiProfileId, e);
+            String errorMsg = "梨꾪똿 泥섎━ 以??ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.";
+            return persistAiChatResponse(context, errorMsg);
+        }
+    }
+
+    private PreparedChatContext prepareChatContext(Long userId, Long aiProfileId, int year, int month, int day, String content) {
+        PreparedChatContext context = transactionTemplate.execute(status -> {
+            quotaService.checkAndConsume(userId, UsageCost.CHAT);
+
+            Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(userId, aiProfileId, year, month, day)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
+
+            if (!thread.getUser().getId().equals(userId)) {
+                throw new ErrorHandler(ErrorStatus.THREAD_FORBIDDEN);
+            }
+
+            AiProfile aiProfile = aiProfileRepository.findById(aiProfileId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
+
+            DailyChatLog userLog = DailyChatLog.builder()
+                    .role(Role.USER)
+                    .content(content)
+                    .thread(thread)
+                    .aiProfile(aiProfile)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            dailyChatLogRepository.save(userLog);
+
+            return new PreparedChatContext(thread.getId(), aiProfile, List.copyOf(thread.getDailyChatLogs()));
+        });
+
+        if (context == null) {
+            throw new IllegalStateException("Failed to prepare chat context");
+        }
+        return context;
+    }
+
+    private ThreadResponseDTO.ChatResponse persistAiChatResponse(PreparedChatContext context, String content) {
+        ThreadResponseDTO.ChatResponse response = transactionTemplate.execute(status -> {
+            Thread thread = threadRepository.getReferenceById(context.getThreadId());
+            AiProfile aiProfile = aiProfileRepository.getReferenceById(context.getAiProfile().getId());
+            LocalDateTime createdAt = LocalDateTime.now();
+
+            DailyChatLog aiChat = DailyChatLog.builder()
+                    .role(Role.AI)
+                    .content(content)
+                    .thread(thread)
+                    .aiProfile(aiProfile)
+                    .createdAt(createdAt)
+                    .build();
+            dailyChatLogRepository.save(aiChat);
+
+            return ThreadResponseDTO.ChatResponse.builder()
+                    .chatId(aiChat.getId())
+                    .role("AI")
+                    .content(content)
+                    .createAt(createdAt)
+                    .aiProfileName(context.getAiProfile().getProfileName())
+                    .aiProfileImageS3(context.getAiProfile().getImageS3())
+                    .build();
+        });
+
+        if (response == null) {
+            throw new IllegalStateException("Failed to persist AI chat response");
+        }
+        return response;
+    }
+
     private boolean isValidDate(int year, int month, int day) {
         if (month < 1 || month > 12) return false;
         if (day < 1 || day > 31) return false;
@@ -624,6 +728,19 @@ public class ThreadService {
 
         public ThreadData(com.melissa.diary.domain.Thread thread, AiProfile aiProfile, List<DailyChatLog> chatHistory) {
             this.thread = thread;
+            this.aiProfile = aiProfile;
+            this.chatHistory = chatHistory;
+        }
+    }
+
+    @Getter
+    private static class PreparedChatContext {
+        private final Long threadId;
+        private final AiProfile aiProfile;
+        private final List<DailyChatLog> chatHistory;
+
+        private PreparedChatContext(Long threadId, AiProfile aiProfile, List<DailyChatLog> chatHistory) {
+            this.threadId = threadId;
             this.aiProfile = aiProfile;
             this.chatHistory = chatHistory;
         }
