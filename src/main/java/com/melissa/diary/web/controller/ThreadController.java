@@ -1,6 +1,8 @@
 package com.melissa.diary.web.controller;
 
 import com.melissa.diary.apiPayload.ApiResponse;
+import com.melissa.diary.apiPayload.code.status.ErrorStatus;
+import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.service.ChatLogService;
 import com.melissa.diary.service.IdempotencyService;
 import com.melissa.diary.service.ThreadService;
@@ -101,25 +103,7 @@ public class ThreadController {
             @Valid @RequestBody ThreadRequestDTO.AiChatRequest request,
             @RequestHeader(value = IDEMPOTENCY_HEADER, required = false) String idempotencyKey,
             Principal principal) {
-        Long userId = Long.parseLong(principal.getName());
-
-        if (isBlank(idempotencyKey)) {
-            return threadService.messageToAi(
-                    userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay(), request.getContent()
-            );
-        }
-
-        var claim = idempotencyService.claim(userId, V1_CHAT_MESSAGE_ENDPOINT, idempotencyKey, request);
-        if (claim.getAction() == IdempotencyService.ClaimAction.RETURN_CACHED) {
-            return buildCachedAiStream(claim.getRecord().getResponseBody());
-        }
-
-        return wrapIdempotentStream(
-                claim.getRecord().getId(),
-                threadService.messageToAi(
-                        userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay(), request.getContent()
-                )
-        );
+        throw new ErrorHandler(ErrorStatus.CHAT_SSE_DISABLED);
     }
 
     @Operation(summary = "채팅 메시지 조회",
@@ -191,25 +175,7 @@ public class ThreadController {
             @RequestHeader(value = IDEMPOTENCY_HEADER, required = false) String idempotencyKey,
             Principal principal
     ) {
-        Long userId = Long.parseLong(principal.getName());
-
-        if (isBlank(idempotencyKey)) {
-            return threadService.messageToAiV2(
-                    userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay(), request.getContent()
-            );
-        }
-
-        var claim = idempotencyService.claim(userId, V2_CHAT_MESSAGE_ENDPOINT, idempotencyKey, request);
-        if (claim.getAction() == IdempotencyService.ClaimAction.RETURN_CACHED) {
-            return buildCachedAiStream(claim.getRecord().getResponseBody());
-        }
-
-        return wrapIdempotentStream(
-                claim.getRecord().getId(),
-                threadService.messageToAiV2(
-                        userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay(), request.getContent()
-                )
-        );
+        throw new ErrorHandler(ErrorStatus.CHAT_SSE_DISABLED);
     }
 
     @PostMapping("/v2/chats/message-test")
@@ -223,7 +189,7 @@ public class ThreadController {
         Long userId = Long.parseLong(principal.getName());
 
         if (isBlank(idempotencyKey)) {
-            ThreadResponseDTO.ChatResponse response = threadService.messageToAiTest(
+            ThreadResponseDTO.ChatResponse response = threadService.messageToAiTestSeparated(
                     userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay(), request.getContent()
             );
             return ApiResponse.onSuccess(response);
@@ -239,7 +205,7 @@ public class ThreadController {
         }
 
         try {
-            ThreadResponseDTO.ChatResponse response = threadService.messageToAiTest(
+            ThreadResponseDTO.ChatResponse response = threadService.messageToAiTestSeparated(
                     userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay(), request.getContent()
             );
             idempotencyService.markSucceeded(claim.getRecord().getId(), idempotencyService.serialize(response));
