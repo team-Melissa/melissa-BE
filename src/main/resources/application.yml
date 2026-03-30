@@ -49,6 +49,8 @@ cloud:
   aws:
     s3:
       bucket: melissa-s3
+      public-base-url: ${AWS_S3_PUBLIC_BASE_URL:}
+      default-image-key: default.png
     path:
       day-summary: day-summary
       month-summary: month-summary

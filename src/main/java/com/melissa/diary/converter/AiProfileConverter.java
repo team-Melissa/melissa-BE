@@ -1,11 +1,18 @@
 package com.melissa.diary.converter;
 
+import com.melissa.diary.aws.s3.S3AssetUrlResolver;
 import com.melissa.diary.domain.AiProfile;
 import com.melissa.diary.web.dto.AiProfileResponseDTO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
+@Component
+@RequiredArgsConstructor
 public class AiProfileConverter {
 
-    public static AiProfileResponseDTO.AiProfileResponse toResponse(AiProfile aiProfile){
+    private final S3AssetUrlResolver s3AssetUrlResolver;
+
+    public AiProfileResponseDTO.AiProfileResponse toResponse(AiProfile aiProfile){
         return AiProfileResponseDTO.AiProfileResponse.builder()
                 .aiProfileId(aiProfile.getId())
                 .profileName(aiProfile.getProfileName())
@@ -14,13 +21,13 @@ public class AiProfileConverter {
                 .feature3(aiProfile.getFeature3())
                 .hashTag1(aiProfile.getHashTag1())
                 .hashTag2(aiProfile.getHashTag2())
-                .imageUrl(aiProfile.getImageS3())
+                .imageUrl(s3AssetUrlResolver.resolve(aiProfile.getImageS3()))
                 .createdAt(aiProfile.getCreatedAt())
                 .isDefault(true)
                 .build();
     }
 
-    public static AiProfileResponseDTO.AiProfileQuestionResponse toQuestion(AiProfile aiProfile){
+    public AiProfileResponseDTO.AiProfileQuestionResponse toQuestion(AiProfile aiProfile){
         return AiProfileResponseDTO.AiProfileQuestionResponse.builder()
                 .q1(aiProfile.getQ1())
                 .q2(aiProfile.getQ2())

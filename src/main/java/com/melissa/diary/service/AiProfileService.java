@@ -23,6 +23,7 @@ public class AiProfileService {
     private final AiProfileRepository aiProfileRepository;
     private final DailyChatLogRepository dailyChatLogRepository;
     private final UserRepository userRepository;
+    private final AiProfileConverter aiProfileConverter;
 
     @Transactional(readOnly = true)
     public AiProfileResponseDTO.AiProfileResponse getAiProfile(Long userId, Long aiProfileId){
@@ -32,7 +33,7 @@ public class AiProfileService {
         AiProfile aiProfile = aiProfileRepository.findByIdAndActiveIsTrue(aiProfileId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
 
-        return AiProfileConverter.toResponse(aiProfile);
+        return aiProfileConverter.toResponse(aiProfile);
     }
 
     @Transactional(readOnly = true)
@@ -43,7 +44,7 @@ public class AiProfileService {
         AiProfile aiProfile = aiProfileRepository.findByIdAndActiveIsTrue(aiProfileId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
         
-        return AiProfileConverter.toQuestion(aiProfile);
+        return aiProfileConverter.toQuestion(aiProfile);
     }
 
     @Transactional(readOnly = true)
@@ -53,7 +54,7 @@ public class AiProfileService {
 
         List<AiProfile> aiProfileList = aiProfileRepository.findByActiveIsTrueOrderByIdAsc();
 
-        return aiProfileList.stream().map(AiProfileConverter::toResponse).toList();
+        return aiProfileList.stream().map(aiProfileConverter::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
@@ -65,13 +66,13 @@ public class AiProfileService {
             // 채팅 기록이 없으면 첫 번째 프로필 반환
             List<AiProfile> profiles = aiProfileRepository.findByActiveIsTrueOrderByIdAsc();
             if (profiles.isEmpty()) throw new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND);
-            return AiProfileConverter.toResponse(profiles.get(0));
+            return aiProfileConverter.toResponse(profiles.get(0));
         }
         
         AiProfile recentProfile = recentChatLog.get().getThread().getAiProfile();
         if (!recentProfile.isActive()) {
             throw new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND);
         }
-        return AiProfileConverter.toResponse(recentProfile);
+        return aiProfileConverter.toResponse(recentProfile);
     }
 }

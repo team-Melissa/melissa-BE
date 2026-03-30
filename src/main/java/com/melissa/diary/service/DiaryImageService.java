@@ -1,6 +1,8 @@
 package com.melissa.diary.service;
 
 import com.melissa.diary.ai.ImageGenerator;
+import com.melissa.diary.aws.s3.S3AssetUrlResolver;
+import com.melissa.diary.config.AmazonConfig;
 import com.melissa.diary.domain.Diary;
 import com.melissa.diary.domain.enums.DiaryImageStatus;
 import com.melissa.diary.repository.DiaryRepository;
@@ -15,12 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class DiaryImageService {
 
-    private static final String DEFAULT_IMG =
-            "https://melissa-s3.s3.ap-northeast-2.amazonaws.com/default.png";
-
     private final DiaryRepository diaryRepository;
     private final ImageGenerator imageGenerator;
     private final DiaryImagePromptRefinerService refiner;
+    private final AmazonConfig amazonConfig;
+    private final S3AssetUrlResolver s3AssetUrlResolver;
 
     public void generateAndSaveImage(Long diaryId) {
         Diary diary = diaryRepository.findById(diaryId).orElse(null);
@@ -44,34 +45,34 @@ public class DiaryImageService {
         String finalPrompt = refiner.refine(rawPrompt);
 
         try {
-            String url = imageGenerator.genDiaryImage(finalPrompt);
-            markImageReady(diaryId, url);
-            log.info("[Async-DiaryImage] image generation completed. diaryId={}, url={}", diaryId, url);
+            String imageKey = imageGenerator.genDiaryImage(finalPrompt);
+            markImageReady(diaryId, imageKey);
+            log.info("[Async-DiaryImage] image generation completed. diaryId={}, key={}", diaryId, imageKey);
         } catch (Exception e) {
             log.error("[Async-DiaryImage] diaryId={} processing failed", diaryId, e);
-            markImageFailed(diaryId, DEFAULT_IMG);
+            markImageFailed(diaryId, amazonConfig.getDefaultImageKey());
         }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markImageReady(Long diaryId, String url) {
+    public void markImageReady(Long diaryId, String imageKey) {
         Diary diary = diaryRepository.findById(diaryId).orElse(null);
         if (diary == null || diary.getImageStatus() != DiaryImageStatus.PENDING) {
             return;
         }
 
-        diary.markImageReady(url);
+        diary.markImageReady(s3AssetUrlResolver.toStorageKey(imageKey));
         diaryRepository.save(diary);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markImageFailed(Long diaryId, String fallbackUrl) {
+    public void markImageFailed(Long diaryId, String fallbackImageKey) {
         Diary diary = diaryRepository.findById(diaryId).orElse(null);
         if (diary == null || diary.getImageStatus() != DiaryImageStatus.PENDING) {
             return;
         }
 
-        diary.markImageFailed(fallbackUrl);
+        diary.markImageFailed(s3AssetUrlResolver.toStorageKey(fallbackImageKey));
         diaryRepository.save(diary);
     }
 
@@ -107,4 +108,3 @@ public class DiaryImageService {
         return prompt.toString();
     }
 }
-
