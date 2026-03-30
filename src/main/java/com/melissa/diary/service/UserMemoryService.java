@@ -5,6 +5,7 @@ import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.domain.Diary;
 import com.melissa.diary.domain.User;
 import com.melissa.diary.domain.UserMemory;
+import com.melissa.diary.repository.DiaryRepository;
 import com.melissa.diary.repository.UserMemoryRepository;
 import com.melissa.diary.repository.UserRepository;
 
@@ -13,6 +14,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 
@@ -24,18 +26,24 @@ public class UserMemoryService {
     
     private final UserMemoryRepository userMemoryRepository;
     private final UserRepository userRepository;
+    private final DiaryRepository diaryRepository;
     private final ChatClient memoryFusionClient;
     private final ChatClient topicChangeDetectionClient;
+    private final TransactionTemplate transactionTemplate;
     
     public UserMemoryService(
             UserMemoryRepository userMemoryRepository,
             UserRepository userRepository,
+            DiaryRepository diaryRepository,
             @Qualifier("memoryFusionClient") ChatClient memoryFusionClient,
-            @Qualifier("topicChangeDetectionClient") ChatClient topicChangeDetectionClient) {
+            @Qualifier("topicChangeDetectionClient") ChatClient topicChangeDetectionClient,
+            TransactionTemplate transactionTemplate) {
         this.userMemoryRepository = userMemoryRepository;
         this.userRepository = userRepository;
+        this.diaryRepository = diaryRepository;
         this.memoryFusionClient = memoryFusionClient;
         this.topicChangeDetectionClient = topicChangeDetectionClient;
+        this.transactionTemplate = transactionTemplate;
     }
     
     /**
@@ -73,6 +81,18 @@ public class UserMemoryService {
     /**
      * Diary를 기반으로 사용자 메모리 업데이트
      */
+    public void updateUserMemoryFromDiarySeparated(Long userId, Long diaryId) {
+        MemoryFusionContext context = loadMemoryFusionContext(userId, diaryId);
+        if (context == null) {
+            log.info("[UserMemory] empty diary content. skip separated memory update. userId={}, diaryId={}", userId, diaryId);
+            return;
+        }
+        String updatedMemory = fuseMemoryWithLLM(context.getCurrentMemory(), context.getDiaryInfo());
+        persistMemoryContent(context.getMemoryId(), updatedMemory);
+
+        log.info("[UserMemory] separated memory update completed. userId={}, diaryId={}", userId, diaryId);
+    }
+
     @Transactional
     public void updateUserMemoryFromDiary(Long userId, Diary diary) {
         // Diary에 내용이 없으면 스킵
@@ -101,6 +121,33 @@ public class UserMemoryService {
     /**
      * Diary 정보를 일기 정보로 변환
      */
+    private MemoryFusionContext loadMemoryFusionContext(Long userId, Long diaryId) {
+        MemoryFusionContext context = transactionTemplate.execute(status -> {
+            Diary diary = diaryRepository.findByIdWithThreadAndChatLogs(diaryId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.DIARY_NOT_FOUND));
+
+            if (diary.getContent() == null || diary.getContent().trim().isEmpty()) {
+                return null;
+            }
+
+            UserMemory userMemory = userMemoryRepository.findByUserId(userId)
+                    .orElseGet(() -> createEmptyMemory(userId));
+            String currentMemory = userMemory.getMemoryContent() != null ? userMemory.getMemoryContent() : "";
+            return new MemoryFusionContext(userMemory.getId(), currentMemory, buildDiaryInfo(diary));
+        });
+
+        return context;
+    }
+
+    private void persistMemoryContent(Long memoryId, String updatedMemory) {
+        transactionTemplate.executeWithoutResult(status -> {
+            UserMemory userMemory = userMemoryRepository.findById(memoryId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+            userMemory.updateMemoryContent(updatedMemory);
+            userMemoryRepository.save(userMemory);
+        });
+    }
+
     private String buildDiaryInfo(Diary diary) {
         LocalDate diaryDate = LocalDate.of(diary.getYear(), diary.getMonth(), diary.getDay());
         String formattedDate = diaryDate.format(DateTimeFormatter.ofPattern("yyyy년 M월 d일"));
@@ -454,5 +501,13 @@ public class UserMemoryService {
                 
                 위 기준에 따라 현재 메시지가 기존 대화 주제와 완전히 다른 새로운 분야로 전환되었는지 판단해주세요.
                 """, todayConversation, currentMessage);
+    }
+
+    @lombok.Getter
+    @lombok.AllArgsConstructor
+    private static class MemoryFusionContext {
+        private final Long memoryId;
+        private final String currentMemory;
+        private final String diaryInfo;
     }
 }

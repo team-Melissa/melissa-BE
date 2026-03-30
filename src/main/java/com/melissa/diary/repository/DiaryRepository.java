@@ -93,6 +93,14 @@ public interface DiaryRepository extends JpaRepository<Diary, Long> {
         """)
     Optional<Diary> findByIdWithThreadAndProfile(@Param("id") Long id);
 
+    @Query("""
+        SELECT DISTINCT d FROM Diary d
+        INNER JOIN FETCH d.thread t
+        LEFT JOIN FETCH t.dailyChatLogs logs
+        WHERE d.id = :id
+        """)
+    Optional<Diary> findByIdWithThreadAndChatLogs(@Param("id") Long id);
+
     /**
      * 피드 전용 조회 (최신순, 커서 기반 페이지네이션)
      * - id DESC 정렬 (AUTO_INCREMENT로 최신순 보장)

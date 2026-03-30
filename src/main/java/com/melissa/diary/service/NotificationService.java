@@ -9,8 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -33,13 +32,16 @@ public class NotificationService {
     private final UserSettingRepository userSettingRepository;
     private final ExpoPushTokenRepository expoPushTokenRepository;
     private final WebClient expoWebClient;
+    private final TransactionTemplate transactionTemplate;
 
     public NotificationService(UserSettingRepository userSettingRepository,
                                ExpoPushTokenRepository expoPushTokenRepository,
-                               @Qualifier("expoWebClient") WebClient expoWebClient) {
+                               @Qualifier("expoWebClient") WebClient expoWebClient,
+                               TransactionTemplate transactionTemplate) {
         this.userSettingRepository = userSettingRepository;
         this.expoPushTokenRepository = expoPushTokenRepository;
         this.expoWebClient = expoWebClient;
+        this.transactionTemplate = transactionTemplate;
     }
 
     @Async("notificationExecutor")
@@ -74,7 +76,6 @@ public class NotificationService {
                 totalCount, totalSuccess, totalFail, totalElapsedTime, Thread.currentThread().getName());
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public int[] processBatchWithTransaction(List<UserSetting> batch, int batchNumber, int totalBatches) {
         long batchStartTime = System.currentTimeMillis();
         int successCount = 0;
@@ -214,10 +215,12 @@ public class NotificationService {
 
     private void markNotificationSuccessInternal(UserSetting setting, LocalDate today, LocalDateTime now) {
         try {
-            setting.setLastSentDate(today);
-            setting.setLastAttemptAt(now);
-            setting.setRetryCount(0);
-            userSettingRepository.save(setting);
+            transactionTemplate.executeWithoutResult(status -> {
+                setting.setLastSentDate(today);
+                setting.setLastAttemptAt(now);
+                setting.setRetryCount(0);
+                userSettingRepository.save(setting);
+            });
             log.info("[Notification] delivery state marked success. userSettingId={}, date={}", setting.getId(), today);
         } catch (Exception e) {
             log.error("[Notification] failed to mark success state. userSettingId={}", setting.getId(), e);
@@ -232,9 +235,11 @@ public class NotificationService {
     ) {
         try {
             int nextRetryCount = calculateNextRetryCount(setting, today);
-            setting.setRetryCount(nextRetryCount);
-            setting.setLastAttemptAt(now);
-            userSettingRepository.save(setting);
+            transactionTemplate.executeWithoutResult(status -> {
+                setting.setRetryCount(nextRetryCount);
+                setting.setLastAttemptAt(now);
+                userSettingRepository.save(setting);
+            });
             log.info("[Notification] delivery state marked failure. userSettingId={}, retryCount={}, reason={}",
                     setting.getId(), nextRetryCount, reason);
         } catch (Exception e) {
@@ -255,8 +260,10 @@ public class NotificationService {
 
     private void markTokenAsInvalidInternal(ExpoPushToken token) {
         try {
-            token.markInvalid();
-            expoPushTokenRepository.save(token);
+            transactionTemplate.executeWithoutResult(status -> {
+                token.markInvalid();
+                expoPushTokenRepository.save(token);
+            });
             log.info("[Notification] token disabled. tokenId={}", token.getId());
         } catch (Exception e) {
             log.error("[Notification] failed to disable token. tokenId={}", token.getId(), e);
