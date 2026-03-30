@@ -5,6 +5,7 @@ import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.converter.UserConverter;
 import com.melissa.diary.domain.User;
+import com.melissa.diary.service.SocialLoginFacadeService;
 import com.melissa.diary.service.UserService;
 import com.melissa.diary.web.dto.UserRequestDTO;
 import com.melissa.diary.web.dto.UserResponseDTO;
@@ -28,6 +29,7 @@ import java.security.Principal;
 public class AuthController {
 
     private final UserService userService;
+    private final SocialLoginFacadeService socialLoginFacadeService;
 
     // 구글 로그인
     @PostMapping("/google")
@@ -44,7 +46,7 @@ public class AuthController {
             @RequestBody @Valid UserRequestDTO.GoogleOAuthDTO request
     ) {
         // 1) 소셜 로그인 처리
-        User user = userService.socialLoginGoogle(request);
+        User user = socialLoginFacadeService.socialLoginGoogle(request);
 
         // 2) JWT 발급
         String accessToken = userService.createAccessToken(user);
@@ -71,7 +73,7 @@ public class AuthController {
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> kakaoLogin(
             @RequestBody @Valid UserRequestDTO.KakaoOAuthDTO request
     ) {
-        User user = userService.socialLoginKakao(request);
+        User user = socialLoginFacadeService.socialLoginKakao(request);
         String accessToken = userService.createAccessToken(user);
         String refreshToken = userService.createRefreshToken(user);
         UserResponseDTO.OAuthLoginResultDTO result =
@@ -93,7 +95,7 @@ public class AuthController {
     public ApiResponse<UserResponseDTO.OAuthLoginResultDTO> appleLogin(
             @RequestBody @Valid UserRequestDTO.AppleOAuthDTO request
     ) {
-        User user = userService.socialLoginApple(request);
+        User user = socialLoginFacadeService.socialLoginApple(request);
         String accessToken = userService.createAccessToken(user);
         String refreshToken = userService.createRefreshToken(user);
         UserResponseDTO.OAuthLoginResultDTO result =
