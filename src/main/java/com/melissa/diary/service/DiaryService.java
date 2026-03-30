@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.IOException;
 import java.util.List;
@@ -47,6 +48,7 @@ public class DiaryService {
     private final ApplicationEventPublisher publisher;
     private final ChatClient summaryClient;
     private final ChatClient hashtagClient;
+    private final TransactionTemplate transactionTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     public DiaryService(DiaryRepository diaryRepository, 
@@ -56,7 +58,8 @@ public class DiaryService {
                        QuotaService quotaService,
                        ApplicationEventPublisher publisher,
                        @Qualifier("summaryClient") ChatClient summaryClient,
-                       @Qualifier("hashtagClient") ChatClient hashtagClient) {
+                       @Qualifier("hashtagClient") ChatClient hashtagClient,
+                       TransactionTemplate transactionTemplate) {
         this.diaryRepository = diaryRepository;
         this.userRepository = userRepository;
         this.threadRepository = threadRepository;
@@ -65,6 +68,7 @@ public class DiaryService {
         this.publisher = publisher;
         this.summaryClient = summaryClient;
         this.hashtagClient = hashtagClient;
+        this.transactionTemplate = transactionTemplate;
     }
     
     /**
@@ -402,6 +406,301 @@ public class DiaryService {
     /**
      * 날짜 유효성 검증
      */
+    public DiaryResponseDTO.DiaryResponse createManualDiarySeparated(Long userId,
+                                                                     DiaryRequestDTO.ManualDiaryCreateRequest request) {
+        if (!isValidDate(request.getYear(), request.getMonth(), request.getDay())) {
+            throw new ErrorHandler(ErrorStatus.CALENDAR_INVALID_DATE);
+        }
+
+        prepareManualDiaryCreation(userId, request);
+        HashtagData hashtagData = generateHashtagsSafe(request.getTitle(), request.getContent(), userId);
+        return persistManualDiary(userId, request, hashtagData);
+    }
+
+    public DiaryResponseDTO.DiaryResponse createChatDiarySeparated(Long userId,
+                                                                   DiaryRequestDTO.ChatDiaryCreateRequest request) {
+        ChatDiaryPreparation preparation = prepareChatDiaryCreation(userId, request);
+        DiaryData diaryData = summarizeDiaryDataSafe(userId, preparation);
+        return persistChatDiary(userId, request, diaryData);
+    }
+
+    public DiaryResponseDTO.DiaryResponse updateDiarySeparated(Long userId, Long diaryId,
+                                                               DiaryRequestDTO.DiaryUpdateRequest request) {
+        DiaryResponseDTO.DiaryResponse response = applyDiaryUpdate(userId, diaryId, request);
+
+        if (Boolean.TRUE.equals(request.getGenerateImage())) {
+            response = requestDiaryImageGeneration(userId, diaryId);
+        }
+
+        return response;
+    }
+
+    private void prepareManualDiaryCreation(Long userId, DiaryRequestDTO.ManualDiaryCreateRequest request) {
+        transactionTemplate.executeWithoutResult(status -> {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
+            quotaService.checkAndConsume(user, UsageCost.SUMMARY);
+            aiProfileRepository.findById(request.getAiProfileId())
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
+
+            validateDiaryCapacity(userId, request.getYear(), request.getMonth(), request.getDay());
+        });
+    }
+
+    private ChatDiaryPreparation prepareChatDiaryCreation(Long userId,
+                                                          DiaryRequestDTO.ChatDiaryCreateRequest request) {
+        ChatDiaryPreparation preparation = transactionTemplate.execute(status -> {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
+            quotaService.checkAndConsume(user, UsageCost.SUMMARY);
+
+            Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(
+                            userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay())
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
+
+            List<ChatLogSnapshot> chatLogs = thread.getDailyChatLogs().stream()
+                    .map(log -> new ChatLogSnapshot(log.getRole(), log.getContent()))
+                    .toList();
+
+            long userChatCount = chatLogs.stream()
+                    .filter(log -> Role.USER.equals(log.getRole()))
+                    .count();
+            if (userChatCount <= 2) {
+                throw new ErrorHandler(ErrorStatus.CHAT_NOT_FOUND);
+            }
+
+            validateDiaryCapacity(userId, request.getYear(), request.getMonth(), request.getDay());
+            return new ChatDiaryPreparation(thread.getId(), chatLogs);
+        });
+
+        if (preparation == null) {
+            throw new IllegalStateException("Failed to prepare chat diary creation");
+        }
+        return preparation;
+    }
+
+    private void validateDiaryCapacity(Long userId, int year, int month, int day) {
+        int diaryCount = diaryRepository.countByUserIdAndYearAndMonthAndDayAndIsActive(
+                userId, year, month, day, true);
+        if (diaryCount >= 3) {
+            throw new ErrorHandler(ErrorStatus.DIARY_MAX_COUNT_EXCEEDED);
+        }
+    }
+
+    private HashtagData generateHashtagsSafe(String title, String content, Long userId) {
+        try {
+            String hashtagPrompt = buildHashtagPrompt(title, content);
+            String llmHashtagResponse = hashtagClient.prompt().user(hashtagPrompt).call().content();
+            return parseHashtagResponse(llmHashtagResponse);
+        } catch (Exception e) {
+            log.error("[Diary] hashtag generation failed. fallback used. userId={}", userId, e);
+            return new HashtagData("diary", "record");
+        }
+    }
+
+    private DiaryData summarizeDiaryDataSafe(Long userId, ChatDiaryPreparation preparation) {
+        try {
+            String chatLogsPrompt = buildChatLogsPromptFromSnapshots(preparation.getChatLogs());
+            String summaryPrompt = buildSummaryPrompt(chatLogsPrompt);
+            String llmResponse = summaryClient.prompt().user(summaryPrompt).call().content();
+            return parseLLMResponse(llmResponse);
+        } catch (Exception e) {
+            log.error("[Diary] summary generation failed. fallback used. userId={}, threadId={}",
+                    userId, preparation.getThreadId(), e);
+
+            String fallbackContent = preparation.getChatLogs().stream()
+                    .filter(log -> Role.USER.equals(log.getRole()))
+                    .map(ChatLogSnapshot::getContent)
+                    .collect(Collectors.joining(" "));
+
+            return new DiaryData(
+                    "Untitled diary",
+                    fallbackContent.substring(0, Math.min(fallbackContent.length(), 500)),
+                    null,
+                    "daily",
+                    "record"
+            );
+        }
+    }
+
+    private DiaryResponseDTO.DiaryResponse persistManualDiary(Long userId,
+                                                              DiaryRequestDTO.ManualDiaryCreateRequest request,
+                                                              HashtagData hashtagData) {
+        DiaryResponseDTO.DiaryResponse response = transactionTemplate.execute(status -> {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+            AiProfile aiProfile = aiProfileRepository.findById(request.getAiProfileId())
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.PROFILE_NOT_FOUND));
+
+            validateDiaryCapacity(userId, request.getYear(), request.getMonth(), request.getDay());
+
+            Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(
+                            userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay())
+                    .orElseGet(() -> createNewThread(user, aiProfile,
+                            request.getYear(), request.getMonth(), request.getDay()));
+
+            Diary diary = Diary.builder()
+                    .user(user)
+                    .thread(thread)
+                    .year(request.getYear())
+                    .month(request.getMonth())
+                    .day(request.getDay())
+                    .title(request.getTitle())
+                    .content(request.getContent())
+                    .mood(parseMoodOrNull(request.getMood()))
+                    .type(DiaryType.MANUAL)
+                    .hashtag1(hashtagData.getHashTag1())
+                    .hashtag2(hashtagData.getHashTag2())
+                    .imageUrl(null)
+                    .imageStatus(Boolean.TRUE.equals(request.getGenerateImage()) ? DiaryImageStatus.PENDING : DiaryImageStatus.NONE)
+                    .version(1)
+                    .isActive(true)
+                    .build();
+
+            diary = diaryRepository.save(diary);
+
+            if (Boolean.TRUE.equals(request.getGenerateImage())) {
+                publisher.publishEvent(new DiaryImageEvent(diary.getId()));
+            }
+
+            return buildDiaryResponse(diary);
+        });
+
+        if (response == null) {
+            throw new IllegalStateException("Failed to persist manual diary");
+        }
+        return response;
+    }
+
+    private DiaryResponseDTO.DiaryResponse persistChatDiary(Long userId,
+                                                            DiaryRequestDTO.ChatDiaryCreateRequest request,
+                                                            DiaryData diaryData) {
+        DiaryResponseDTO.DiaryResponse response = transactionTemplate.execute(status -> {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+            Thread thread = threadRepository.findByUserIdAndAiProfileIdAndYearAndMonthAndDay(
+                            userId, request.getAiProfileId(), request.getYear(), request.getMonth(), request.getDay())
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.CALENDAR_NOT_FOUND));
+
+            validateDiaryCapacity(userId, request.getYear(), request.getMonth(), request.getDay());
+
+            Diary diary = Diary.builder()
+                    .user(user)
+                    .thread(thread)
+                    .year(request.getYear())
+                    .month(request.getMonth())
+                    .day(request.getDay())
+                    .title(diaryData.getTitle())
+                    .content(diaryData.getStory())
+                    .mood(diaryData.getMood())
+                    .type(DiaryType.CHAT_BASED)
+                    .hashtag1(diaryData.getHashTag1())
+                    .hashtag2(diaryData.getHashTag2())
+                    .imageUrl(null)
+                    .imageStatus(Boolean.TRUE.equals(request.getGenerateImage()) ? DiaryImageStatus.PENDING : DiaryImageStatus.NONE)
+                    .version(1)
+                    .isActive(true)
+                    .build();
+
+            diary = diaryRepository.save(diary);
+
+            if (Boolean.TRUE.equals(request.getGenerateImage())) {
+                publisher.publishEvent(new DiaryImageEvent(diary.getId()));
+            }
+
+            return buildDiaryResponse(diary);
+        });
+
+        if (response == null) {
+            throw new IllegalStateException("Failed to persist chat diary");
+        }
+        return response;
+    }
+
+    private DiaryResponseDTO.DiaryResponse applyDiaryUpdate(Long userId, Long diaryId,
+                                                            DiaryRequestDTO.DiaryUpdateRequest request) {
+        DiaryResponseDTO.DiaryResponse response = transactionTemplate.execute(status -> {
+            userRepository.findById(userId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+
+            Diary diary = diaryRepository.findByIdWithThreadAndProfile(diaryId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.DIARY_NOT_FOUND));
+
+            validateDiaryOwnership(userId, diary);
+
+            if (request.getTitle() != null) {
+                diary.setTitle(request.getTitle());
+            }
+            if (request.getContent() != null) {
+                diary.setContent(request.getContent());
+            }
+            if (request.getMood() != null) {
+                diary.setMood(parseMoodOrNull(request.getMood()));
+            }
+            if (request.getHashtag1() != null) {
+                diary.setHashtag1(request.getHashtag1());
+            }
+            if (request.getHashtag2() != null) {
+                diary.setHashtag2(request.getHashtag2());
+            }
+
+            diary.setVersion(diary.getVersion() + 1);
+            diary = diaryRepository.save(diary);
+            return buildDiaryResponse(diary);
+        });
+
+        if (response == null) {
+            throw new IllegalStateException("Failed to update diary");
+        }
+        return response;
+    }
+
+    private DiaryResponseDTO.DiaryResponse requestDiaryImageGeneration(Long userId, Long diaryId) {
+        DiaryResponseDTO.DiaryResponse response = transactionTemplate.execute(status -> {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
+            Diary diary = diaryRepository.findByIdWithThreadAndProfile(diaryId)
+                    .orElseThrow(() -> new ErrorHandler(ErrorStatus.DIARY_NOT_FOUND));
+
+            validateDiaryOwnership(userId, diary);
+
+            quotaService.checkAndConsume(user, UsageCost.SUMMARY);
+            diary.requestImageGeneration();
+            diary = diaryRepository.save(diary);
+            publisher.publishEvent(new DiaryImageEvent(diary.getId()));
+            return buildDiaryResponse(diary);
+        });
+
+        if (response == null) {
+            throw new IllegalStateException("Failed to request diary image generation");
+        }
+        return response;
+    }
+
+    private Mood parseMoodOrNull(String moodValue) {
+        if (moodValue == null) {
+            return null;
+        }
+
+        try {
+            return Mood.valueOf(moodValue.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            log.warn("[Diary] ?좏슚?섏? ?딆? mood 媛? {}", moodValue);
+            return null;
+        }
+    }
+
+    private void validateDiaryOwnership(Long userId, Diary diary) {
+        if (!diary.getUser().getId().equals(userId)) {
+            throw new ErrorHandler(ErrorStatus.DIARY_FORBIDDEN);
+        }
+        if (!diary.isActive()) {
+            throw new ErrorHandler(ErrorStatus.DIARY_ALREADY_DELETED);
+        }
+    }
+
     private boolean isValidDate(int year, int month, int day) {
         if (month < 1 || month > 12) return false;
         if (day < 1 || day > 31) return false;
@@ -418,6 +717,18 @@ public class DiaryService {
         }
         
         return true;
+    }
+
+    private String buildChatLogsPromptFromSnapshots(List<ChatLogSnapshot> logs) {
+        return logs.stream()
+                .map(log -> {
+                    if (log.getRole() == Role.USER) {
+                        return "[User] " + log.getContent();
+                    } else {
+                        return "[Assistant] " + log.getContent();
+                    }
+                })
+                .collect(Collectors.joining("\n"));
     }
     
     /**
@@ -562,6 +873,20 @@ public class DiaryService {
     private static class HashtagData {
         private final String hashTag1;
         private final String hashTag2;
+    }
+
+    @lombok.Getter
+    @lombok.AllArgsConstructor
+    private static class ChatDiaryPreparation {
+        private final Long threadId;
+        private final List<ChatLogSnapshot> chatLogs;
+    }
+
+    @lombok.Getter
+    @lombok.AllArgsConstructor
+    private static class ChatLogSnapshot {
+        private final Role role;
+        private final String content;
     }
 }
 
