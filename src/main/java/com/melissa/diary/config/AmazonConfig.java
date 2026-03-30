@@ -31,6 +31,12 @@ public class AmazonConfig {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
+    @Value("${cloud.aws.s3.public-base-url:}")
+    private String publicBaseUrl;
+
+    @Value("${cloud.aws.s3.default-image-key:default.png}")
+    private String defaultImageKey;
+
     @Value("${cloud.aws.path.ai-profile}")
     private String aiProfile;
 

@@ -2,6 +2,7 @@ package com.melissa.diary.service;
 
 import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
+import com.melissa.diary.aws.s3.S3AssetUrlResolver;
 import com.melissa.diary.domain.AiProfile;
 import com.melissa.diary.domain.DailyChatLog;
 import com.melissa.diary.domain.User;
@@ -50,12 +51,13 @@ public class ThreadService {
     private final UserMemoryService userMemoryService;
     private final JailbreakDetector jailbreakDetector;
     private final TransactionTemplate transactionTemplate;
+    private final S3AssetUrlResolver s3AssetUrlResolver;
 
     public ThreadService(ThreadRepository threadRepository, UserRepository userRepository, 
                         AiProfileRepository aiProfileRepository, DailyChatLogRepository dailyChatLogRepository, 
                         @Qualifier("aiChatClient") ChatClient chatClient, QuotaService quotaService, 
                         JailbreakDetector jailbreakDetector, UserMemoryService userMemoryService,
-                        TransactionTemplate transactionTemplate) {
+                        TransactionTemplate transactionTemplate, S3AssetUrlResolver s3AssetUrlResolver) {
         this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.aiProfileRepository = aiProfileRepository;
@@ -65,6 +67,7 @@ public class ThreadService {
         this.jailbreakDetector = jailbreakDetector;
         this.userMemoryService = userMemoryService;
         this.transactionTemplate = transactionTemplate;
+        this.s3AssetUrlResolver = s3AssetUrlResolver;
     }
 
     @Transactional
@@ -464,6 +467,7 @@ public class ThreadService {
                                 .orElse(""))  // aiProfile이 null이면 빈 문자열
                         .aiProfileImageS3(Optional.ofNullable(log.getAiProfile())
                                 .map(AiProfile::getImageS3)
+                                .map(s3AssetUrlResolver::resolve)
                                 .orElse(""))  // aiProfile이 null이면 빈 문자열
                         .content(log.getContent())
                         .createAt(log.getCreatedAt())
@@ -473,7 +477,7 @@ public class ThreadService {
         // 최종 Response
         return ThreadResponseDTO.ChatListResponse.builder()
                 .aiProfileName(thread.getAiProfile().getProfileName())
-                .aiProfileImageS3(thread.getAiProfile().getImageS3())
+                .aiProfileImageS3(s3AssetUrlResolver.resolve(thread.getAiProfile().getImageS3()))
                 .chats(mappedChats)
                 .build();
     }
@@ -529,7 +533,7 @@ public class ThreadService {
                     .content(rejectMsg)
                     .createAt(LocalDateTime.now())
                     .aiProfileName(aiProfile.getProfileName())
-                    .aiProfileImageS3(aiProfile.getImageS3())
+                    .aiProfileImageS3(s3AssetUrlResolver.resolve(aiProfile.getImageS3()))
                     .build();
         }
         
@@ -572,7 +576,7 @@ public class ThreadService {
                     .content(cleanAnswer)
                     .createAt(LocalDateTime.now())
                     .aiProfileName(aiProfile.getProfileName())
-                    .aiProfileImageS3(aiProfile.getImageS3())
+                    .aiProfileImageS3(s3AssetUrlResolver.resolve(aiProfile.getImageS3()))
                     .build();
 
         } catch (Exception e) {
@@ -593,7 +597,7 @@ public class ThreadService {
                     .content(errorMsg)
                     .createAt(LocalDateTime.now())
                     .aiProfileName(aiProfile.getProfileName())
-                    .aiProfileImageS3(aiProfile.getImageS3())
+                    .aiProfileImageS3(s3AssetUrlResolver.resolve(aiProfile.getImageS3()))
                     .build();
         }
     }
@@ -692,7 +696,7 @@ public class ThreadService {
                     .content(content)
                     .createAt(createdAt)
                     .aiProfileName(context.getAiProfile().getProfileName())
-                    .aiProfileImageS3(context.getAiProfile().getImageS3())
+                    .aiProfileImageS3(s3AssetUrlResolver.resolve(context.getAiProfile().getImageS3()))
                     .build();
         });
 

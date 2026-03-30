@@ -30,6 +30,7 @@ public class CalendarService {
 
     private final DiaryRepository diaryRepository;
     private final UserRepository userRepository;
+    private final DiaryConverter diaryConverter;
 
     /**
      * 특정 날짜의 일기 상세 조회 (최대 3개)
@@ -50,7 +51,7 @@ public class CalendarService {
         // 일기가 없어도 빈 배열로 반환 (에러 발생하지 않음)
         List<CalendarResponseDTO.DiaryDetailDTO> diaryDetails = diaries.stream()
                 .limit(3) // 최대 3개로 제한
-                .map(DiaryConverter::toDiaryDetailDTO)
+                .map(diaryConverter::toDiaryDetailDTO)
                 .collect(Collectors.toList());
 
         return CalendarResponseDTO.DailySummaryResponseDTO.builder()
@@ -94,7 +95,7 @@ public class CalendarService {
                     // 최대 3개로 제한하고 DiaryPreviewDTO로 변환
                     List<CalendarResponseDTO.DiaryPreviewDTO> previews = dayDiaries.stream()
                             .limit(3)
-                            .map(DiaryConverter::toDiaryPreviewDTO)
+                            .map(diaryConverter::toDiaryPreviewDTO)
                             .collect(Collectors.toList());
 
                     return CalendarResponseDTO.DailyPreviewResponseDTO.builder()
@@ -140,7 +141,7 @@ public class CalendarService {
                     // 최대 3개로 제한하고 DiaryDetailDTO로 변환
                     List<CalendarResponseDTO.DiaryDetailDTO> details = dayDiaries.stream()
                             .limit(3)
-                            .map(DiaryConverter::toDiaryDetailDTO)
+                            .map(diaryConverter::toDiaryDetailDTO)
                             .collect(Collectors.toList());
 
                     return CalendarResponseDTO.DailySummaryResponseDTO.builder()
@@ -210,7 +211,7 @@ public class CalendarService {
                 
                 // 각 날짜별 최대 3개까지만 추가
                 if (diaryList.size() < 3) {
-                    diaryList.add(DiaryConverter.toDiaryDetailDTO(diary));
+                    diaryList.add(diaryConverter.toDiaryDetailDTO(diary));
                     dayParts.putIfAbsent(key, new int[]{diary.getYear(), diary.getMonth(), diary.getDay()});
                 }
                 

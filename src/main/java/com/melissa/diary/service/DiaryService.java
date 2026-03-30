@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
+import com.melissa.diary.aws.s3.S3AssetUrlResolver;
 import com.melissa.diary.domain.AiProfile;
 import com.melissa.diary.domain.DailyChatLog;
 import com.melissa.diary.domain.Diary;
@@ -49,6 +50,7 @@ public class DiaryService {
     private final ChatClient summaryClient;
     private final ChatClient hashtagClient;
     private final TransactionTemplate transactionTemplate;
+    private final S3AssetUrlResolver s3AssetUrlResolver;
     private final ObjectMapper objectMapper = new ObjectMapper();
     
     public DiaryService(DiaryRepository diaryRepository, 
@@ -59,7 +61,8 @@ public class DiaryService {
                        ApplicationEventPublisher publisher,
                        @Qualifier("summaryClient") ChatClient summaryClient,
                        @Qualifier("hashtagClient") ChatClient hashtagClient,
-                       TransactionTemplate transactionTemplate) {
+                       TransactionTemplate transactionTemplate,
+                       S3AssetUrlResolver s3AssetUrlResolver) {
         this.diaryRepository = diaryRepository;
         this.userRepository = userRepository;
         this.threadRepository = threadRepository;
@@ -69,6 +72,7 @@ public class DiaryService {
         this.summaryClient = summaryClient;
         this.hashtagClient = hashtagClient;
         this.transactionTemplate = transactionTemplate;
+        this.s3AssetUrlResolver = s3AssetUrlResolver;
     }
     
     /**
@@ -396,7 +400,7 @@ public class DiaryService {
                 .type(diary.getType().name())
                 .hashtag1(diary.getHashtag1())
                 .hashtag2(diary.getHashtag2())
-                .imageUrl(diary.getImageUrl())
+                .imageUrl(s3AssetUrlResolver.resolve(diary.getImageUrl()))
                 .imageStatus(diary.getImageStatus() != null ? diary.getImageStatus().name() : null)
                 .version(diary.getVersion())
                 .createdAt(diary.getCreatedAt())
