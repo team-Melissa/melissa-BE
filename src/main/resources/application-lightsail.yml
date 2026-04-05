@@ -3,9 +3,9 @@ spring:
     activate:
       on-profile: lightsail
   datasource:
-    url: jdbc:mysql://${LIGHTSAIL_DB_URL:${AWS_DB_URL}}:3306/melissa_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=true&requireSSL=true
-    username: ${LIGHTSAIL_DB_USERNAME:${AWS_DB_USERNAME}}
-    password: ${LIGHTSAIL_DB_PASSWORD:${AWS_DB_PASSWORD}}
+    url: jdbc:mysql://${LIGHTSAIL_DB_URL}:3306/melissa_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=true&requireSSL=true
+    username: ${LIGHTSAIL_DB_USERNAME}
+    password: ${LIGHTSAIL_DB_PASSWORD}
 
 server:
   forward-headers-strategy: framework
