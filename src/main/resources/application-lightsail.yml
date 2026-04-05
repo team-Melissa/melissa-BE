@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: lightsail
+  datasource:
+    url: jdbc:mysql://${LIGHTSAIL_DB_URL:${AWS_DB_URL}}:3306/melissa_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=true&requireSSL=true
+    username: ${LIGHTSAIL_DB_USERNAME:${AWS_DB_USERNAME}}
+    password: ${LIGHTSAIL_DB_PASSWORD:${AWS_DB_PASSWORD}}
+
+server:
+  forward-headers-strategy: framework
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,https://melissa-playground.nararia03.dev,https://dev.melissa7.shop,https://lightsail.melissahttps.cloud}
