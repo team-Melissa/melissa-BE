@@ -11,6 +11,7 @@ CONFIG_TARGET="/opt/aws/amazon-cloudwatch-agent/etc/config.json"
 
 echo "=========================================="
 echo "CloudWatch Agent Installation Script"
+echo "Custom metrics are disabled; log collection config only."
 echo "=========================================="
 
 # 1. CloudWatch Agent 설치 확인 및 설치
@@ -43,13 +44,12 @@ echo "[3/4] Stopping existing CloudWatch Agent..."
 $AGENT_CTL -a stop 2>/dev/null || echo "  (No running agent found)"
 
 # 4. Agent 시작
-echo "[4/4] Starting CloudWatch Agent with custom config..."
+echo "[4/4] Starting CloudWatch Agent with log-only config..."
 if $AGENT_CTL -a fetch-config -m ec2 -s -c "file:$CONFIG_TARGET" 2>&1; then
     echo "=========================================="
     echo "✓ CloudWatch Agent started successfully!"
-    echo "  Namespace: Melissa/Backend"
-    echo "  Metrics: Memory, Swap, Disk, CPU"
-    echo "  Interval: 60 seconds"
+    echo "  Custom metrics: disabled"
+    echo "  Logs: application, nginx, EB hook logs"
     echo "=========================================="
 else
     echo "=========================================="
