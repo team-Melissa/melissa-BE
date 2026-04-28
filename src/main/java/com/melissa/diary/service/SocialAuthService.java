@@ -11,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,12 +26,15 @@ import java.util.UUID;
 @Slf4j
 public class SocialAuthService {
 
+    private static final int CONNECT_TIMEOUT_MILLIS = 3000;
+    private static final int READ_TIMEOUT_MILLIS = 5000;
+
 
     // Google (ID Token 검증)
     public GooglePayload verifyGoogleToken(String idToken) {
         String url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken;
         try {
-            RestTemplate restTemplate = new RestTemplate();
+            RestTemplate restTemplate = createSocialAuthRestTemplate();
             GoogleIdTokenResponse response =
                     restTemplate.getForObject(url, GoogleIdTokenResponse.class);
 
@@ -53,7 +57,7 @@ public class SocialAuthService {
     // Kakao (accessToken 검증)
     public KakaoPayload verifyKakaoToken(String accessToken) {
         try {
-            RestTemplate restTemplate = new RestTemplate();
+            RestTemplate restTemplate = createSocialAuthRestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(accessToken);
             HttpEntity<?> req = new HttpEntity<>(headers);
@@ -89,7 +93,7 @@ public class SocialAuthService {
         try {
             // 1. 애플의 공개키를 가져옵니다.
             String appleKeysUrl = "https://appleid.apple.com/auth/keys";
-            RestTemplate restTemplate = new RestTemplate();
+            RestTemplate restTemplate = createSocialAuthRestTemplate();
             String response = restTemplate.getForObject(appleKeysUrl, String.class);
             JWKSet jwkSet = JWKSet.parse(response);
 
@@ -154,6 +158,13 @@ public class SocialAuthService {
 
 
     // 내부 DTOs for Google, Kakao, Apple
+
+    private RestTemplate createSocialAuthRestTemplate() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
+        requestFactory.setReadTimeout(READ_TIMEOUT_MILLIS);
+        return new RestTemplate(requestFactory);
+    }
 
     // Google
     @Getter
