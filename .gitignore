@@ -367,3 +367,8 @@ gradle-app.setting
 
 # Project-specific: keep internal decision/issue docs local only
 docs/
+
+# Local environment files
+.env
+.env.*
+!.env.example
