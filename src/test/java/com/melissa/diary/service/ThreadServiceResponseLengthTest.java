@@ -18,7 +18,7 @@ class ThreadServiceResponseLengthTest {
     @BeforeEach
     void setUp() {
         // ThreadService의 의존성은 null이어도 됨 (calculateMaxTokens는 의존성 없는 순수 함수)
-        threadService = new ThreadService(null, null, null, null, null, null, null, null);
+        threadService = new ThreadService(null, null, null, null, null, null, null, null, null, null);
     }
 
     @Test

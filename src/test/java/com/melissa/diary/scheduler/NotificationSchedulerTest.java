@@ -1,6 +1,7 @@
 package com.melissa.diary.scheduler;
 
 import com.melissa.diary.repository.UserSettingRepository;
+import com.melissa.diary.retry.RetryPolicy;
 import com.melissa.diary.service.NotificationService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -47,6 +48,6 @@ class NotificationSchedulerTest {
 
         LocalDate expectedKstDate = LocalDate.now(ZoneId.of("Asia/Seoul"));
         assertThat(dateCaptor.getValue()).isEqualTo(expectedKstDate);
-        assertThat(retryCountCaptor.getValue()).isEqualTo(6);
+        assertThat(retryCountCaptor.getValue()).isEqualTo(RetryPolicy.EXPO_PUSH.maxAttempts());
     }
 }

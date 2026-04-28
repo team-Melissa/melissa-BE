@@ -4,6 +4,8 @@ import com.melissa.diary.domain.ExpoPushToken;
 import com.melissa.diary.domain.UserSetting;
 import com.melissa.diary.repository.ExpoPushTokenRepository;
 import com.melissa.diary.repository.UserSettingRepository;
+import com.melissa.diary.retry.RetryClassifier;
+import com.melissa.diary.retry.RetryPolicy;
 import com.melissa.diary.web.dto.ExpoPushNotificationDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -28,6 +29,7 @@ public class NotificationService {
 
     private static final int BATCH_SIZE = 100;
     private static final ZoneId KST_ZONE_ID = ZoneId.of("Asia/Seoul");
+    private static final int MAX_RETRY_COUNT = RetryPolicy.EXPO_PUSH.maxAttempts();
 
     private final UserSettingRepository userSettingRepository;
     private final ExpoPushTokenRepository expoPushTokenRepository;
@@ -131,6 +133,7 @@ public class NotificationService {
 
         int tokenSuccessCount = 0;
         int tokenFailCount = 0;
+        int retryableFailCount = 0;
 
         String title = buildNotificationTitle(userSetting);
         String body = buildNotificationBody(userSetting);
@@ -144,8 +147,13 @@ public class NotificationService {
                 markTokenAsInvalidInternal(token);
                 tokenFailCount++;
                 log.warn("[Notification] invalid token disabled. userId={}, tokenId={}", userId, token.getId());
+            } catch (NonRetryablePushException e) {
+                tokenFailCount++;
+                log.warn("[Notification] non-retryable token send failed. userId={}, tokenId={}, reason={}",
+                        userId, token.getId(), e.getMessage());
             } catch (Exception e) {
                 tokenFailCount++;
+                retryableFailCount++;
                 log.error("[Notification] token send failed. userId={}, tokenId={}", userId, token.getId(), e);
             }
         }
@@ -157,7 +165,11 @@ public class NotificationService {
             return true;
         }
 
-        markNotificationAttemptFailedInternal(userSetting, today, now, "ALL_TOKEN_SEND_FAILED");
+        if (retryableFailCount > 0) {
+            markNotificationAttemptFailedInternal(userSetting, today, now, "ALL_TOKEN_SEND_FAILED");
+        } else {
+            markNotificationFinalFailedInternal(userSetting, now, "NON_RETRYABLE_TOKEN_FAILURES");
+        }
         log.warn("[Notification] user notification failed. userId={}, success={}, fail={}",
                 userId, tokenSuccessCount, tokenFailCount);
         return false;
@@ -177,10 +189,6 @@ public class NotificationService {
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(ExpoPushNotificationDTO.PushResponse.class)
-                    .onErrorResume(e -> {
-                        log.error("[Notification] Expo API call failed. token={}", token, e);
-                        return Mono.error(new RuntimeException("Expo API call failed", e));
-                    })
                     .block();
 
             if (response != null && response.getData() != null && !response.getData().isEmpty()) {
@@ -193,19 +201,25 @@ public class NotificationService {
                         throw new InvalidTokenException(ticket.getMessage());
                     }
 
-                    throw new RuntimeException("Expo push failed: " + ticket.getMessage());
+                    if ("MessageRateExceeded".equals(errorType) || "ProviderError".equals(errorType)) {
+                        throw new RetryablePushException("Expo push retryable ticket error: " + ticket.getMessage());
+                    }
+
+                    throw new NonRetryablePushException("Expo push non-retryable ticket error: " + ticket.getMessage());
                 }
             }
 
         } catch (InvalidTokenException e) {
             throw e;
+        } catch (RetryablePushException | NonRetryablePushException e) {
+            throw e;
         } catch (WebClientResponseException e) {
             log.error("[Notification] Expo API response error. token={}, status={}, body={}",
                     token, e.getStatusCode(), e.getResponseBodyAsString(), e);
-            throw new RuntimeException("Expo API response error", e);
+            throw classifyPushException("Expo API response error", e);
         } catch (Exception e) {
             log.error("[Notification] notification send exception. token={}", token, e);
-            throw new RuntimeException("Notification send failed", e);
+            throw classifyPushException("Notification send failed", e);
         }
     }
 
@@ -247,6 +261,24 @@ public class NotificationService {
         }
     }
 
+    private void markNotificationFinalFailedInternal(
+            UserSetting setting,
+            LocalDateTime now,
+            String reason
+    ) {
+        try {
+            transactionTemplate.executeWithoutResult(status -> {
+                setting.setRetryCount(MAX_RETRY_COUNT);
+                setting.setLastAttemptAt(now);
+                userSettingRepository.save(setting);
+            });
+            log.info("[Notification] delivery state marked final failure. userSettingId={}, reason={}",
+                    setting.getId(), reason);
+        } catch (Exception e) {
+            log.error("[Notification] failed to mark final failure state. userSettingId={}", setting.getId(), e);
+        }
+    }
+
     private int calculateNextRetryCount(UserSetting setting, LocalDate today) {
         Integer currentRetryCount = setting.getRetryCount() == null ? 0 : setting.getRetryCount();
         LocalDateTime lastAttemptAt = setting.getLastAttemptAt();
@@ -278,9 +310,36 @@ public class NotificationService {
         return "오늘 하루는 어떠셨나요? 멜리사와 대화하며 일기를 작성해보세요.";
     }
 
+    private RuntimeException classifyPushException(String message, Throwable throwable) {
+        if (RetryClassifier.isRetryable(throwable)) {
+            return new RetryablePushException(message, throwable);
+        }
+        return new NonRetryablePushException(message, throwable);
+    }
+
     public static class InvalidTokenException extends RuntimeException {
         public InvalidTokenException(String message) {
             super(message);
+        }
+    }
+
+    public static class RetryablePushException extends RuntimeException {
+        public RetryablePushException(String message) {
+            super(message);
+        }
+
+        public RetryablePushException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    public static class NonRetryablePushException extends RuntimeException {
+        public NonRetryablePushException(String message) {
+            super(message);
+        }
+
+        public NonRetryablePushException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 }
