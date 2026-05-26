@@ -52,6 +52,10 @@ dependencies {
 	// S3
 	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 
+	// SQS
+	implementation platform('software.amazon.awssdk:bom:2.44.7')
+	implementation 'software.amazon.awssdk:sqs'
+
 	// webFlux (Expo Push Notification 발송용 WebClient)
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 

@@ -1,7 +1,12 @@
 # Melissa
 
 ## 0. 프로젝트 설명
-<img width="1834" height="1291" alt="image" src="https://github.com/user-attachments/assets/fae38087-6399-4d93-9c3f-6e34b510bcf1" />
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/a5e84a2c-6f37-4f04-8b7e-c7e2b39bffda" width="24%" />
+  <img src="https://github.com/user-attachments/assets/d752e88d-8b5d-41fb-8113-3b12278d19f9" width="24%" />
+  <img src="https://github.com/user-attachments/assets/3b250cd6-64eb-4240-b9f7-6319cd017818" width="24%" />
+  <img src="https://github.com/user-attachments/assets/db3310c7-81eb-4b67-800b-c20b8419cd9a" width="24%" />
+</p>
 
 Melissa는 사용자가 AI 캐릭터와 대화하듯 하루를 정리하고, 일기 작성을 더 쉽게 지속할 수 있도록 돕는 AI 기반 일기 서비스의 백엔드 프로젝트입니다. 프로젝트는 "일기를 꾸준히 쓰고 싶어도 빈 화면에서 시작하기 어렵고, 기록 습관이 쉽게 끊긴다"는 사용자 문제에서 시작했습니다. 단순 메모 앱이 아니라, 대화형 상호작용과 개인화된 기억, 리마인드를 통해 기록의 진입장벽을 낮추는 것이 목표였습니다.
 

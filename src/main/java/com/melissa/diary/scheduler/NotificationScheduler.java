@@ -2,6 +2,7 @@ package com.melissa.diary.scheduler;
 
 import com.melissa.diary.domain.UserSetting;
 import com.melissa.diary.repository.UserSettingRepository;
+import com.melissa.diary.retry.RetryPolicy;
 import com.melissa.diary.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,8 +27,8 @@ import java.util.List;
 public class NotificationScheduler {
 
     private static final ZoneId KST_ZONE_ID = ZoneId.of("Asia/Seoul");
-    private static final int RETRY_INTERVAL_MINUTES = 10;
-    private static final int MAX_RETRY_COUNT = 6;
+    private static final int RETRY_INTERVAL_MINUTES = (int) RetryPolicy.EXPO_PUSH.backoffForAttempt(1).toMinutes();
+    private static final int MAX_RETRY_COUNT = RetryPolicy.EXPO_PUSH.maxAttempts();
 
     private final UserSettingRepository userSettingRepository;
     private final NotificationService notificationService;

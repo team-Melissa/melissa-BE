@@ -5,6 +5,11 @@ import com.melissa.diary.domain.UserSetting;
 import com.melissa.diary.repository.ExpoPushTokenRepository;
 import com.melissa.diary.repository.UserSettingRepository;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.sql.Time;
@@ -26,7 +31,7 @@ class NotificationServiceStateModelTest {
         UserSettingRepository userSettingRepository = mock(UserSettingRepository.class);
         ExpoPushTokenRepository expoPushTokenRepository = mock(ExpoPushTokenRepository.class);
         WebClient webClient = mock(WebClient.class);
-        NotificationService service = new NotificationService(userSettingRepository, expoPushTokenRepository, webClient);
+        NotificationService service = new NotificationService(userSettingRepository, expoPushTokenRepository, webClient, transactionTemplate());
 
         User user = User.builder()
                 .id(1L)
@@ -54,7 +59,7 @@ class NotificationServiceStateModelTest {
         UserSettingRepository userSettingRepository = mock(UserSettingRepository.class);
         ExpoPushTokenRepository expoPushTokenRepository = mock(ExpoPushTokenRepository.class);
         WebClient webClient = mock(WebClient.class);
-        NotificationService service = new NotificationService(userSettingRepository, expoPushTokenRepository, webClient);
+        NotificationService service = new NotificationService(userSettingRepository, expoPushTokenRepository, webClient, transactionTemplate());
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
         LocalDateTime yesterdayAttempt = today.minusDays(1).atTime(23, 0);
@@ -85,7 +90,7 @@ class NotificationServiceStateModelTest {
         UserSettingRepository userSettingRepository = mock(UserSettingRepository.class);
         ExpoPushTokenRepository expoPushTokenRepository = mock(ExpoPushTokenRepository.class);
         WebClient webClient = mock(WebClient.class);
-        NotificationService service = new NotificationService(userSettingRepository, expoPushTokenRepository, webClient);
+        NotificationService service = new NotificationService(userSettingRepository, expoPushTokenRepository, webClient, transactionTemplate());
 
         LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
 
@@ -108,5 +113,22 @@ class NotificationServiceStateModelTest {
         assertThat(setting.getRetryCount()).isEqualTo(3);
         verify(userSettingRepository, never()).save(any(UserSetting.class));
         verify(expoPushTokenRepository, never()).save(any());
+    }
+
+    private TransactionTemplate transactionTemplate() {
+        return new TransactionTemplate(new PlatformTransactionManager() {
+            @Override
+            public TransactionStatus getTransaction(TransactionDefinition definition) {
+                return new SimpleTransactionStatus();
+            }
+
+            @Override
+            public void commit(TransactionStatus status) {
+            }
+
+            @Override
+            public void rollback(TransactionStatus status) {
+            }
+        });
     }
 }
