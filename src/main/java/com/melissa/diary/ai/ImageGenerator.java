@@ -28,7 +28,6 @@ public class ImageGenerator {
         ImageOptions imageOptions = OpenAiImageOptions
                 .builder()
                 .model("dall-e-3")
-                .style("vivid")
                 .width(1024)
                 .height(1024)
                 .build();
