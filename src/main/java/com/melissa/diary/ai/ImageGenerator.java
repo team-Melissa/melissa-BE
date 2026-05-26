@@ -27,7 +27,7 @@ public class ImageGenerator {
     public GeneratedImage generateImage(String prompt) {
         ImageOptions imageOptions = OpenAiImageOptions
                 .builder()
-                .model("dall-e-3")
+                .model("gpt-image-1")
                 .width(1024)
                 .height(1024)
                 .build();
