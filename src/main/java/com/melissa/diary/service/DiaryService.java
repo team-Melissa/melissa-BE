@@ -15,7 +15,6 @@ import com.melissa.diary.domain.enums.DiaryType;
 import com.melissa.diary.domain.enums.Mood;
 import com.melissa.diary.domain.enums.Role;
 import com.melissa.diary.domain.enums.UsageCost;
-import com.melissa.diary.event.DiaryImageEvent;
 import com.melissa.diary.repository.AiProfileRepository;
 import com.melissa.diary.repository.DiaryRepository;
 import com.melissa.diary.repository.ThreadRepository;
@@ -25,7 +24,6 @@ import com.melissa.diary.web.dto.DiaryResponseDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -46,7 +44,7 @@ public class DiaryService {
     private final ThreadRepository threadRepository;
     private final AiProfileRepository aiProfileRepository;
     private final QuotaService quotaService;
-    private final ApplicationEventPublisher publisher;
+    private final DiaryImageDispatchService diaryImageDispatchService;
     private final ChatClient summaryClient;
     private final ChatClient hashtagClient;
     private final TransactionTemplate transactionTemplate;
@@ -58,7 +56,7 @@ public class DiaryService {
                        ThreadRepository threadRepository,
                        AiProfileRepository aiProfileRepository,
                        QuotaService quotaService,
-                       ApplicationEventPublisher publisher,
+                       DiaryImageDispatchService diaryImageDispatchService,
                        @Qualifier("summaryClient") ChatClient summaryClient,
                        @Qualifier("hashtagClient") ChatClient hashtagClient,
                        TransactionTemplate transactionTemplate,
@@ -68,7 +66,7 @@ public class DiaryService {
         this.threadRepository = threadRepository;
         this.aiProfileRepository = aiProfileRepository;
         this.quotaService = quotaService;
-        this.publisher = publisher;
+        this.diaryImageDispatchService = diaryImageDispatchService;
         this.summaryClient = summaryClient;
         this.hashtagClient = hashtagClient;
         this.transactionTemplate = transactionTemplate;
@@ -157,7 +155,7 @@ public class DiaryService {
         
         // 이미지 생성 요청 (비동기)
         if (Boolean.TRUE.equals(request.getGenerateImage())) {
-            publisher.publishEvent(new DiaryImageEvent(diary.getId()));
+            diaryImageDispatchService.requestImageGeneration(diary);
         }
         
         log.info("[Diary] 수동 일기 작성 완료. userId={}, diaryId={}, year={}-{}-{}", 
@@ -249,7 +247,7 @@ public class DiaryService {
         
         // 이미지 생성 요청 (비동기)
         if (Boolean.TRUE.equals(request.getGenerateImage())) {
-            publisher.publishEvent(new DiaryImageEvent(diary.getId()));
+            diaryImageDispatchService.requestImageGeneration(diary);
         }
         
         log.info("[Diary] 채팅 기반 일기 생성 완료. userId={}, diaryId={}, year={}-{}-{}", 
@@ -337,7 +335,7 @@ public class DiaryService {
             quotaService.checkAndConsume(user, UsageCost.SUMMARY);
             diary.requestImageGeneration();
             diaryRepository.save(diary);
-            publisher.publishEvent(new DiaryImageEvent(diary.getId()));
+            diaryImageDispatchService.requestImageGeneration(diary);
         }
         
         log.info("[Diary] 일기 수정 완료. userId={}, diaryId={}, version={}", 
@@ -566,7 +564,7 @@ public class DiaryService {
             diary = diaryRepository.save(diary);
 
             if (Boolean.TRUE.equals(request.getGenerateImage())) {
-                publisher.publishEvent(new DiaryImageEvent(diary.getId()));
+                diaryImageDispatchService.requestImageGeneration(diary);
             }
 
             return buildDiaryResponse(diary);
@@ -611,7 +609,7 @@ public class DiaryService {
             diary = diaryRepository.save(diary);
 
             if (Boolean.TRUE.equals(request.getGenerateImage())) {
-                publisher.publishEvent(new DiaryImageEvent(diary.getId()));
+                diaryImageDispatchService.requestImageGeneration(diary);
             }
 
             return buildDiaryResponse(diary);
@@ -673,7 +671,7 @@ public class DiaryService {
             quotaService.checkAndConsume(user, UsageCost.SUMMARY);
             diary.requestImageGeneration();
             diary = diaryRepository.save(diary);
-            publisher.publishEvent(new DiaryImageEvent(diary.getId()));
+            diaryImageDispatchService.requestImageGeneration(diary);
             return buildDiaryResponse(diary);
         });
 

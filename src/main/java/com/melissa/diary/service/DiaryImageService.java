@@ -54,6 +54,45 @@ public class DiaryImageService {
         }
     }
 
+    public JobImageResult generateAndSaveImageForJob(Long diaryId, Integer targetVersion) {
+        Diary diary = diaryRepository.findById(diaryId).orElse(null);
+        if (diary == null) {
+            log.warn("[SQS-DiaryImage] diaryId={} not found. cancel job", diaryId);
+            return JobImageResult.CANCELLED;
+        }
+
+        if (!diary.isActive()) {
+            log.warn("[SQS-DiaryImage] diaryId={} is inactive. cancel job", diaryId);
+            return JobImageResult.CANCELLED;
+        }
+
+        if (targetVersion != null && diary.getVersion() != targetVersion) {
+            log.warn("[SQS-DiaryImage] stale job. diaryId={}, currentVersion={}, targetVersion={}",
+                    diaryId, diary.getVersion(), targetVersion);
+            return JobImageResult.CANCELLED;
+        }
+
+        if (diary.getImageStatus() != DiaryImageStatus.PENDING) {
+            log.warn("[SQS-DiaryImage] diaryId={} imageStatus={} is not PENDING. cancel job",
+                    diaryId, diary.getImageStatus());
+            return JobImageResult.CANCELLED;
+        }
+
+        String rawPrompt = buildImagePrompt(diary);
+        String finalPrompt = refiner.refine(rawPrompt);
+        String imageKey = imageGenerator.genDiaryImage(finalPrompt);
+
+        boolean marked = markImageReadyForJob(diaryId, targetVersion, imageKey);
+        if (!marked) {
+            log.warn("[SQS-DiaryImage] image generated but diary state changed before save. diaryId={}, key={}",
+                    diaryId, imageKey);
+            return JobImageResult.CANCELLED;
+        }
+
+        log.info("[SQS-DiaryImage] image generation completed. diaryId={}, key={}", diaryId, imageKey);
+        return JobImageResult.COMPLETED;
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markImageReady(Long diaryId, String imageKey) {
         Diary diary = diaryRepository.findById(diaryId).orElse(null);
@@ -66,6 +105,21 @@ public class DiaryImageService {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public boolean markImageReadyForJob(Long diaryId, Integer targetVersion, String imageKey) {
+        Diary diary = diaryRepository.findById(diaryId).orElse(null);
+        if (diary == null || diary.getImageStatus() != DiaryImageStatus.PENDING) {
+            return false;
+        }
+        if (targetVersion != null && diary.getVersion() != targetVersion) {
+            return false;
+        }
+
+        diary.markImageReady(s3AssetUrlResolver.toStorageKey(imageKey));
+        diaryRepository.save(diary);
+        return true;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markImageFailed(Long diaryId, String fallbackImageKey) {
         Diary diary = diaryRepository.findById(diaryId).orElse(null);
         if (diary == null || diary.getImageStatus() != DiaryImageStatus.PENDING) {
@@ -73,6 +127,20 @@ public class DiaryImageService {
         }
 
         diary.markImageFailed(s3AssetUrlResolver.toStorageKey(fallbackImageKey));
+        diaryRepository.save(diary);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markImageFailedForJob(Long diaryId, Integer targetVersion) {
+        Diary diary = diaryRepository.findById(diaryId).orElse(null);
+        if (diary == null || diary.getImageStatus() != DiaryImageStatus.PENDING) {
+            return;
+        }
+        if (targetVersion != null && diary.getVersion() != targetVersion) {
+            return;
+        }
+
+        diary.markImageFailed(s3AssetUrlResolver.toStorageKey(amazonConfig.getDefaultImageKey()));
         diaryRepository.save(diary);
     }
 
@@ -106,5 +174,10 @@ public class DiaryImageService {
         prompt.append("\n위 내용을 바탕으로 감성적인 일기 삽화를 생성해 주세요.");
 
         return prompt.toString();
+    }
+
+    public enum JobImageResult {
+        COMPLETED,
+        CANCELLED
     }
 }
