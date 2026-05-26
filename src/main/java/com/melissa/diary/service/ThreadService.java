@@ -436,6 +436,24 @@ public class ThreadService {
     }
     
 
+    private int calculateMaxTokens(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return 50;
+        }
+
+        int length = input.trim().length();
+        if (length <= 20) {
+            return 50;
+        }
+        if (length <= 100) {
+            return 120;
+        }
+        if (length <= 300) {
+            return 200;
+        }
+        return 300;
+    }
+
     //해당 날짜(Thread)의 채팅메시지 조회
     @Transactional(readOnly = true)
     public ThreadResponseDTO.ChatListResponse getThreadMessages(Long userId, Long aiProfileId, int year, int month, int day) {

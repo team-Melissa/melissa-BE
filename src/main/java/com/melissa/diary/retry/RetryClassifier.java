@@ -57,9 +57,14 @@ public final class RetryClassifier {
             return classifyAmazonServiceException(e);
         }
 
+        if (throwable instanceof software.amazon.awssdk.awscore.exception.AwsServiceException e) {
+            return classifyAwsSdkV2ServiceException(e);
+        }
+
         if (throwable instanceof WebClientRequestException
                 || throwable instanceof ResourceAccessException
                 || throwable instanceof SdkClientException
+                || throwable instanceof software.amazon.awssdk.core.exception.SdkClientException
                 || throwable instanceof SocketTimeoutException
                 || throwable instanceof ConnectException
                 || throwable instanceof TimeoutException) {
@@ -89,6 +94,29 @@ public final class RetryClassifier {
         String errorCode = exception.getErrorCode() == null
                 ? ""
                 : exception.getErrorCode().toLowerCase(Locale.ROOT);
+
+        if (status == 429
+                || status >= 500
+                || errorCode.contains("throttl")
+                || errorCode.contains("requestlimit")
+                || errorCode.contains("slowdown")) {
+            return RetryDecision.RETRYABLE;
+        }
+
+        if (status >= 400) {
+            return RetryDecision.NON_RETRYABLE;
+        }
+
+        return RetryDecision.RETRYABLE;
+    }
+
+    private static RetryDecision classifyAwsSdkV2ServiceException(
+            software.amazon.awssdk.awscore.exception.AwsServiceException exception
+    ) {
+        int status = exception.statusCode();
+        String errorCode = exception.awsErrorDetails() == null || exception.awsErrorDetails().errorCode() == null
+                ? ""
+                : exception.awsErrorDetails().errorCode().toLowerCase(Locale.ROOT);
 
         if (status == 429
                 || status >= 500
