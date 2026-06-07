@@ -1,9 +1,10 @@
 package com.melissa.diary.retry;
 
-import com.amazonaws.AmazonServiceException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
 
 import java.net.SocketTimeoutException;
 
@@ -35,9 +36,13 @@ class RetryClassifierTest {
 
     @Test
     void classifiesAwsThrottlingAsRetryable() {
-        AmazonServiceException exception = new AmazonServiceException("throttled");
-        exception.setStatusCode(400);
-        exception.setErrorCode("Throttling");
+        AwsServiceException exception = AwsServiceException.builder()
+                .message("throttled")
+                .statusCode(400)
+                .awsErrorDetails(AwsErrorDetails.builder()
+                        .errorCode("Throttling")
+                        .build())
+                .build();
 
         assertThat(RetryClassifier.classify(exception)).isEqualTo(RetryDecision.RETRYABLE);
     }

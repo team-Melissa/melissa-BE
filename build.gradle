@@ -49,11 +49,9 @@ dependencies {
 	implementation platform("org.springframework.ai:spring-ai-bom:1.1.0")
 	implementation "org.springframework.ai:spring-ai-starter-model-openai"
 
-	// S3
-	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
-
-	// SQS
+	// AWS SDK 2.x
 	implementation platform('software.amazon.awssdk:bom:2.44.7')
+	implementation 'software.amazon.awssdk:s3'
 	implementation 'software.amazon.awssdk:sqs'
 
 	// webFlux (Expo Push Notification 발송용 WebClient)

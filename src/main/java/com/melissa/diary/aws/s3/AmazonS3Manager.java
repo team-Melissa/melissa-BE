@@ -1,8 +1,5 @@
 package com.melissa.diary.aws.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.melissa.diary.config.AmazonConfig;
 import com.melissa.diary.domain.Uuid;
 import com.melissa.diary.retry.RetryExecutor;
@@ -17,23 +14,38 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.Base64;
 import java.util.Optional;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AmazonS3Manager {
 
-    private final AmazonS3 amazonS3;
+    private final S3Client s3Client;
 
     private final AmazonConfig amazonConfig;
 
     public String uploadFile(String keyName, MultipartFile file) {
-        ObjectMetadata metadata = new ObjectMetadata();
-        metadata.setContentLength(file.getSize());
-        metadata.setContentType(file.getContentType());
-
         return RetryExecutor.execute("s3.uploadFile", RetryPolicy.S3_UPLOAD, () -> {
-            amazonS3.putObject(new PutObjectRequest(amazonConfig.getBucket(), keyName, file.getInputStream(), metadata));
+            long contentLength = file.getSize();
+            PutObjectRequest.Builder requestBuilder = PutObjectRequest.builder()
+                    .bucket(amazonConfig.getBucket())
+                    .key(keyName)
+                    .contentLength(contentLength);
+
+            String contentType = file.getContentType();
+            if (contentType != null && !contentType.isBlank()) {
+                requestBuilder.contentType(contentType);
+            }
+
+            try (InputStream inputStream = file.getInputStream()) {
+                s3Client.putObject(
+                        requestBuilder.build(),
+                        RequestBody.fromInputStream(inputStream, contentLength)
+                );
+            }
             return keyName;
         });
     }

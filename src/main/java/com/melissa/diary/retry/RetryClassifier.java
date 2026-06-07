@@ -1,12 +1,12 @@
 package com.melissa.diary.retry;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.SdkClientException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkClientException;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -53,18 +53,13 @@ public final class RetryClassifier {
             return classifyHttpStatus(e.getStatusCode());
         }
 
-        if (throwable instanceof AmazonServiceException e) {
-            return classifyAmazonServiceException(e);
-        }
-
-        if (throwable instanceof software.amazon.awssdk.awscore.exception.AwsServiceException e) {
+        if (throwable instanceof AwsServiceException e) {
             return classifyAwsSdkV2ServiceException(e);
         }
 
         if (throwable instanceof WebClientRequestException
                 || throwable instanceof ResourceAccessException
                 || throwable instanceof SdkClientException
-                || throwable instanceof software.amazon.awssdk.core.exception.SdkClientException
                 || throwable instanceof SocketTimeoutException
                 || throwable instanceof ConnectException
                 || throwable instanceof TimeoutException) {
@@ -89,30 +84,7 @@ public final class RetryClassifier {
         return RetryDecision.RETRYABLE;
     }
 
-    private static RetryDecision classifyAmazonServiceException(AmazonServiceException exception) {
-        int status = exception.getStatusCode();
-        String errorCode = exception.getErrorCode() == null
-                ? ""
-                : exception.getErrorCode().toLowerCase(Locale.ROOT);
-
-        if (status == 429
-                || status >= 500
-                || errorCode.contains("throttl")
-                || errorCode.contains("requestlimit")
-                || errorCode.contains("slowdown")) {
-            return RetryDecision.RETRYABLE;
-        }
-
-        if (status >= 400) {
-            return RetryDecision.NON_RETRYABLE;
-        }
-
-        return RetryDecision.RETRYABLE;
-    }
-
-    private static RetryDecision classifyAwsSdkV2ServiceException(
-            software.amazon.awssdk.awscore.exception.AwsServiceException exception
-    ) {
+    private static RetryDecision classifyAwsSdkV2ServiceException(AwsServiceException exception) {
         int status = exception.statusCode();
         String errorCode = exception.awsErrorDetails() == null || exception.awsErrorDetails().errorCode() == null
                 ? ""
