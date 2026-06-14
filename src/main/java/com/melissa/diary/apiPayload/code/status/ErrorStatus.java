@@ -78,7 +78,11 @@ public enum ErrorStatus implements BaseErrorCode {
     DIARY_NOT_FOUND(HttpStatus.NOT_FOUND, "DIARY4001", "해당 일기를 찾을 수 없습니다."),
     DIARY_FORBIDDEN(HttpStatus.FORBIDDEN, "DIARY4002", "해당 일기에 접근할 권한이 없습니다."),
     DIARY_ALREADY_DELETED(HttpStatus.BAD_REQUEST, "DIARY4003", "이미 삭제된 일기입니다."),
-    DIARY_MAX_COUNT_EXCEEDED(HttpStatus.BAD_REQUEST, "DIARY4004", "하루 최대 3개까지만 일기를 작성할 수 있습니다.");
+    DIARY_MAX_COUNT_EXCEEDED(HttpStatus.BAD_REQUEST, "DIARY4004", "하루 최대 3개까지만 일기를 작성할 수 있습니다."),
+
+    // Payment
+    PAYMENT_ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "PAYMENT4031", "관리자 권한이 필요합니다."),
+    PAYMENT_USER_DELETE_BLOCKED(HttpStatus.CONFLICT, "PAYMENT4092", "결제 이력이 있어 현재 회원탈퇴를 처리할 수 없습니다. 관리자에게 문의해주세요.");
 
 
 

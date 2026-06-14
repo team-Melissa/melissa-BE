@@ -1,5 +1,6 @@
 package com.melissa.diary.domain;
 
+import com.melissa.diary.domain.enums.AccountRole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -54,6 +55,11 @@ public class User {
     private Integer dailyQuota;     // 오늘 남은 수량
     private LocalDate quotaDate;    // 마지막 초기화 날짜
 
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(name = "account_role", nullable = false, length = 20)
+    private AccountRole accountRole = AccountRole.USER;
+
     @Version
     @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
     @Builder.Default
@@ -64,6 +70,7 @@ public class User {
     public void initQuota() {          // 신규 가입 시
         if (dailyQuota == null) dailyQuota = 100;
         if (quotaDate  == null) quotaDate  = LocalDate.now();
+        if (accountRole == null) accountRole = AccountRole.USER;
     }
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
