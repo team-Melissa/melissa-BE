@@ -1,7 +1,9 @@
 package com.melissa.diary.web.controller;
 
 import com.melissa.diary.apiPayload.ApiResponse;
+import com.melissa.diary.service.EntitlementService;
 import com.melissa.diary.service.UserService;
+import com.melissa.diary.web.dto.EntitlementResponseDTO;
 import com.melissa.diary.web.dto.UserResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -21,6 +23,7 @@ import java.security.Principal;
 public class UserController {
 
     private final UserService userService;
+    private final EntitlementService entitlementService;
 
     @Operation(description = "회원탈퇴하고, 유저 정보를 리턴합니다.")
     @DeleteMapping
@@ -50,6 +53,24 @@ public class UserController {
         Long userId = Long.parseLong(principal.getName());
 
         UserResponseDTO.MeResponseDTO response = userService.getMe(userId);
+
+        return ApiResponse.onSuccess(response);
+    }
+
+    @Operation(
+            summary = "Get current user's payment entitlements",
+            description = "Returns active payment entitlements and derived feature flags for the authenticated user."
+    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Success"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication failed"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: User not found")
+    })
+    @GetMapping("/me/entitlements")
+    public ApiResponse<EntitlementResponseDTO.EntitlementsResponse> getMyEntitlements(Principal principal) {
+        Long userId = Long.parseLong(principal.getName());
+
+        EntitlementResponseDTO.EntitlementsResponse response = entitlementService.getUserEntitlements(userId);
 
         return ApiResponse.onSuccess(response);
     }
