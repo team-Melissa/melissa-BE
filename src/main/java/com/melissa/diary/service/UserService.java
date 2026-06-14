@@ -4,6 +4,7 @@ import com.melissa.diary.apiPayload.code.status.ErrorStatus;
 import com.melissa.diary.apiPayload.exception.handler.ErrorHandler;
 import com.melissa.diary.converter.UserConverter;
 import com.melissa.diary.domain.User;
+import com.melissa.diary.repository.PaymentRepository;
 import com.melissa.diary.repository.ThreadRepository;
 import com.melissa.diary.repository.UserMemoryRepository;
 import com.melissa.diary.repository.UserRepository;
@@ -31,6 +32,7 @@ public class UserService {
     private final ThreadRepository threadRepository;
     private final UserSettingRepository userSettingRepository;
     private final UserMemoryRepository userMemoryRepository;
+    private final PaymentRepository paymentRepository;
 
 
     @Transactional
@@ -186,6 +188,10 @@ public class UserService {
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));
 
         // 유저의 스레드 및 관련 채팅 내역 삭제
+        if (paymentRepository.existsByUserId(userId)) {
+            throw new ErrorHandler(ErrorStatus.PAYMENT_USER_DELETE_BLOCKED);
+        }
+
         threadRepository.deleteAllByUserId(userId);
 
         // 유저 설정 삭제

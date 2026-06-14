@@ -80,6 +80,27 @@ idempotency:
   ttl-hours: 24
   cleanup-cron: "0 0 * * * *"
 
+payment:
+  iap:
+    enabled: ${PAYMENT_IAP_ENABLED:false}
+    verify-timeout-ms: ${PAYMENT_IAP_VERIFY_TIMEOUT_MS:5000}
+    store-product:
+      remove-ads: ${PAYMENT_STORE_PRODUCT_REMOVE_ADS:remove_ads}
+  google:
+    enabled: ${PAYMENT_GOOGLE_ENABLED:false}
+    package-name: ${PAYMENT_GOOGLE_PACKAGE_NAME:com.melissa.melissaFE}
+    product-remove-ads: ${PAYMENT_GOOGLE_PRODUCT_REMOVE_ADS:premium}
+    service-account-json-base64: ${GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64:}
+    token-hash-salt: ${PAYMENT_TOKEN_HASH_SALT:}
+  apple:
+    enabled: ${PAYMENT_APPLE_ENABLED:false}
+    bundle-id: ${PAYMENT_APPLE_BUNDLE_ID:com.melissa.melissaFE}
+    product-remove-ads: ${PAYMENT_APPLE_PRODUCT_REMOVE_ADS:com.melissa.melissaFE.premium}
+    issuer-id: ${APPLE_ISSUER_ID:}
+    key-id: ${APPLE_KEY_ID:}
+    private-key-p8-base64: ${APPLE_PRIVATE_KEY_P8_BASE64:}
+    environment: ${PAYMENT_APPLE_ENVIRONMENT:SANDBOX}
+
 melissa:
   sqs:
     enabled: ${MELISSA_SQS_ENABLED:false}
