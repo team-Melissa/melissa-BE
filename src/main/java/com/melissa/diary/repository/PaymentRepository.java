@@ -21,6 +21,16 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("""
             SELECT p
             FROM Payment p
+            JOIN FETCH p.user
+            JOIN FETCH p.product
+            WHERE p.id = :paymentId
+            """)
+    Optional<Payment> findByIdForUpdate(@Param("paymentId") Long paymentId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT p
+            FROM Payment p
             WHERE p.platform = :platform
               AND p.googlePurchaseTokenHash = :tokenHash
             """)

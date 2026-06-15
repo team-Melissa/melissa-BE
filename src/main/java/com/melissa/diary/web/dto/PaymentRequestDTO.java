@@ -5,11 +5,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class PaymentRequestDTO {
@@ -87,5 +89,21 @@ public class PaymentRequestDTO {
         @Valid
         @NotEmpty
         private List<AppleVerifyRequest> transactions;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "관리자 수동 환불 반영 요청")
+    public static class AdminManualRefundRequest {
+
+        @NotBlank
+        @Size(max = 100)
+        @Schema(description = "수동 환불 반영 사유", example = "Google Play Console 환불 처리 확인", requiredMode = Schema.RequiredMode.REQUIRED)
+        private String reason;
+
+        @Schema(description = "스토어 환불 처리 시각. 생략하면 서버 처리 시각 사용", nullable = true)
+        private LocalDateTime refundedAt;
     }
 }
