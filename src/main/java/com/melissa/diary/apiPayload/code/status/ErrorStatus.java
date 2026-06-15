@@ -82,7 +82,18 @@ public enum ErrorStatus implements BaseErrorCode {
 
     // Payment
     PAYMENT_ADMIN_REQUIRED(HttpStatus.FORBIDDEN, "PAYMENT4031", "관리자 권한이 필요합니다."),
-    PAYMENT_USER_DELETE_BLOCKED(HttpStatus.CONFLICT, "PAYMENT4092", "결제 이력이 있어 현재 회원탈퇴를 처리할 수 없습니다. 관리자에게 문의해주세요.");
+    PAYMENT_PRODUCT_NOT_FOUND(HttpStatus.BAD_REQUEST, "PAYMENT4001", "결제 상품이 존재하지 않거나 비활성화되어 있습니다."),
+    PAYMENT_PRODUCT_MISMATCH(HttpStatus.BAD_REQUEST, "PAYMENT4002", "요청한 결제 상품이 서버 설정과 일치하지 않습니다."),
+    PAYMENT_PURCHASE_NOT_COMPLETED(HttpStatus.BAD_REQUEST, "PAYMENT4003", "구매가 완료 상태가 아닙니다."),
+    PAYMENT_STORE_VERIFICATION_FAILED(HttpStatus.BAD_REQUEST, "PAYMENT4004", "스토어 구매 검증에 실패했습니다."),
+    PAYMENT_PURCHASE_OWNER_MISMATCH(HttpStatus.BAD_REQUEST, "PAYMENT4005", "구매 소유자 또는 앱 식별자가 일치하지 않습니다."),
+    PAYMENT_PURCHASE_REVOKED(HttpStatus.BAD_REQUEST, "PAYMENT4006", "환불 또는 취소된 구매입니다."),
+    PAYMENT_ALREADY_OWNED_BY_OTHER_USER(HttpStatus.CONFLICT, "PAYMENT4091", "같은 구매가 다른 사용자에게 이미 연결되어 있습니다."),
+    PAYMENT_USER_DELETE_BLOCKED(HttpStatus.CONFLICT, "PAYMENT4092", "결제 이력이 있어 현재 회원탈퇴를 처리할 수 없습니다. 관리자에게 문의해주세요."),
+    PAYMENT_DISABLED(HttpStatus.SERVICE_UNAVAILABLE, "PAYMENT5031", "인앱결제 검증 기능이 비활성화되어 있습니다."),
+    PAYMENT_STORE_API_FAILED(HttpStatus.BAD_GATEWAY, "PAYMENT5001", "스토어 API 호출에 실패했습니다."),
+    PAYMENT_GRANT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PAYMENT5002", "결제 권한 부여에 실패했습니다."),
+    PAYMENT_ACKNOWLEDGE_FAILED(HttpStatus.BAD_GATEWAY, "PAYMENT5003", "Google 구매 acknowledge 처리에 실패했습니다.");
 
 
 
