@@ -11,43 +11,43 @@ public class EntitlementResponseDTO {
 
     @Getter
     @Builder
-    @Schema(description = "Current user's active entitlement response")
+    @Schema(description = "현재 사용자의 활성 권한 응답")
     public static class EntitlementsResponse {
 
-        @Schema(description = "Active entitlement list")
+        @Schema(description = "활성 권한 목록")
         private List<EntitlementSummary> entitlements;
 
-        @Schema(description = "Feature flags derived from active entitlements")
+        @Schema(description = "활성 권한 기반 프론트 기능 플래그")
         private FeatureSummary features;
     }
 
     @Getter
     @Builder
-    @Schema(description = "Active entitlement summary")
+    @Schema(description = "활성 권한 요약")
     public static class EntitlementSummary {
 
-        @Schema(description = "Entitlement type", example = "REMOVE_ADS")
+        @Schema(description = "권한 타입", example = "REMOVE_ADS")
         private String type;
 
-        @Schema(description = "Whether the entitlement is active", example = "true")
+        @Schema(description = "권한 활성 여부", example = "true")
         private Boolean active;
 
-        @Schema(description = "Source platform", example = "GOOGLE", nullable = true)
+        @Schema(description = "권한이 부여된 결제 플랫폼", example = "GOOGLE", nullable = true)
         private String sourcePlatform;
 
-        @Schema(description = "Granted time")
+        @Schema(description = "권한 부여 시각")
         private LocalDateTime grantedAt;
 
-        @Schema(description = "Revoked time", nullable = true)
+        @Schema(description = "권한 회수 시각", nullable = true)
         private LocalDateTime revokedAt;
     }
 
     @Getter
     @Builder
-    @Schema(description = "Feature flags")
+    @Schema(description = "프론트 기능 플래그")
     public static class FeatureSummary {
 
-        @Schema(description = "Whether ads should be removed", example = "true")
+        @Schema(description = "광고 제거 적용 여부. 프론트는 이 값을 기준으로 광고 표시 여부를 판단", example = "true")
         private Boolean adRemoved;
     }
 }

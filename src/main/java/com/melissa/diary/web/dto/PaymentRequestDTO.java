@@ -20,22 +20,22 @@ public class PaymentRequestDTO {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(description = "Google Play one-time product verify request")
+    @Schema(description = "Google Play 비소모성 상품 구매 검증 요청")
     public static class GoogleVerifyRequest {
 
         @NotBlank
-        @Schema(description = "Google Play product id", example = "premium", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Google Play 상품 ID", example = "premium", requiredMode = Schema.RequiredMode.REQUIRED)
         private String productId;
 
         @NotBlank
-        @Schema(description = "Android package name", example = "com.melissa.melissaFE", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Android 앱 패키지명", example = "com.melissa.melissaFE", requiredMode = Schema.RequiredMode.REQUIRED)
         private String packageName;
 
         @NotBlank
-        @Schema(description = "Google Play Billing purchase token", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Google Play Billing purchaseToken", requiredMode = Schema.RequiredMode.REQUIRED)
         private String purchaseToken;
 
-        @Schema(description = "Google order id", example = "GPA.1234-5678-9012-34567", nullable = true)
+        @Schema(description = "Google 주문 ID. 없으면 생략 가능", example = "GPA.1234-5678-9012-34567", nullable = true)
         private String orderId;
     }
 
@@ -43,11 +43,12 @@ public class PaymentRequestDTO {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(description = "Google Play restore request")
+    @Schema(description = "Google Play 구매 복원 요청")
     public static class GoogleRestoreRequest {
 
         @Valid
         @NotEmpty
+        @Schema(description = "Google Play Billing에서 조회한 보유 구매 목록", requiredMode = Schema.RequiredMode.REQUIRED)
         private List<GoogleVerifyRequest> purchases;
     }
 
@@ -56,26 +57,26 @@ public class PaymentRequestDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @Schema(description = "Apple App Store transaction verify request")
+    @Schema(description = "Apple App Store 거래 검증 요청")
     public static class AppleVerifyRequest {
 
         @NotBlank
-        @Schema(description = "Apple product id", example = "com.melissa.melissaFE.premium", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Apple 인앱결제 상품 ID", example = "com.melissa.melissaFE.premium", requiredMode = Schema.RequiredMode.REQUIRED)
         private String productId;
 
         @NotBlank
-        @Schema(description = "Apple transaction id", example = "2000000123456789", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Apple transactionId", example = "2000000123456789", requiredMode = Schema.RequiredMode.REQUIRED)
         private String transactionId;
 
-        @Schema(description = "Apple original transaction id", example = "2000000123456789", nullable = true)
+        @Schema(description = "Apple originalTransactionId. 없으면 생략 가능", example = "2000000123456789", nullable = true)
         private String originalTransactionId;
 
         @NotBlank
-        @Schema(description = "Apple transaction environment", example = "SANDBOX", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Apple 거래 환경. 테스트 결제는 SANDBOX, 상용 결제는 PRODUCTION", example = "SANDBOX", requiredMode = Schema.RequiredMode.REQUIRED)
         private String environment;
 
         @NotBlank
-        @Schema(description = "iOS bundle id", example = "com.melissa.melissaFE", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "iOS 앱 bundleId", example = "com.melissa.melissaFE", requiredMode = Schema.RequiredMode.REQUIRED)
         private String bundleId;
     }
 
@@ -83,11 +84,12 @@ public class PaymentRequestDTO {
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
-    @Schema(description = "Apple App Store restore request")
+    @Schema(description = "Apple App Store 구매 복원 요청")
     public static class AppleRestoreRequest {
 
         @Valid
         @NotEmpty
+        @Schema(description = "App Store에서 조회한 보유 거래 목록", requiredMode = Schema.RequiredMode.REQUIRED)
         private List<AppleVerifyRequest> transactions;
     }
 
