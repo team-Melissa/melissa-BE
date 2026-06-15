@@ -92,6 +92,8 @@ payment:
     product-remove-ads: ${PAYMENT_GOOGLE_PRODUCT_REMOVE_ADS:premium}
     service-account-json-base64: ${GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_BASE64:}
     token-hash-salt: ${PAYMENT_TOKEN_HASH_SALT:}
+    acknowledge-retry-fixed-delay-ms: ${PAYMENT_GOOGLE_ACKNOWLEDGE_RETRY_FIXED_DELAY_MS:600000}
+    acknowledge-retry-batch-size: ${PAYMENT_GOOGLE_ACKNOWLEDGE_RETRY_BATCH_SIZE:20}
   apple:
     enabled: ${PAYMENT_APPLE_ENABLED:false}
     bundle-id: ${PAYMENT_APPLE_BUNDLE_ID:com.melissa.melissaFE}

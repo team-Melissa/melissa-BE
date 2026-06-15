@@ -35,6 +35,8 @@ public class PaymentProperties {
         private String productRemoveAds = "premium";
         private String serviceAccountJsonBase64 = "";
         private String tokenHashSalt = "";
+        private long acknowledgeRetryFixedDelayMs = 600000;
+        private int acknowledgeRetryBatchSize = 20;
     }
 
     @Getter
