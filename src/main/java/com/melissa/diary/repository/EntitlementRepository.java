@@ -28,4 +28,12 @@ public interface EntitlementRepository extends JpaRepository<Entitlement, Long> 
             @Param("userId") Long userId,
             @Param("entitlementType") EntitlementType entitlementType
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT e
+            FROM Entitlement e
+            WHERE e.sourcePayment.id = :paymentId
+            """)
+    Optional<Entitlement> findBySourcePaymentIdForUpdate(@Param("paymentId") Long paymentId);
 }

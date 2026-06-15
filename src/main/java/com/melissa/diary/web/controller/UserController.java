@@ -58,13 +58,18 @@ public class UserController {
     }
 
     @Operation(
-            summary = "Get current user's payment entitlements",
-            description = "Returns active payment entitlements and derived feature flags for the authenticated user."
+            summary = "내 결제 권한 조회",
+            description = """
+                현재 로그인한 사용자의 활성 결제 권한과 프론트 기능 플래그를 반환합니다.
+                - 인증 필요 (Bearer JWT)
+                - userId는 토큰(subject) 기반으로 서버에서 결정
+                - 광고 제거 적용 여부는 `features.adRemoved` 값으로 판단
+                """
     )
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Success"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Authentication failed"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: User not found")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패(토큰 누락/만료/위조)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "AUTH4006: 사용자를 찾을 수 없음")
     })
     @GetMapping("/me/entitlements")
     public ApiResponse<EntitlementResponseDTO.EntitlementsResponse> getMyEntitlements(Principal principal) {
