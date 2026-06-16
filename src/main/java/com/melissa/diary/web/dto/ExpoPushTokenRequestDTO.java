@@ -21,20 +21,22 @@ public class ExpoPushTokenRequestDTO {
         @NotBlank(message = "Expo Push Token은 필수입니다.")
         @Pattern(regexp = "^ExponentPushToken\\[.+\\]$", 
                  message = "유효한 Expo Push Token 형식이 아닙니다. (ExponentPushToken[...])")
-        @Schema(description = "Expo Push Token", 
+        @Schema(description = "Expo Push Token. 형식: ExponentPushToken[...]",
                 example = "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]",
-                required = true)
+                requiredMode = Schema.RequiredMode.REQUIRED)
         private String expoPushToken;
         
         @NotNull(message = "플랫폼 정보는 필수입니다.")
-        @Schema(description = "플랫폼 (ANDROID 또는 IOS)", 
+        @Schema(description = "클라이언트 플랫폼. 후보: ANDROID, IOS",
                 example = "ANDROID",
                 allowableValues = {"ANDROID", "IOS"},
-                required = true)
+                requiredMode = Schema.RequiredMode.REQUIRED)
         private Platform platform;
         
-        @Schema(description = "기기 ID (선택사항) nullable", 
-                example = "device-uuid-1234")
+        @Schema(description = "기기 ID. 앱에서 관리하는 디바이스 식별자가 있으면 전달하며, 없으면 생략 가능",
+                example = "device-uuid-1234",
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                nullable = true)
         private String deviceId;
     }
 }

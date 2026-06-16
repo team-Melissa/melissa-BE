@@ -24,7 +24,7 @@ public class PaymentRequestDTO {
     public static class GoogleVerifyRequest {
 
         @NotBlank
-        @Schema(description = "Google Play 상품 ID", example = "premium", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Google Play 상품 ID. 현재 후보: premium(광고 제거)", example = "premium", allowableValues = {"premium"}, requiredMode = Schema.RequiredMode.REQUIRED)
         private String productId;
 
         @NotBlank
@@ -61,7 +61,7 @@ public class PaymentRequestDTO {
     public static class AppleVerifyRequest {
 
         @NotBlank
-        @Schema(description = "Apple 인앱결제 상품 ID", example = "com.melissa.melissaFE.premium", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Apple 인앱결제 상품 ID. 현재 후보: com.melissa.melissaFE.premium(광고 제거)", example = "com.melissa.melissaFE.premium", allowableValues = {"com.melissa.melissaFE.premium"}, requiredMode = Schema.RequiredMode.REQUIRED)
         private String productId;
 
         @NotBlank
@@ -72,7 +72,7 @@ public class PaymentRequestDTO {
         private String originalTransactionId;
 
         @NotBlank
-        @Schema(description = "Apple 거래 환경. 테스트 결제는 SANDBOX, 상용 결제는 PRODUCTION", example = "SANDBOX", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Apple 거래 환경. 후보: SANDBOX(테스트 결제), PRODUCTION(상용 결제)", example = "SANDBOX", allowableValues = {"SANDBOX", "PRODUCTION"}, requiredMode = Schema.RequiredMode.REQUIRED)
         private String environment;
 
         @NotBlank

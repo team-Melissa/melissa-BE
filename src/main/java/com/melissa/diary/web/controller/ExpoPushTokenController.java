@@ -24,7 +24,7 @@ import java.security.Principal;
 import java.util.List;
 
 @RestController
-@Tag(name = "ExpoPushTokenAPI", description = "Expo Push token management API")
+@Tag(name = "ExpoPushTokenAPI", description = "Expo Push Token 관리 API")
 @RequestMapping("/api/v1/expo-push-tokens")
 @RequiredArgsConstructor
 @Slf4j
@@ -38,8 +38,15 @@ public class ExpoPushTokenController {
     private final IdempotencyService idempotencyService;
 
     @Operation(
-            summary = "Register Expo Push Token",
-            description = "Registers or updates the Expo Push Token for the authenticated user."
+            summary = "Expo Push Token 등록/갱신",
+            description = """
+                    현재 로그인한 사용자의 Expo Push Token을 등록하거나 기존 토큰 정보를 갱신합니다.
+                    - 인증 필요 (Bearer JWT)
+                    - userId는 토큰(subject) 기반으로 서버에서 결정
+                    - `platform` 후보: ANDROID, IOS
+                    - `expoPushToken` 형식: ExponentPushToken[...]
+                    - `Idempotency-Key` 헤더를 전달하면 같은 요청의 중복 처리를 방지합니다.
+                    """
     )
     @PostMapping
     public ApiResponse<ExpoPushTokenResponseDTO.TokenResponse> registerToken(
@@ -76,8 +83,13 @@ public class ExpoPushTokenController {
     }
 
     @Operation(
-            summary = "Get Expo Push Tokens",
-            description = "Returns all Expo Push Tokens registered for the authenticated user."
+            summary = "내 Expo Push Token 목록 조회",
+            description = """
+                    현재 로그인한 사용자에게 연결된 Expo Push Token 목록을 반환합니다.
+                    - 인증 필요 (Bearer JWT)
+                    - `platform` 후보: ANDROID, IOS
+                    - `invalid=true`이면 발송 실패 등으로 무효 처리된 토큰입니다.
+                    """
     )
     @GetMapping
     public ApiResponse<List<ExpoPushTokenResponseDTO.TokenResponse>> getUserTokens(Principal principal) {
@@ -89,12 +101,17 @@ public class ExpoPushTokenController {
     }
 
     @Operation(
-            summary = "Delete Expo Push Token",
-            description = "Deletes a specific Expo Push Token."
+            summary = "Expo Push Token 삭제",
+            description = """
+                    특정 Expo Push Token을 삭제합니다.
+                    - 인증 필요 (Bearer JWT)
+                    - 삭제 대상 토큰은 path variable로 전달합니다.
+                    - `Idempotency-Key` 헤더를 전달하면 같은 삭제 요청의 중복 처리를 방지합니다.
+                    """
     )
     @DeleteMapping("/{expoPushToken}")
     public ApiResponse<ExpoPushTokenResponseDTO.DeleteResponse> deleteToken(
-            @Parameter(description = "Expo Push Token to delete", required = true,
+            @Parameter(description = "삭제할 Expo Push Token. 형식: ExponentPushToken[...]", required = true,
                     example = "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]")
             @PathVariable String expoPushToken,
             @RequestHeader(value = IDEMPOTENCY_HEADER, required = false) String idempotencyKey,
