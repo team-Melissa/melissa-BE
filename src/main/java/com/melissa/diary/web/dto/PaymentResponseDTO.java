@@ -20,13 +20,13 @@ public class PaymentResponseDTO {
         @Schema(description = "백엔드 결제 내역 ID", example = "1")
         private Long paymentId;
 
-        @Schema(description = "결제 플랫폼", example = "GOOGLE")
+        @Schema(description = "결제 플랫폼. 후보: GOOGLE, APPLE", example = "GOOGLE", allowableValues = {"GOOGLE", "APPLE"})
         private String platform;
 
-        @Schema(description = "백엔드 내부 상품 ID. 스토어 상품 ID가 아니라 `remove_ads`로 반환", example = "remove_ads")
+        @Schema(description = "백엔드 내부 상품 ID. 현재 후보: remove_ads(광고 제거). 스토어 상품 ID가 아니라 내부 상품 ID로 반환", example = "remove_ads", allowableValues = {"remove_ads"})
         private String productId;
 
-        @Schema(description = "결제 상태", example = "PURCHASED")
+        @Schema(description = "결제 상태. 후보: PENDING, PURCHASED, FAILED, REFUNDED, REVOKED", example = "PURCHASED", allowableValues = {"PENDING", "PURCHASED", "FAILED", "REFUNDED", "REVOKED"})
         private String status;
 
         @Schema(description = "검증 성공으로 부여된 권한 요약")
@@ -54,7 +54,7 @@ public class PaymentResponseDTO {
     @AllArgsConstructor
     @Schema(description = "결제 권한 요약")
     public static class EntitlementSummary {
-        @Schema(description = "권한 타입", example = "REMOVE_ADS")
+        @Schema(description = "권한 타입. enum 후보: REMOVE_ADS(광고 제거), PREMIUM, EXTRA_STORAGE, AI_CREDIT. 현재 결제 상품은 REMOVE_ADS만 사용", example = "REMOVE_ADS", allowableValues = {"REMOVE_ADS", "PREMIUM", "EXTRA_STORAGE", "AI_CREDIT"})
         private String type;
 
         @Schema(description = "권한 활성 여부. true면 광고 제거 적용 가능", example = "true")
@@ -86,16 +86,16 @@ public class PaymentResponseDTO {
         @Schema(description = "백엔드 결제 내역 ID", example = "1")
         private Long paymentId;
 
-        @Schema(description = "결제 플랫폼", example = "APPLE")
+        @Schema(description = "결제 플랫폼. 후보: GOOGLE, APPLE", example = "APPLE", allowableValues = {"GOOGLE", "APPLE"})
         private String platform;
 
-        @Schema(description = "백엔드 내부 상품 ID", example = "remove_ads")
+        @Schema(description = "백엔드 내부 상품 ID. 현재 후보: remove_ads(광고 제거)", example = "remove_ads", allowableValues = {"remove_ads"})
         private String productId;
 
-        @Schema(description = "결제 상태", example = "PURCHASED")
+        @Schema(description = "결제 상태. 후보: PENDING, PURCHASED, FAILED, REFUNDED, REVOKED", example = "PURCHASED", allowableValues = {"PENDING", "PURCHASED", "FAILED", "REFUNDED", "REVOKED"})
         private String status;
 
-        @Schema(description = "복원된 권한 타입", example = "REMOVE_ADS")
+        @Schema(description = "복원된 권한 타입. enum 후보: REMOVE_ADS(광고 제거), PREMIUM, EXTRA_STORAGE, AI_CREDIT. 현재 결제 상품은 REMOVE_ADS만 사용", example = "REMOVE_ADS", allowableValues = {"REMOVE_ADS", "PREMIUM", "EXTRA_STORAGE", "AI_CREDIT"})
         private String entitlementType;
     }
 
@@ -105,7 +105,7 @@ public class PaymentResponseDTO {
     @AllArgsConstructor
     @Schema(description = "복원 실패 구매 요약")
     public static class FailedPurchase {
-        @Schema(description = "결제 플랫폼", example = "GOOGLE")
+        @Schema(description = "결제 플랫폼. 후보: GOOGLE, APPLE", example = "GOOGLE", allowableValues = {"GOOGLE", "APPLE"})
         private String platform;
 
         @Schema(description = "요청으로 전달된 스토어 상품 ID", example = "premium")
@@ -133,16 +133,16 @@ public class PaymentResponseDTO {
         @Schema(description = "환불 처리 대상 사용자 ID", example = "10")
         private Long userId;
 
-        @Schema(description = "결제 플랫폼", example = "GOOGLE")
+        @Schema(description = "결제 플랫폼. 후보: GOOGLE, APPLE", example = "GOOGLE", allowableValues = {"GOOGLE", "APPLE"})
         private String platform;
 
-        @Schema(description = "백엔드 내부 상품 ID", example = "remove_ads")
+        @Schema(description = "백엔드 내부 상품 ID. 현재 후보: remove_ads(광고 제거)", example = "remove_ads", allowableValues = {"remove_ads"})
         private String productId;
 
-        @Schema(description = "결제 상태", example = "REFUNDED")
+        @Schema(description = "결제 상태. 후보: PENDING, PURCHASED, FAILED, REFUNDED, REVOKED", example = "REFUNDED", allowableValues = {"PENDING", "PURCHASED", "FAILED", "REFUNDED", "REVOKED"})
         private String status;
 
-        @Schema(description = "회수 대상 권한 타입", example = "REMOVE_ADS", nullable = true)
+        @Schema(description = "회수 대상 권한 타입. enum 후보: REMOVE_ADS(광고 제거), PREMIUM, EXTRA_STORAGE, AI_CREDIT. 회수 대상 권한이 없으면 null", example = "REMOVE_ADS", allowableValues = {"REMOVE_ADS", "PREMIUM", "EXTRA_STORAGE", "AI_CREDIT"}, nullable = true)
         private String entitlementType;
 
         @Schema(description = "권한 회수 완료 여부", example = "true")

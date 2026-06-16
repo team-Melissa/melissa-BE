@@ -95,7 +95,15 @@ public enum ErrorStatus implements BaseErrorCode {
     PAYMENT_DISABLED(HttpStatus.SERVICE_UNAVAILABLE, "PAYMENT5031", "인앱결제 검증 기능이 비활성화되어 있습니다."),
     PAYMENT_STORE_API_FAILED(HttpStatus.BAD_GATEWAY, "PAYMENT5001", "스토어 API 호출에 실패했습니다."),
     PAYMENT_GRANT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PAYMENT5002", "결제 권한 부여에 실패했습니다."),
-    PAYMENT_ACKNOWLEDGE_FAILED(HttpStatus.BAD_GATEWAY, "PAYMENT5003", "Google 구매 acknowledge 처리에 실패했습니다.");
+    PAYMENT_ACKNOWLEDGE_FAILED(HttpStatus.BAD_GATEWAY, "PAYMENT5003", "Google 구매 acknowledge 처리에 실패했습니다."),
+
+    // Terms
+    TERM_NOT_FOUND(HttpStatus.NOT_FOUND, "TERM4001", "약관을 찾을 수 없습니다."),
+    TERM_VERSION_NOT_FOUND(HttpStatus.NOT_FOUND, "TERM4002", "약관 버전을 찾을 수 없습니다."),
+    TERM_VERSION_NOT_PUBLISHED(HttpStatus.BAD_REQUEST, "TERM4003", "동의할 수 없는 약관 버전입니다."),
+    TERM_VERSION_NOT_CURRENT(HttpStatus.BAD_REQUEST, "TERM4004", "현재 최신 약관 버전에만 동의할 수 있습니다."),
+    TERM_REQUIRED_AGREEMENT_MISSING(HttpStatus.BAD_REQUEST, "TERM4005", "필수 약관 동의가 누락되었습니다."),
+    TERM_REQUIRED_AGREEMENT_REJECTED(HttpStatus.BAD_REQUEST, "TERM4006", "필수 약관은 동의가 필요합니다.");
 
 
 

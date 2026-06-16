@@ -21,10 +21,10 @@ public class ExpoPushTokenResponseDTO {
         @Schema(description = "토큰 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long id;
         
-        @Schema(description = "Expo Push Token", example = "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "Expo Push Token. 형식: ExponentPushToken[...]", example = "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]", requiredMode = Schema.RequiredMode.REQUIRED)
         private String expoPushToken;
         
-        @Schema(description = "플랫폼", example = "ANDROID", 
+        @Schema(description = "클라이언트 플랫폼. 후보: ANDROID, IOS", example = "ANDROID",
                 allowableValues = {"ANDROID", "IOS"},
                 requiredMode = Schema.RequiredMode.REQUIRED)
         private Platform platform;
@@ -32,7 +32,7 @@ public class ExpoPushTokenResponseDTO {
         @Schema(description = "기기 ID", example = "device-uuid-1234", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String deviceId;
         
-        @Schema(description = "유효하지 않은 토큰 여부", example = "false", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "유효하지 않은 토큰 여부. true이면 발송 실패 등으로 무효 처리된 토큰", example = "false", requiredMode = Schema.RequiredMode.REQUIRED)
         private Boolean invalid;
         
         @Schema(description = "생성일시", example = "2025-01-01T12:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
