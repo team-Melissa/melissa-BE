@@ -14,7 +14,13 @@ public class UserResponseDTO {
         @Schema(description = "사용자 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long userId;
         
-        @Schema(description = "OAuth 제공자", example = "GOOGLE", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        @Schema(
+                description = "OAuth 제공자. 후보: GOOGLE, KAKAO, APPLE",
+                example = "GOOGLE",
+                allowableValues = {"GOOGLE", "KAKAO", "APPLE"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                nullable = true
+        )
         private String oauthProvider;
         
         @Schema(description = "이메일", example = "user@example.com", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
@@ -29,7 +35,7 @@ public class UserResponseDTO {
         @Schema(description = "리프레시 토큰", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", requiredMode = Schema.RequiredMode.REQUIRED)
         private String refreshToken;
         
-        @Schema(description = "토큰 타입", example = "Bearer", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "토큰 타입. 현재는 Bearer 고정", example = "Bearer", allowableValues = {"Bearer"}, requiredMode = Schema.RequiredMode.REQUIRED)
         private String tokenType;
     }
 
@@ -41,7 +47,7 @@ public class UserResponseDTO {
         @Schema(description = "리프레시 토큰", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", requiredMode = Schema.RequiredMode.REQUIRED)
         private String refreshToken;
         
-        @Schema(description = "토큰 타입", example = "Bearer", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "토큰 타입. 현재는 Bearer 고정", example = "Bearer", allowableValues = {"Bearer"}, requiredMode = Schema.RequiredMode.REQUIRED)
         private String tokenType;
         
         @Schema(description = "만료 시간 (초)", example = "3600", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -56,7 +62,13 @@ public class UserResponseDTO {
         @Schema(description = "사용자 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
         private Long userId;
         
-        @Schema(description = "OAuth 제공자", example = "GOOGLE", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        @Schema(
+                description = "OAuth 제공자. 후보: GOOGLE, KAKAO, APPLE",
+                example = "GOOGLE",
+                allowableValues = {"GOOGLE", "KAKAO", "APPLE"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                nullable = true
+        )
         private String oauthProvider;
         
         @Schema(description = "제공자 ID", example = "1234567890", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
@@ -83,7 +95,13 @@ public class UserResponseDTO {
         @Schema(description = "닉네임", example = "홍길동", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String nickname;
 
-        @Schema(description = "OAuth 제공자", example = "GOOGLE", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
+        @Schema(
+                description = "OAuth 제공자. 후보: GOOGLE, KAKAO, APPLE",
+                example = "GOOGLE",
+                allowableValues = {"GOOGLE", "KAKAO", "APPLE"},
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+                nullable = true
+        )
         private String oauthProvider;
 
         @Schema(description = "사용량(쿼터) 정보", requiredMode = Schema.RequiredMode.REQUIRED)

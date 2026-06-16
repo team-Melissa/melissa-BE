@@ -26,13 +26,22 @@ public class EntitlementResponseDTO {
     @Schema(description = "활성 권한 요약")
     public static class EntitlementSummary {
 
-        @Schema(description = "권한 타입", example = "REMOVE_ADS")
+        @Schema(
+                description = "권한 타입. enum 후보: REMOVE_ADS(광고 제거), PREMIUM, EXTRA_STORAGE, AI_CREDIT. 현재 결제 상품은 REMOVE_ADS만 사용",
+                example = "REMOVE_ADS",
+                allowableValues = {"REMOVE_ADS", "PREMIUM", "EXTRA_STORAGE", "AI_CREDIT"}
+        )
         private String type;
 
         @Schema(description = "권한 활성 여부", example = "true")
         private Boolean active;
 
-        @Schema(description = "권한이 부여된 결제 플랫폼", example = "GOOGLE", nullable = true)
+        @Schema(
+                description = "권한이 부여된 결제 플랫폼. 후보: GOOGLE, APPLE. 결제 외 수동 부여 등 플랫폼이 없으면 null",
+                example = "GOOGLE",
+                allowableValues = {"GOOGLE", "APPLE"},
+                nullable = true
+        )
         private String sourcePlatform;
 
         @Schema(description = "권한 부여 시각")
