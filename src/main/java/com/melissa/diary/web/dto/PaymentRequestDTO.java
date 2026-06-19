@@ -35,7 +35,7 @@ public class PaymentRequestDTO {
         @Schema(description = "Google Play Billing purchaseToken", requiredMode = Schema.RequiredMode.REQUIRED)
         private String purchaseToken;
 
-        @Schema(description = "Google 주문 ID. 없으면 생략 가능", example = "GPA.1234-5678-9012-34567", nullable = true)
+        @Schema(description = "Google 주문 ID. 없으면 생략 가능", example = "GPA.1234-5678-9012-34567", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String orderId;
     }
 
@@ -68,7 +68,7 @@ public class PaymentRequestDTO {
         @Schema(description = "Apple transactionId", example = "2000000123456789", requiredMode = Schema.RequiredMode.REQUIRED)
         private String transactionId;
 
-        @Schema(description = "Apple originalTransactionId. 없으면 생략 가능", example = "2000000123456789", nullable = true)
+        @Schema(description = "Apple originalTransactionId. 없으면 생략 가능", example = "2000000123456789", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private String originalTransactionId;
 
         @NotBlank
@@ -105,7 +105,7 @@ public class PaymentRequestDTO {
         @Schema(description = "수동 환불 반영 사유", example = "Google Play Console 환불 처리 확인", requiredMode = Schema.RequiredMode.REQUIRED)
         private String reason;
 
-        @Schema(description = "스토어 환불 처리 시각. 생략하면 서버 처리 시각 사용", nullable = true)
+        @Schema(description = "스토어 환불 처리 시각. 생략하면 서버 처리 시각 사용", requiredMode = Schema.RequiredMode.NOT_REQUIRED, nullable = true)
         private LocalDateTime refundedAt;
     }
 }
