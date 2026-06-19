@@ -174,6 +174,38 @@ class TermAgreementServiceTest {
         verify(userTermAgreementRepository, times(3)).save(any(UserTermAgreement.class));
     }
 
+    @Test
+    void deleteAgreementHistoryDeletesUserHistoryAndReturnsInitialRequiredStatus() {
+        mockCurrentTerms(List.of(serviceV1, privacyV1, marketingV1));
+        when(userTermAgreementRepository.deleteByUserId(user.getId())).thenReturn(3);
+        when(userTermAgreementRepository.findByUserIdAndTermIdIn(eq(user.getId()), anyList()))
+                .thenReturn(List.of());
+
+        TermResponseDTO.DeleteAgreementHistoryResponse response =
+                termAgreementService.deleteAgreementHistory(user.getId());
+
+        assertThat(response.getDeletedCount()).isEqualTo(3L);
+        assertThat(response.getAgreementRequired()).isTrue();
+        assertThat(response.getReason()).isEqualTo("INITIAL_REQUIRED_TERMS");
+        verify(userTermAgreementRepository).deleteByUserId(user.getId());
+    }
+
+    @Test
+    void deleteAgreementHistoryReturnsZeroWhenNoHistoryExists() {
+        mockCurrentTerms(List.of(serviceV1, privacyV1, marketingV1));
+        when(userTermAgreementRepository.deleteByUserId(user.getId())).thenReturn(0);
+        when(userTermAgreementRepository.findByUserIdAndTermIdIn(eq(user.getId()), anyList()))
+                .thenReturn(List.of());
+
+        TermResponseDTO.DeleteAgreementHistoryResponse response =
+                termAgreementService.deleteAgreementHistory(user.getId());
+
+        assertThat(response.getDeletedCount()).isZero();
+        assertThat(response.getAgreementRequired()).isTrue();
+        assertThat(response.getReason()).isEqualTo("INITIAL_REQUIRED_TERMS");
+        verify(userTermAgreementRepository).deleteByUserId(user.getId());
+    }
+
     private void mockCurrentTerms(List<TermVersion> versions) {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(termRepository.findByActiveTrueOrderByDisplayOrderAsc())
