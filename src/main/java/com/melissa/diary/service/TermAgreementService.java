@@ -111,6 +111,21 @@ public class TermAgreementService {
                 .build();
     }
 
+    @Transactional
+    public TermResponseDTO.DeleteAgreementHistoryResponse deleteAgreementHistory(Long userId) {
+        findUser(userId);
+        long deletedCount = userTermAgreementRepository.deleteByUserId(userId);
+
+        List<ComputedTermStatus> updatedStatuses = loadTermStatuses(userId, LocalDateTime.now());
+        AgreementStatusReason reason = calculateReason(updatedStatuses);
+
+        return TermResponseDTO.DeleteAgreementHistoryResponse.builder()
+                .deletedCount(deletedCount)
+                .agreementRequired(hasBlockingTerm(updatedStatuses))
+                .reason(reason.name())
+                .build();
+    }
+
     private User findUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ErrorHandler(ErrorStatus.USER_NOT_FOUND));

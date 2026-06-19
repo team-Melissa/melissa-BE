@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -100,5 +101,24 @@ public class TermController {
     ) {
         Long userId = Long.parseLong(principal.getName());
         return ApiResponse.onSuccess(termAgreementService.submitAgreements(userId, request));
+    }
+
+    @Operation(
+            summary = "사용자 약관 동의 이력 삭제",
+            description = """
+                    현재 로그인한 사용자의 약관 동의 이력을 삭제합니다.
+                    - 인증 필요 (Bearer JWT)
+                    - 삭제 대상은 user_term_agreement 이력만입니다.
+                    - term, term_version 데이터는 삭제하지 않습니다.
+                    - 프론트 약관 동의 플로우 반복 테스트용 API입니다.
+                    - 정식 약관 철회 기능은 별도 정책 검토 후 분리 구현합니다.
+                    """
+    )
+    @DeleteMapping("/agreements/me")
+    public ApiResponse<TermResponseDTO.DeleteAgreementHistoryResponse> deleteAgreementHistory(
+            Principal principal
+    ) {
+        Long userId = Long.parseLong(principal.getName());
+        return ApiResponse.onSuccess(termAgreementService.deleteAgreementHistory(userId));
     }
 }
