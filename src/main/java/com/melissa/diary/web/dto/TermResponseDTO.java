@@ -154,4 +154,25 @@ public class TermResponseDTO {
         )
         private String reason;
     }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "약관 동의 이력 삭제 응답")
+    public static class DeleteAgreementHistoryResponse {
+
+        @Schema(description = "삭제된 사용자 약관 동의 이력 수", example = "3")
+        private Long deletedCount;
+
+        @Schema(description = "삭제 후 서비스 진입 전 약관 동의 화면이 필요한지 여부", example = "true")
+        private Boolean agreementRequired;
+
+        @Schema(
+                description = "삭제 후 약관 동의 상태 사유. 후보: NONE(필요 없음), INITIAL_REQUIRED_TERMS(최초 필수 약관 동의 필요), UPDATED_REQUIRED_TERMS(개정된 필수 약관 재동의 필요), OPTIONAL_TERMS_AVAILABLE(선택 약관 동의/변경 가능)",
+                example = "INITIAL_REQUIRED_TERMS",
+                allowableValues = {"NONE", "INITIAL_REQUIRED_TERMS", "UPDATED_REQUIRED_TERMS", "OPTIONAL_TERMS_AVAILABLE"}
+        )
+        private String reason;
+    }
 }
