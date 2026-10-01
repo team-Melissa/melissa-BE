@@ -9,37 +9,21 @@
   <img src="https://github.com/user-attachments/assets/db3310c7-81eb-4b67-800b-c20b8419cd9a" width="24%" />
 </p>
 
-Melissa는 사용자가 AI 캐릭터와 대화하며 하루를 정리하고, 대화 내용을 바탕으로 그림일기를 만드는 서비스입니다. 빈 화면에서 일기를 시작하기 어려운 문제를 대화형 기록, 개인화된 기억, 이미지 생성과 리마인드로 해결하는 것을 목표로 했습니다.
+Melissa는 사용자가 AI 캐릭터와 대화하듯 하루를 정리하고, 일기 작성을 더 쉽게 지속할 수 있도록 돕는 AI 기반 일기 서비스입니다. 프로젝트는 "일기를 꾸준히 쓰고 싶어도 빈 화면에서 시작하기 어렵고, 기록 습관이 쉽게 끊긴다"는 사용자 문제에서 시작했습니다. 단순 메모 앱이 아니라, 대화형 상호작용과 개인화된 기억, 리마인드를 통해 기록의 진입장벽을 낮추는 것이 목표였습니다.
 
-백엔드에서는 OpenAI, Google, Apple, Expo, S3처럼 서로 다른 외부 시스템을 연결하면서 발생하는 **요청 중복, 장기 트랜잭션, 비동기 상태 전이와 결제 권한 정합성**을 다뤘습니다. 기능이 한 번 성공하는 데 그치지 않고, 재시도와 부분 실패 이후에도 상태를 설명하고 복구할 수 있는 구조를 만드는 데 집중했습니다.
+- AI 대화를 통해 사용자가 부담 없이 하루를 기록할 수 있게 지원
+- 개인화 메모리를 바탕으로 이전 대화가 이어지는 경험 제공
+- 대화를 그림일기로 만들고, 알림과 streak로 기록 습관 형성 지원
 
-### 핵심 백엔드 과제
-
-- AI 대화와 일기·이미지 생성을 하나의 사용자 기록 흐름으로 연결
-- 외부 API 지연이 DB 트랜잭션과 커넥션 풀에 전파되지 않도록 경계 분리
-- 동일 요청 재전송 시 메시지·사용량·외부 호출이 중복되지 않도록 멱등 처리
-- 비동기 결과를 명시적 상태와 전이 규칙으로 관리
-- 스토어 구매 검증부터 권한 부여·복원·환불까지 결제 생명주기 구성
+처음에는 채팅과 일기 생성 기능을 구현하는 데 집중했습니다. 서비스를 배포하고 기능이 늘어나면서 같은 요청이 두 번 들어오거나, 외부 API가 늦어지고, 비동기 작업의 순서가 꼬이는 문제를 겪었습니다. 그때부터 기능이 한 번 잘 되는 것보다 **실패하거나 다시 요청됐을 때 어떤 상태가 남는지**를 먼저 생각하며 구조를 개선했습니다.
 
 ## 1. 아키텍처
 
 <img width="8192" height="1574" alt="Mermaid Chart - Create complex, visual diagrams with text -2026-04-02-205143" src="https://github.com/user-attachments/assets/27b37f65-ee5b-469c-9e30-d9f35ff4f4de" />
 
-주요 외부 연동은 DB 작업과 한 트랜잭션으로 묶지 않고 아래 흐름으로 처리합니다.
+OpenAI, OAuth, S3, Expo Push처럼 응답시간을 직접 통제할 수 없는 외부 시스템이 많습니다. 외부 호출을 기다리는 동안 DB 트랜잭션까지 계속 열어두지 않도록, 필요한 상태를 먼저 저장한 뒤 외부 API를 호출하고 결과가 돌아오면 다시 짧게 반영하는 방식으로 구성했습니다.
 
-```text
-요청 검증·상태 준비     외부 시스템 호출            결과 확정
-prepare transaction  -> OpenAI / S3 / OAuth / Push -> finalize transaction
-```
-
-결제 영역은 스토어의 구매 사실과 서비스가 제공하는 권한을 분리해 관리합니다.
-
-```text
-Google Play / App Store 검증
-            -> Payment 기록
-            -> Entitlement 부여·복원·회수
-            -> PaymentEvent 감사 이력
-```
+결제 기능도 스토어의 구매 기록과 사용자가 실제로 갖는 광고 제거 권한을 분리했습니다. 구매 검증, 권한 부여, 복원과 환불이 각각 다른 시점에 일어나더라도 현재 상태와 처리 이력을 확인할 수 있도록 했습니다.
 
 ## 2. 사용 기술
 
@@ -53,87 +37,65 @@ Google Play / App Store 검증
 | Infra | AWS Elastic Beanstalk, EC2, RDS, S3, Route 53, CloudWatch |
 | Operation | Swagger/OpenAPI, Scheduler, Async Executor, WebClient |
 
-## 3. 핵심 문제 해결
+## 3. 주요 문제 해결
 
-### 3-1. 외부 API 지연이 DB 트랜잭션을 장시간 점유하는 문제
+### 3-1. 외부 API를 기다리는 동안 DB 커넥션까지 잡고 있던 문제
 
-채팅, 이미지 생성, 소셜 로그인 검증, 푸시 발송은 모두 외부 시스템의 응답시간과 장애에 영향을 받습니다. 외부 호출을 `@Transactional` 메서드 안에서 기다리면 DB 커넥션 점유 시간이 길어지고 외부 장애가 내부 저장 흐름까지 함께 흔들릴 수 있었습니다.
+채팅과 이미지 생성, 소셜 로그인 검증, 푸시 발송은 모두 외부 API를 사용합니다. 처음에는 이 호출들이 DB 작업과 같은 트랜잭션 안에 섞여 있어, 외부 응답이 늦어지면 커넥션도 그만큼 오래 점유했습니다. 외부 서비스의 장애가 내부 저장 과정까지 끌고 갈 수 있는 구조였습니다.
 
-처리 흐름을 `prepare -> external call -> finalize`로 재구성하고, 다단계 흐름은 `TransactionTemplate`로 경계를 명시했습니다. 검증과 최소 상태 저장, 외부 호출, 최종 반영을 각각 분리해 DB 트랜잭션은 짧게 유지했습니다. 소셜 로그인, 테스트 채팅, 일기 생성·수정, 메모리 갱신과 알림 상태 저장에도 같은 기준을 적용했습니다.
+처리 과정을 `prepare -> external call -> finalize`로 나눴습니다. 먼저 검증과 최소한의 상태 저장을 끝내고 트랜잭션을 닫은 뒤 외부 API를 호출하고, 결과가 돌아오면 다시 짧은 트랜잭션에서 최종 상태를 반영했습니다. 경계가 중요한 흐름은 `TransactionTemplate`로 코드에 드러나게 했습니다.
 
-- 관련 PR: [#272 긴 트랜잭션 및 외부 API 구간 분리](https://github.com/team-Melissa/melissa-BE/pull/272)
+이 기준을 소셜 로그인, 채팅, 일기 생성·수정, 사용자 메모리 갱신과 알림 발송에 공통으로 적용했습니다. [관련 PR #272](https://github.com/team-Melissa/melissa-BE/pull/272)
 
-### 3-2. 중복 요청이 데이터와 외부 API 비용을 함께 증가시키는 문제
+### 3-2. 같은 채팅 요청이 두 번 처리되는 문제
 
-모바일 네트워크 재시도나 연속 요청으로 같은 채팅이 다시 처리되면 메시지 저장, 사용량 차감과 OpenAI 호출이 모두 중복될 수 있습니다. 이를 요청 내용의 중복이 아닌 **같은 요청 시도의 재전송** 문제로 정의했습니다.
+모바일 네트워크가 불안정하거나 사용자가 연속으로 요청하면 같은 채팅이 다시 들어올 수 있습니다. 채팅은 메시지만 하나 더 저장되는 것으로 끝나지 않고 사용량 차감과 OpenAI 호출까지 다시 일어나기 때문에, 데이터와 비용이 함께 중복되는 문제였습니다.
 
-- `Idempotency-Key`가 있는 요청에 선택적 멱등 처리 적용
-- `(user_id, endpoint, idempotency_key)` unique constraint로 동시 요청 경쟁 차단
-- 동일 키·동일 본문은 저장된 응답을 재사용하고, 동일 키·다른 본문은 충돌로 처리
-- `PENDING`, `SUCCEEDED`, `FAILED_RETRYABLE`, `FAILED_FINAL` 상태로 처리 결과 구분
-- 24시간 TTL과 만료 레코드 정리 스케줄러 적용
-- 중복 INSERT 이후 Hibernate 세션이 깨지는 문제를 `INSERT IGNORE + SELECT FOR UPDATE`로 해결
+`Idempotency-Key`로 같은 요청 시도를 구분하고, 사용자·API·키 조합에 unique constraint를 걸었습니다. 같은 키와 같은 내용이 다시 들어오면 처음 저장한 응답을 돌려주고, 같은 키로 다른 내용이 들어오면 충돌로 처리합니다. 처리 중인지, 성공했는지, 다시 시도할 수 있는 실패인지도 상태로 구분했습니다.
 
-- 관련 PR: [#271 채팅·푸시토큰 HTTP 멱등 처리](https://github.com/team-Melissa/melissa-BE/pull/271)
+동시에 같은 키가 들어왔을 때 Hibernate 세션이 깨지는 문제는 `INSERT IGNORE`와 `SELECT FOR UPDATE`를 사용해 해결했습니다. 키는 24시간 동안 보관하고 만료된 기록은 스케줄러가 정리합니다. [관련 PR #271](https://github.com/team-Melissa/melissa-BE/pull/271)
 
-### 3-3. 비동기 이미지 생성 결과를 URL의 null 여부로 판단하던 문제
+### 3-3. 이미지 URL만으로는 생성 상태를 알 수 없던 문제
 
-이미지 생성이 요청과 다른 시점에 끝나기 때문에 `imageUrl`만으로는 생성 전, 처리 중, 실패를 구분할 수 없었습니다. 오래된 이벤트가 뒤늦게 도착하면 최신 상태를 덮어쓸 가능성도 있었습니다.
+일기 이미지는 비동기로 생성됩니다. 그런데 `imageUrl`이 비어 있다는 사실만으로는 아직 시작하지 않은 것인지, 생성 중인지, 실패한 것인지 알 수 없었습니다. 이전 요청의 완료 이벤트가 늦게 도착해 최신 결과를 덮을 가능성도 있었습니다.
 
-`DiaryImageStatus`를 도입해 상태를 `NONE -> PENDING -> READY/FAILED`로 명시하고, 도메인 전이 메서드와 DB `NOT NULL`, 기본값, check constraint를 함께 적용했습니다. 비동기 완료 이벤트는 현재 상태가 `PENDING`일 때만 반영해 stale 이벤트를 차단했습니다. 기존 데이터는 URL 존재 여부에 따라 `READY`와 `NONE`으로 안전하게 백필했습니다.
+이미지 상태를 `NONE`, `PENDING`, `READY`, `FAILED`로 나누고 허용된 순서로만 바뀌도록 도메인 메서드를 만들었습니다. DB에도 기본값과 check constraint를 추가했으며, 완료 이벤트는 현재 상태가 `PENDING`일 때만 반영했습니다. 기존 데이터는 이미지 URL이 있으면 `READY`, 없으면 `NONE`으로 옮겼습니다. [관련 PR #262](https://github.com/team-Melissa/melissa-BE/pull/262)
 
-- 관련 PR: [#262 Diary 이미지 상태와 전이 가드 적용](https://github.com/team-Melissa/melissa-BE/pull/262)
+### 3-4. 모든 외부 API 실패를 똑같이 재시도하던 문제
 
-### 3-4. 외부 실패를 모두 같은 방식으로 처리하던 문제
+네트워크 timeout이나 429·5xx 응답은 잠시 뒤 성공할 수 있지만, 잘못된 요청이나 만료된 푸시 토큰은 반복해도 달라지지 않습니다. 서비스마다 달랐던 기준을 공통 재시도 정책으로 정리했습니다.
 
-timeout이나 rate limit 같은 일시 장애와 잘못된 요청, 만료된 푸시 토큰은 복구 방법이 다릅니다. 서비스마다 달랐던 실패 처리를 `RetryPolicy`, `RetryClassifier`, `RetryExecutor`로 표준화했습니다.
+일시적인 네트워크 오류와 rate limit, 서버 오류만 제한적으로 다시 시도하고, 일반 4xx와 잘못된 입력은 바로 실패 처리합니다. Expo에서 유효하지 않다고 확인된 토큰은 비활성화하고 다시 보내지 않습니다. S3 업로드가 끝내 실패했는데도 성공한 것처럼 key를 반환하던 경로도 예외를 전달하도록 고쳤습니다. [관련 PR #278](https://github.com/team-Melissa/melissa-BE/pull/278)
 
-- timeout, connection error, 408·409·425·429·5xx, AWS throttling은 제한적으로 재시도
-- 일반 4xx와 잘못된 입력은 즉시 실패 처리
-- Expo invalid token은 비활성화하고 재시도 대상에서 제외
-- S3 업로드 최종 실패가 성공처럼 처리되지 않도록 예외 전파
-- 외부 OAuth 검증에 connect/read timeout 적용
+### 3-5. 결제 완료와 광고 제거 권한이 어긋날 수 있는 문제
 
-- 관련 PR: [#278 실패 재시도 정책 표준화](https://github.com/team-Melissa/melissa-BE/pull/278)
+스토어가 구매를 확인했다는 사실과 서비스에서 광고 제거 기능을 사용할 수 있다는 사실은 같아 보이지만, 복원이나 환불이 들어오면 서로 다른 시점에 바뀔 수 있습니다. 그래서 구매 내역은 `Payment`, 실제 사용 권한은 `Entitlement`, 처리 이력은 `PaymentEvent`로 나눴습니다.
 
-### 3-5. 스토어 결제와 서비스 권한을 하나의 상태로 다룰 수 없는 문제
+Google Play와 Apple App Store의 구매 검증·복원 API를 만들고, 검증이 끝나면 광고 제거 권한을 부여하도록 연결했습니다. 같은 구매가 다시 들어오면 기존 결과로 처리하고, 이미 다른 사용자에게 연결된 구매는 차단합니다. Google acknowledge가 실패하면 다시 시도하며, 관리자가 환불을 반영하면 결제 상태 변경과 권한 회수가 함께 이뤄집니다. 이미 처리된 환불 요청도 같은 결과로 끝나도록 만들었습니다.
 
-구매 검증 결과, 사용자에게 제공되는 광고 제거 권한, 환불 이력은 서로 다른 생명주기를 갖습니다. 이를 `Payment`, `Entitlement`, `PaymentEvent`로 분리하고 플랫폼 이벤트가 서비스 권한에 반영되는 흐름을 구성했습니다.
+[결제 기반 모델 #288](https://github.com/team-Melissa/melissa-BE/pull/288) · [구매 검증과 복원 #290](https://github.com/team-Melissa/melissa-BE/pull/290) · [관리자 환불 #292](https://github.com/team-Melissa/melissa-BE/pull/292)
 
-- Google Play·Apple App Store 비소모성 상품 구매 검증과 복원 API
-- 동일 구매 재요청 멱등 처리와 다른 사용자에게 연결된 구매 차단
-- 검증 성공 시 결제 저장과 `REMOVE_ADS` 권한 부여
-- Google acknowledge 실패 재시도
-- 관리자 환불 fallback에서 결제 상태 변경과 권한 회수
-- 이미 처리된 환불은 동일 결과로 수렴하고 비정상적으로 남은 권한도 회수
-- 상태 변경을 `PaymentEvent`에 기록해 처리 이력 추적
+### 3-6. S3 주소를 DB에 그대로 저장했던 문제
 
-- 관련 PR: [#288 결제·권한 기반 모델](https://github.com/team-Melissa/melissa-BE/pull/288), [#290 Google·Apple 구매 검증과 복원](https://github.com/team-Melissa/melissa-BE/pull/290), [#292 관리자 환불 fallback](https://github.com/team-Melissa/melissa-BE/pull/292)
+이미지의 전체 URL을 DB에 저장하면 버킷이나 공개 도메인이 바뀔 때 기존 데이터까지 수정해야 합니다. 새로 생성하는 이미지는 S3 object key만 저장하고, 응답을 만들 때 현재 공개 주소와 조합하도록 바꿨습니다.
 
-### 3-6. S3 절대 URL 저장이 인프라 변경 비용을 키우는 문제
+기존 DB에는 전체 URL과 `s3://` 형식이 이미 섞여 있었기 때문에 한 번에 마이그레이션하지 않았습니다. `S3AssetUrlResolver`가 과거 형식과 새 key를 모두 읽도록 만들어 기존 데이터는 그대로 사용할 수 있게 했습니다. [관련 PR #274](https://github.com/team-Melissa/melissa-BE/pull/274)
 
-DB에 버킷 절대 URL을 저장하면 계정이나 공개 도메인이 바뀔 때 운영 데이터를 함께 마이그레이션해야 합니다. 신규 데이터는 object key만 저장하고, 응답 시점에 현재 public base URL을 조합하도록 전환했습니다.
+## 4. 그 밖의 개선
 
-`S3AssetUrlResolver`는 기존 absolute URL, `s3://` URI와 신규 key를 모두 읽을 수 있습니다. 기존 데이터의 읽기 호환성을 유지하면서 새로운 쓰기부터 점진적으로 key 중심 구조로 옮겼습니다.
-
-- 관련 PR: [#274 S3 URL 비의존화 및 asset key 전환](https://github.com/team-Melissa/melissa-BE/pull/274)
-
-## 4. 추가 운영 개선
-
-| 영역 | 개선 내용 |
+| 문제 | 개선 내용 |
 | --- | --- |
-| Commit 시점 | 이미지 생성 이벤트를 `AFTER_COMMIT` 이후 실행해 저장 직후 조회에서 발생하던 데이터 가시성 문제 해결 |
-| Push | Expo 응답의 객체·배열 형태를 모두 처리하고, 성공 마킹·실패 재시도·invalid token 비활성화 상태 분리 |
-| Timezone | 알림 스케줄과 streak 계산을 `Asia/Seoul` 기준으로 통일 |
-| Terms | 약관과 버전을 분리하고 버전별 사용자 동의 이력 및 재동의 필요 여부 관리 |
-| Security | JWT type claim 검증, refresh token hash 저장과 기존 토큰 무력화 적용 |
-| Observability | 애플리케이션·NGINX·EB 로그를 CloudWatch에 수집하고 보존 주기를 서비스 기준으로 구성 |
+| 저장 직후 이미지가 보이지 않음 | 이미지 생성 이벤트를 `AFTER_COMMIT` 이후 실행하도록 변경 |
+| 실제 스케줄러에서만 푸시 실패 | Expo 응답 형태, payload, 성공·실패 상태와 시간대 처리 수정 |
+| 약관이 바뀌어도 재동의 여부를 알기 어려움 | 약관을 버전별로 관리하고 사용자 동의 이력 저장 |
+| Refresh Token 탈취 대응 | 토큰 hash 저장, type 검증과 기존 토큰 무력화 적용 |
+| 인스턴스 교체 후 로그 추적이 어려움 | 애플리케이션·NGINX·EB 로그를 CloudWatch에 수집 |
 
-## 5. 검증 포인트
+## 5. 검증
 
-- 같은 멱등 키·같은 본문 재요청 시 비즈니스 로직을 다시 실행하지 않고 저장 응답 반환
-- 같은 멱등 키·다른 본문 요청 충돌 처리
-- 이미지 생성 `PENDING -> READY/FAILED` 전이와 stale 이벤트 차단 검증
-- 결제 중복 검증, 복원, 권한 부여와 환불 후 권한 회수 테스트
-- retryable·non-retryable 예외 분류와 S3·Expo Push 최종 상태 검증
-- 마이그레이션마다 precheck·apply·post-check·rollback 절차 제공
+- 같은 멱등 키로 요청을 반복해 실제 채팅 로직이 다시 실행되지 않는지 확인
+- 같은 키에 다른 내용을 보내 충돌로 처리되는지 확인
+- 이미지 생성이 `PENDING -> READY/FAILED` 순서로 바뀌고 오래된 이벤트가 무시되는지 확인
+- 구매 중복 검증, 복원, 권한 부여와 환불 후 권한 회수 테스트
+- 재시도할 오류와 바로 실패시킬 오류를 나눠 S3·Expo Push의 최종 상태 확인
+- DB 변경에는 적용 전 검사와 rollback 스크립트를 함께 작성
